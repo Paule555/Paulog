@@ -2,890 +2,494 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#10B981">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Paulog">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Paulog – Workout Tracker</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Paulog</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body, #root { height: 100%; width: 100%; }
-body {
-  font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
-  background: #0F172A; color: #E2E8F0;
-  -webkit-font-smoothing: antialiased; overflow-x: hidden;
-}
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-input[type="number"] { -moz-appearance: textfield; }
-input[type="date"] { -webkit-appearance: none; }
-#error-display { display:none; color:#F87171; text-align:center; padding:40px 20px; font-size:14px; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;background:#0F172A;color:#E2E8F0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+button{font-family:inherit;cursor:pointer}
+.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:100px}
+/* Header */
+.hdr{padding:32px 20px 16px;text-align:center}
+.hdr h1{font-size:32px;font-weight:800;letter-spacing:4px;color:#F8FAFC}
+.hdr h1 span{color:#10B981}
+.hdr p{font-size:13px;color:#64748B;margin-top:4px;letter-spacing:2px;text-transform:uppercase}
+/* Stats */
+.stats{display:flex;justify-content:center;align-items:center;gap:24px;padding:16px 20px;margin:0 20px 8px;background:#1E293B;border-radius:12px}
+.stat{display:flex;flex-direction:column;align-items:center}
+.stat-n{font-size:24px;font-weight:700;color:#F8FAFC}
+.stat-l{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:1px}
+.stat-div{width:1px;height:32px;background:#334155}
+/* Section */
+.sec{padding:12px 20px}
+.sec-t{font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px}
+/* Day buttons */
+.day-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:16px;margin-bottom:10px;background:#1E293B;border:none;border-radius:10px;text-align:left;color:#E2E8F0}
+.day-btn .name{font-size:16px;font-weight:700}
+.day-btn .musc{font-size:12px;color:#94A3B8;margin-top:2px}
+.day-btn .arr{font-size:22px;font-weight:700}
+.day-btn.sug{background:rgba(16,185,129,0.07)}
+/* Bottom buttons */
+.bbtn{padding:8px 20px;display:flex;flex-direction:column;gap:8px}
+.sec-btn{width:100%;padding:14px;background:transparent;border:1px solid #334155;border-radius:10px;color:#94A3B8;font-size:15px;font-weight:600}
+/* Track header */
+.t-hdr{display:flex;align-items:center;gap:12px;padding:16px 20px;background:#1E293B;position:sticky;top:0;z-index:10}
+.back{background:none;border:none;color:#94A3B8;font-size:24px;padding:4px 8px}
+.t-hdr h2{font-size:18px;font-weight:700;color:#F8FAFC}
+.t-hdr .sub{font-size:11px;color:#64748B}
+.t-hdr .din{margin-left:auto;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#E2E8F0;padding:6px 10px;font-size:13px;font-family:inherit}
+/* Exercise cards */
+.e-list{padding:8px 12px}
+.e-card{margin-bottom:8px;border-radius:10px;overflow:hidden;background:#1E293B}
+.e-hdr{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px;background:#1E293B;border:none;color:#E2E8F0;text-align:left}
+.e-name{font-size:14px;font-weight:700}
+.e-vol{font-size:11px;color:#94A3B8}
+.e-vol .delta-up{color:#10B981;margin-left:4px}
+.e-vol .delta-dn{color:#EF4444;margin-left:4px}
+.e-icon{font-size:10px;color:#64748B}
+.e-body{padding:0 14px 14px}
+/* Prev session */
+.prev{background:#0F172A;border-radius:8px;padding:8px 12px;margin-bottom:10px}
+.prev-l{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:1px}
+.prev-s{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.prev-s span{font-size:12px;color:#94A3B8;background:#1E293B;padding:2px 8px;border-radius:4px}
+/* Sets grid */
+.s-grid{display:flex;flex-direction:column;gap:6px}
+.s-hdr{display:grid;grid-template-columns:36px 1fr 1fr;gap:8px;margin-bottom:2px}
+.s-hdr span{font-size:10px;color:#475569;text-align:center}
+.s-row{display:grid;grid-template-columns:36px 1fr 1fr;gap:8px;align-items:center}
+.s-num{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:700;font-size:14px}
+.s-inp{width:100%;padding:10px 8px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;font-size:16px;text-align:center;font-weight:600;outline:none;font-family:inherit}
+.s-inp:focus{border-color:#3B82F6}
+/* Save button */
+.save-btn{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 48px);max-width:440px;padding:16px;background:#3B82F6;border:none;border-radius:12px;color:#FFF;font-size:16px;font-weight:700;z-index:20;box-shadow:0 4px 24px rgba(59,130,246,0.4)}
+/* History */
+.h-hdr{display:flex;align-items:center;gap:12px;padding:16px 20px;background:#1E293B;position:sticky;top:0;z-index:10}
+.h-hdr h2{font-size:18px;font-weight:700;color:#F8FAFC}
+.h-cnt{margin-left:auto;font-size:12px;color:#64748B;background:#0F172A;padding:4px 10px;border-radius:12px}
+.empty{text-align:center;padding:60px 20px}
+.empty .ico{font-size:48px}
+.empty .txt{font-size:16px;font-weight:600;color:#94A3B8;margin-top:12px}
+.empty .sub{font-size:13px;color:#475569}
+.mo-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 6px;border-bottom:1px solid #1E293B}
+.mo-hdr .name{font-size:14px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:1px}
+.mo-hdr .cnt{font-size:11px;color:#475569}
+.s-card{display:flex;margin:8px 12px;border-radius:10px;overflow:hidden;background:#1E293B}
+.s-card .bar{width:4px;flex-shrink:0}
+.s-card .cont{flex:1;padding:12px 14px}
+.s-card .top{display:flex;justify-content:space-between;align-items:flex-start}
+.s-card .day{font-size:14px;font-weight:700;color:#F8FAFC}
+.s-card .date{font-size:12px;color:#64748B;margin-top:2px}
+.s-card .sts{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.s-card .vol{font-size:13px;font-weight:700;color:#E2E8F0}
+.s-card .exc{font-size:11px;color:#64748B}
+.s-card .exs{margin-top:10px;padding-top:10px;border-top:1px solid #0F172A;display:flex;flex-direction:column;gap:4px}
+.s-card .exr{display:flex;justify-content:space-between;align-items:center}
+.s-card .exn{font-size:12px;color:#94A3B8}
+.s-card .exd{font-size:11px;color:#64748B}
+.s-card .acts{display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #0F172A}
+.act-edit{flex:1;padding:8px;background:#1E3A5F;border:none;border-radius:8px;color:#60A5FA;font-size:13px;font-weight:600}
+.act-del{flex:1;padding:8px;background:#3B1C1C;border:none;border-radius:8px;color:#F87171;font-size:13px;font-weight:600}
+.dc-bar{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #0F172A}
+.dc-txt{font-size:13px;color:#F87171;font-weight:600;flex:1}
+.dc-yes{padding:8px 14px;background:#DC2626;border:none;border-radius:8px;color:#FFF;font-size:12px;font-weight:700}
+.dc-no{padding:8px 14px;background:#334155;border:none;border-radius:8px;color:#94A3B8;font-size:12px;font-weight:600}
+/* Dashboard */
+.d-hdr{display:flex;align-items:center;gap:12px;padding:16px 20px;background:#1E293B;position:sticky;top:0;z-index:10}
+.d-hdr h2{font-size:18px;font-weight:700;color:#F8FAFC}
+.c-sec{padding:16px 20px;border-bottom:1px solid #1E293B}
+.c-sec h3{font-size:16px;font-weight:700;margin:0 0 2px}
+.c-sec .csub{font-size:11px;color:#64748B;margin:0 0 12px}
+.c-wrap{background:#1E293B;border-radius:10px;padding:12px 8px}
+.c-legend{padding:6px 0;line-height:1.8;display:flex;flex-wrap:wrap}
+.c-legend span{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:10px;color:#94A3B8}
+.c-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+.no-data{font-size:13px;color:#475569;font-style:italic}
+.pb-sec{padding:16px 20px}
+.pb-sec h3{font-size:16px;font-weight:700;margin-bottom:12px;color:#F8FAFC}
+.pb-row{display:flex;justify-content:space-between;padding:10px 12px;background:#1E293B;border-radius:8px;margin-bottom:6px}
+.pb-row .ex{font-size:13px;color:#CBD5E1}
+.pb-row .kg{font-size:14px;font-weight:700;color:#F59E0B}
+/* Backup */
+.b-sec{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.b-card{background:#1E293B;border-radius:12px;padding:20px}
+.b-card h3{font-size:15px;font-weight:700;color:#F8FAFC;margin-bottom:6px}
+.b-card p{font-size:13px;color:#94A3B8;line-height:1.5;margin-bottom:12px}
+.b-card .ld{font-size:12px;color:#64748B;margin-bottom:12px;font-style:italic}
+.b-xbtn{width:100%;padding:12px;background:#3B82F6;border:none;border-radius:8px;color:#FFF;font-size:14px;font-weight:700}
+.b-ibtn{display:block;width:100%;padding:12px;background:#1E3A5F;border:1px dashed #3B82F6;border-radius:8px;color:#60A5FA;font-size:14px;font-weight:600;text-align:center;cursor:pointer}
+.b-cnf{background:#1E293B;border-radius:12px;padding:20px;border:1px solid #334155;display:flex;flex-direction:column;gap:8px}
+.b-mrg{width:100%;padding:12px;background:#10B981;border:none;border-radius:8px;color:#FFF;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+.b-rpl{width:100%;padding:12px;background:#F59E0B;border:none;border-radius:8px;color:#0F172A;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+.b-bs{font-size:11px;font-weight:400;opacity:0.8}
+.b-suc{padding:14px;background:#064E3B;border-radius:10px;color:#6EE7B7;font-size:14px;font-weight:600;text-align:center}
+.b-err{padding:14px;background:#7F1D1D;border-radius:10px;color:#FCA5A5;font-size:14px;font-weight:600;text-align:center}
+.b-inf{background:#1E293B;border-radius:12px;padding:16px;border:1px solid #334155}
+.b-inf h3{font-size:13px;font-weight:700;color:#F8FAFC;margin-bottom:6px}
+.b-inf p{font-size:13px;color:#94A3B8;line-height:1.5;margin:0}
+/* Reminder */
+.rem{margin:8px 20px 0;padding:14px 16px;background:#1E293B;border-radius:10px;border:1px solid rgba(245,158,11,0.2)}
+.rem .rt{display:flex;align-items:center;gap:8px;font-size:13px;color:#F59E0B}
+.rem .ra{display:flex;gap:8px;margin-top:10px}
+.rem .rb{flex:1;padding:8px;background:#F59E0B;border:none;border-radius:8px;color:#0F172A;font-size:13px;font-weight:700}
+.rem .rd{padding:8px 14px;background:transparent;border:1px solid #334155;border-radius:8px;color:#64748B;font-size:13px}
+.hidden{display:none}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<div id="error-display"></div>
-
-<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
-
+<div class="app" id="app"></div>
 <script>
-window.onerror = function(msg, url, line) {
-  var el = document.getElementById('error-display');
-  el.style.display = 'block';
-  el.innerHTML = '<h2>Fehler beim Laden</h2><p>' + msg + '</p><p>Zeile: ' + line + '</p><p>Bitte prüfe deine Internetverbindung und lade die Seite neu.</p>';
+(function(){
+"use strict";
+
+var PLAN = {
+  "Push (Mo)": {muscles:"Brust / Schulter / Trizeps",color:"#3B82F6",exercises:["Bankdrücken LH","Schulterdrücken KH","Schrägbankdrücken KH","Seitheben Kabel","Kabel Flys","Trizeps Pushdown Seil"]},
+  "Pull (Mi)": {muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",exercises:["Latzug","T-Bar Row","Rudern Kabel eng","Reverse Fly Kabel","Langhantel Curls","Hammercurls KH"]},
+  "Legs (Fr)": {muscles:"Beine / Core",color:"#F59E0B",exercises:["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Plank / Cable Crunch"]}
 };
-</script>
+var SETS=4, SK="paulog-data", BK="paulog-bk", CC=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899"];
+var MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+var DN=["So","Mo","Di","Mi","Do","Fr","Sa"];
 
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useCallback } = React;
-const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } = Recharts;
-
-const PLAN = {
-  "Push (Mo)": {
-    muscles: "Brust / Schulter / Trizeps",
-    color: "#3B82F6",
-    exercises: ["Bankdrücken LH","Schulterdrücken KH","Schrägbankdrücken KH","Seitheben Kabel","Kabel Flys","Trizeps Pushdown Seil"],
-  },
-  "Pull (Mi)": {
-    muscles: "Rücken / Bizeps / hintere Schulter",
-    color: "#10B981",
-    exercises: ["Latzug","T-Bar Row","Rudern Kabel eng","Reverse Fly Kabel","Langhantel Curls","Hammercurls KH"],
-  },
-  "Legs (Fr)": {
-    muscles: "Beine / Core",
-    color: "#F59E0B",
-    exercises: ["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Plank / Cable Crunch"],
-  },
+// State
+var state = {
+  view:"home", day:null, date:today(), session:{}, expanded:null,
+  editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false
 };
+var allData = {};
 
-const NUM_SETS = 4;
-const STORAGE_KEY = "paulog-data";
-const BACKUP_KEY = "paulog-last-backup";
-const BACKUP_REMINDER_DAYS = 14;
-const CHART_COLORS = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899"];
+// Storage
+function load(){try{var r=localStorage.getItem(SK);return r?JSON.parse(r):{};}catch(e){return {};}}
+function save(){try{localStorage.setItem(SK,JSON.stringify(allData));}catch(e){}}
+function getLB(){try{return localStorage.getItem(BK)||null;}catch(e){return null;}}
+function setLB(){try{localStorage.setItem(BK,today());}catch(e){}}
+function daysBack(){var l=getLB();if(!l)return 9999;return Math.floor((new Date()-new Date(l+"T00:00:00"))/864e5);}
 
-function loadData() {
-  try {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch(e) { return {}; }
+// Helpers
+function today(){return new Date().toISOString().split("T")[0];}
+function fmtDate(ds){var d=new Date(ds+"T00:00:00");return DN[d.getDay()]+", "+p2(d.getDate())+"."+p2(d.getMonth()+1)+"."+d.getFullYear();}
+function p2(n){return n<10?"0"+n:""+n;}
+function vol(sets){var s=0;for(var i=0;i<sets.length;i++)s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);return s;}
+function sugDay(){var w=new Date().getDay();if(w===1)return"Push (Mo)";if(w===3)return"Pull (Mi)";if(w===5)return"Legs (Fr)";return null;}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function totalSess(){var t=0;for(var k in allData)t+=allData[k].length;return t;}
+
+function getPB(){
+  var pbs={};
+  for(var k in allData){allData[k].forEach(function(s){for(var ex in s.exercises||{}){var mx=0;s.exercises[ex].forEach(function(st){var v=Number(st.kg)||0;if(v>mx)mx=v;});if(!pbs[ex]||mx>pbs[ex])pbs[ex]=mx;}});}
+  return pbs;
 }
 
-function saveDataToStorage(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-  catch(e) { console.error("Save failed:", e); }
-}
-
-function getLastBackup() {
-  try { return localStorage.getItem(BACKUP_KEY) || null; } catch(e) { return null; }
-}
-
-function setLastBackup() {
-  try { localStorage.setItem(BACKUP_KEY, getToday()); } catch(e) {}
-}
-
-function daysSinceBackup() {
-  var last = getLastBackup();
-  if (!last) return Infinity;
-  var diff = new Date() - new Date(last + "T00:00:00");
-  return Math.floor(diff / 86400000);
-}
-
-function exportData(allData) {
-  var payload = { app: "paulog", version: 1, exported: new Date().toISOString(), data: allData };
-  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement("a");
-  a.href = url;
-  a.download = "paulog-backup-" + getToday() + ".json";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  setLastBackup();
-}
-
-function getVolume(sets) {
-  return sets.reduce(function(sum, s) { return sum + (Number(s.kg) || 0) * (Number(s.reps) || 0); }, 0);
-}
-
-function getToday() { return new Date().toISOString().split("T")[0]; }
-
-function formatDate(dateStr) {
-  var d = new Date(dateStr + "T00:00:00");
-  var days = ["So","Mo","Di","Mi","Do","Fr","Sa"];
-  return days[d.getDay()] + ", " + String(d.getDate()).padStart(2,"0") + "." + String(d.getMonth()+1).padStart(2,"0") + "." + d.getFullYear();
-}
-
-function suggestedDay() {
-  var wd = new Date().getDay();
-  if (wd === 1) return "Push (Mo)";
-  if (wd === 3) return "Pull (Mi)";
-  if (wd === 5) return "Legs (Fr)";
+function getPrev(day,exercise){
+  var dd=allData[day]||[];
+  var sorted=dd.slice().sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
+  for(var i=0;i<sorted.length;i++){
+    if(sorted[i].date===state.date)continue;
+    var ex=sorted[i].exercises&&sorted[i].exercises[exercise];
+    if(ex&&ex.some(function(s){return s.kg||s.reps;}))return ex;
+  }
   return null;
 }
 
-function App() {
-  const [view, setView] = useState("home");
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [allData, setAllData] = useState(function() { return loadData(); });
-  const [currentSession, setCurrentSession] = useState({});
-  const [sessionDate, setSessionDate] = useState(getToday());
-  const [saving, setSaving] = useState(false);
-  const [expandedExercise, setExpandedExercise] = useState(null);
-  const [editingSession, setEditingSession] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [importStatus, setImportStatus] = useState(null);
-  const [importPayload, setImportPayload] = useState(null);
-  const [showBackupReminder, setShowBackupReminder] = useState(function() {
-    return daysSinceBackup() >= BACKUP_REMINDER_DAYS && Object.keys(loadData()).length > 0;
+function getAllSess(){
+  var ss=[];
+  for(var day in allData)(allData[day]||[]).forEach(function(se){
+    var tv=0,ec=0;
+    for(var ex in se.exercises||{}){tv+=vol(se.exercises[ex]);if(se.exercises[ex].some(function(s){return s.kg||s.reps;}))ec++;}
+    ss.push({day:day,date:se.date,totalVol:tv,exerciseCount:ec,exercises:se.exercises});
   });
+  return ss.sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
+}
 
-  useEffect(function() { saveDataToStorage(allData); }, [allData]);
+function exportData(){
+  var p={app:"paulog",version:1,exported:new Date().toISOString(),data:allData};
+  var b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
+  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="paulog-backup-"+today()+".json";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);setLB();
+}
 
-  var getPreviousSession = useCallback(
-    function(day, exercise) {
-      var dayData = allData[day] || [];
-      var sorted = dayData.slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
-      for (var i = 0; i < sorted.length; i++) {
-        if (sorted[i].date === sessionDate) continue;
-        var ex = sorted[i].exercises && sorted[i].exercises[exercise];
-        if (ex && ex.some(function(s) { return s.kg || s.reps; })) return ex;
-      }
-      return null;
-    },
-    [allData, sessionDate]
-  );
+// Chart
+function drawChart(day){
+  var info=PLAN[day],sessions=(allData[day]||[]).slice().sort(function(a,b){return a.date>b.date?1:-1;});
+  if(sessions.length===0)return'<p class="no-data">Noch keine Daten</p>';
+  var data=sessions.map(function(s,i){var pt={name:"W"+(i+1)};info.exercises.forEach(function(ex){pt[ex]=s.exercises&&s.exercises[ex]?vol(s.exercises[ex]):0;});return pt;});
+  var W=340,H=200,pl=45,pt2=20,pr=10,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
+  var allV=[];data.forEach(function(p){info.exercises.forEach(function(ex){if(p[ex])allV.push(p[ex]);});});
+  var maxV=Math.max.apply(null,allV)||1;
+  function x(i){return pl+(data.length===1?cw/2:(i/(data.length-1))*cw);}
+  function y(v){return pt2+ch-(v/maxV)*ch;}
 
-  function startSession(day, date, existingData) {
-    setSelectedDay(day);
-    setSessionDate(date || getToday());
-    if (existingData) {
-      setCurrentSession(JSON.parse(JSON.stringify(existingData)));
-    } else {
-      var dayArr = allData[day] || [];
-      var existing = dayArr.find(function(s) { return s.date === (date || getToday()); });
-      if (existing && existing.exercises) {
-        setCurrentSession(JSON.parse(JSON.stringify(existing.exercises)));
-      } else {
-        var session = {};
-        PLAN[day].exercises.forEach(function(ex) {
-          session[ex] = Array.from({ length: NUM_SETS }, function() { return { kg: "", reps: "" }; });
-        });
-        setCurrentSession(session);
-      }
+  var svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="max-width:'+W+'px">';
+  // Grid
+  for(var g=0;g<=4;g++){var gv2=g/4*maxV,gy=y(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+Math.round(gv2)+'</text>';}
+  // X labels
+  data.forEach(function(p,i){svg+='<text x="'+x(i)+'" y="'+(H-5)+'" fill="#64748B" font-size="9" text-anchor="middle">'+p.name+'</text>';});
+  // Lines
+  info.exercises.forEach(function(ex,ei){
+    var pts=[];data.forEach(function(p,i){if(p[ex])pts.push({x:x(i),y:y(p[ex])});});
+    if(pts.length<1)return;
+    var d=pts.map(function(p,i){return(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
+    svg+='<path d="'+d+'" fill="none" stroke="'+CC[ei%6]+'" stroke-width="2" stroke-linejoin="round"/>';
+    pts.forEach(function(p){svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="'+CC[ei%6]+'"/>';});
+  });
+  svg+='</svg>';
+  // Legend
+  svg+='<div class="c-legend">';
+  info.exercises.forEach(function(ex,i){svg+='<span><span class="dot" style="background:'+CC[i%6]+'"></span>'+esc(ex)+'</span>';});
+  svg+='</div>';
+  return svg;
+}
+
+// =========== RENDER ===========
+function render(){
+  var el=document.getElementById("app");
+  var v=state.view;
+
+  if(v==="home") el.innerHTML=renderHome();
+  else if(v==="track") el.innerHTML=renderTrack();
+  else if(v==="history") el.innerHTML=renderHistory();
+  else if(v==="dashboard") el.innerHTML=renderDash();
+  else if(v==="backup") el.innerHTML=renderBackup();
+
+  bindEvents();
+}
+
+function renderHome(){
+  var sug=sugDay(),ts=totalSess(),pbs=getPB(),pbCount=Object.keys(pbs).length;
+  var h='<div class="hdr"><h1>Pau<span>log</span></h1><p>Push / Pull / Legs Tracker</p></div>';
+  h+='<div class="stats"><div class="stat"><span class="stat-n">'+ts+'</span><span class="stat-l">Sessions</span></div><div class="stat-div"></div><div class="stat"><span class="stat-n">'+pbCount+'</span><span class="stat-l">Übungen</span></div></div>';
+  h+='<div class="sec"><h2 class="sec-t">Training starten</h2>';
+  for(var day in PLAN){
+    var info=PLAN[day],isSug=sug===day;
+    h+='<button class="day-btn'+(isSug?' sug':'')+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
+    h+='<div><div class="name">'+esc(day)+'</div><div class="musc">'+esc(info.muscles)+'</div></div>';
+    h+='<div class="arr" style="color:'+info.color+'">→</div></button>';
+  }
+  h+='</div>';
+  h+='<div class="bbtn"><button class="sec-btn" data-action="go" data-view="history">📋 Sessions verwalten</button>';
+  h+='<button class="sec-btn" data-action="go" data-view="dashboard">📊 Dashboard</button>';
+  h+='<button class="sec-btn" data-action="go" data-view="backup">💾 Backup & Restore</button></div>';
+  if(state.showRem&&ts>0){
+    var lb=getLB();
+    h+='<div class="rem"><div class="rt"><span>⚠️</span><span>'+(lb?'Letztes Backup: '+fmtDate(lb):'Noch kein Backup!')+'</span></div>';
+    h+='<div class="ra"><button class="rb" data-action="backup-now">Jetzt sichern</button><button class="rd" data-action="dismiss-rem">Später</button></div></div>';
+  }
+  return h;
+}
+
+function renderTrack(){
+  var info=PLAN[state.day],isEd=!!state.editing;
+  var h='<div class="t-hdr" style="border-bottom:3px solid '+info.color+'">';
+  h+='<button class="back" data-action="go" data-view="'+(isEd?'history':'home')+'">←</button>';
+  h+='<div><h2>'+(isEd?'Session bearbeiten':esc(state.day))+'</h2><p class="sub">'+esc(info.muscles)+'</p></div>';
+  h+='<input type="date" class="din" value="'+state.date+'" data-action="set-date"></div>';
+  h+='<div class="e-list">';
+  info.exercises.forEach(function(ex){
+    var isX=state.expanded===ex,prev=getPrev(state.day,ex);
+    var sets=state.session[ex]||[];
+    var cv=vol(sets),pv=prev?vol(prev):0,hd=cv>0&&pv>0,delta=hd?Math.round(((cv-pv)/pv)*100):0;
+    h+='<div class="e-card"><button class="e-hdr" style="border-left:3px solid '+info.color+'" data-action="toggle-ex" data-ex="'+esc(ex)+'">';
+    h+='<div><span class="e-name">'+esc(ex)+'</span>';
+    if(cv>0){h+='<div class="e-vol">Vol: '+cv.toLocaleString();if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
+    h+='</div><span class="e-icon">'+(isX?'▲':'▼')+'</span></button>';
+    if(isX){
+      h+='<div class="e-body">';
+      if(prev){h+='<div class="prev"><span class="prev-l">Letzte Session:</span><div class="prev-s">';prev.forEach(function(s){if(s.kg||s.reps)h+='<span>'+esc(s.kg)+'kg×'+esc(s.reps)+'</span>';});h+='</div></div>';}
+      h+='<div class="s-grid"><div class="s-hdr"><span></span><span>kg</span><span>Wdh</span></div>';
+      sets.forEach(function(set,i){
+        var phK=prev&&prev[i]?prev[i].kg||'—':'—';var phR=prev&&prev[i]?prev[i].reps||'—':'—';
+        h+='<div class="s-row"><span class="s-num" style="background:'+info.color+'">'+(i+1)+'</span>';
+        h+='<input type="number" inputmode="decimal" class="s-inp" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg">';
+        h+='<input type="number" inputmode="numeric" class="s-inp" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"></div>';
+      });
+      h+='</div></div>';
     }
-    setExpandedExercise(PLAN[day].exercises[0]);
-    setView("track");
-  }
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="save-btn" data-action="save">'+(isEd?'✓ Änderungen speichern':'✓ Session speichern')+'</button>';
+  return h;
+}
 
-  function updateSet(exercise, setIdx, field, value) {
-    setCurrentSession(function(prev) {
-      var next = Object.assign({}, prev);
-      next[exercise] = prev[exercise].slice();
-      next[exercise][setIdx] = Object.assign({}, next[exercise][setIdx]);
-      next[exercise][setIdx][field] = value;
-      return next;
+function renderHistory(){
+  var sess=getAllSess(),grp={};
+  sess.forEach(function(s){var m=s.date.slice(0,7);if(!grp[m])grp[m]=[];grp[m].push(s);});
+  var h='<div class="h-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>📋 Alle Sessions</h2><span class="h-cnt">'+sess.length+' gesamt</span></div>';
+  if(sess.length===0){h+='<div class="empty"><p class="ico">🏋️</p><p class="txt">Noch keine Sessions</p><p class="sub">Starte dein erstes Training!</p></div>';return h;}
+  for(var mo in grp){
+    var pts=mo.split("-");
+    h+='<div class="mo-hdr"><span class="name">'+MN[parseInt(pts[1])-1]+' '+pts[0]+'</span><span class="cnt">'+grp[mo].length+' Sessions</span></div>';
+    grp[mo].forEach(function(s){
+      var inf=PLAN[s.day],isDel=state.delConfirm&&state.delConfirm.day===s.day&&state.delConfirm.date===s.date;
+      h+='<div class="s-card"><div class="bar" style="background:'+(inf?inf.color:'#64748B')+'"></div><div class="cont">';
+      h+='<div class="top"><div><div class="day">'+esc(s.day)+'</div><div class="date">'+fmtDate(s.date)+'</div></div>';
+      h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' Vol</span><span class="exc">'+s.exerciseCount+' Übungen</span></div></div>';
+      h+='<div class="exs">';
+      for(var ex in s.exercises||{}){var v=vol(s.exercises[ex]);if(v===0)continue;var mk=0;s.exercises[ex].forEach(function(st){var kk=Number(st.kg)||0;if(kk>mk)mk=kk;});h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+'kg · '+v.toLocaleString()+' vol</span></div>';}
+      h+='</div>';
+      if(isDel){h+='<div class="dc-bar"><span class="dc-txt">Wirklich löschen?</span><button class="dc-yes" data-action="del-confirm" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">Ja</button><button class="dc-no" data-action="del-cancel">Nein</button></div>';}
+      else{h+='<div class="acts"><button class="act-edit" data-action="edit" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">✏️ Bearbeiten</button><button class="act-del" data-action="del-ask" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">🗑 Löschen</button></div>';}
+      h+='</div></div>';
     });
   }
+  return h;
+}
 
-  function saveSession() {
-    setSaving(true);
-    setAllData(function(prev) {
-      var newData = Object.assign({}, prev);
-      if (!newData[selectedDay]) newData[selectedDay] = [];
-      else newData[selectedDay] = newData[selectedDay].slice();
-      var idx = newData[selectedDay].findIndex(function(s) { return s.date === sessionDate; });
-      var entry = { date: sessionDate, exercises: currentSession };
-      if (idx >= 0) newData[selectedDay][idx] = entry;
-      else newData[selectedDay].push(entry);
-      return newData;
-    });
-    setSaving(false);
-    setEditingSession(null);
-    setView("history");
+function renderDash(){
+  var pbs=getPB();
+  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>📊 Dashboard</h2></div>';
+  for(var day in PLAN){
+    var info=PLAN[day];
+    h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Volumen-Progression (kg × Wdh)</p><div class="c-wrap">'+drawChart(day)+'</div></div>';
   }
-
-  function deleteSession(day, date) {
-    setAllData(function(prev) {
-      var newData = Object.assign({}, prev);
-      newData[day] = (newData[day] || []).filter(function(s) { return s.date !== date; });
-      if (newData[day].length === 0) delete newData[day];
-      return newData;
-    });
-    setDeleteConfirm(null);
+  var pbArr=[];for(var ex in pbs)if(pbs[ex]>0)pbArr.push([ex,pbs[ex]]);
+  pbArr.sort(function(a,b){return b[1]-a[1];});
+  if(pbArr.length>0){
+    h+='<div class="pb-sec"><h3>🏆 Persönliche Bestleistungen</h3>';
+    pbArr.forEach(function(p){h+='<div class="pb-row"><span class="ex">'+esc(p[0])+'</span><span class="kg">'+p[1]+' kg</span></div>';});
+    h+='</div>';
   }
+  return h;
+}
 
-  function handleImport(e) {
-    var file = e.target.files && e.target.files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      try {
-        var parsed = JSON.parse(ev.target.result);
-        var data = parsed.data || parsed;
-        if (typeof data !== "object") throw new Error("Invalid");
-        setImportPayload(data);
-        setImportStatus("confirm");
-      } catch(err) {
-        setImportStatus("error");
-        setTimeout(function() { setImportStatus(null); }, 3000);
-      }
+function renderBackup(){
+  var lb=getLB(),bts=totalSess();
+  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>💾 Backup & Restore</h2></div>';
+  h+='<div class="b-sec">';
+  h+='<div class="b-card"><h3>📤 Exportieren</h3><p>Alle '+bts+' Sessions als Datei speichern.</p>';
+  if(lb)h+='<p class="ld">Letztes Backup: '+fmtDate(lb)+'</p>';
+  h+='<button class="b-xbtn" data-action="export"'+(bts===0?' disabled style="opacity:0.4"':'')+'>↓ Backup herunterladen</button></div>';
+  h+='<div class="b-card"><h3>📥 Importieren</h3><p>Backup-Datei laden und wiederherstellen.</p>';
+  h+='<label class="b-ibtn">↑ Datei auswählen<input type="file" accept=".json" data-action="import-file" style="display:none"></label></div>';
+  if(state.impStatus==="confirm"&&state.impData){
+    var ic=0;for(var k in state.impData)ic+=state.impData[k].length;
+    h+='<div class="b-cnf"><h3>Import-Modus</h3><p>Datei enthält '+ic+' Sessions.</p>';
+    h+='<button class="b-mrg" data-action="imp-merge">🔀 Zusammenführen<span class="b-bs">Bestehende behalten, neue hinzufügen</span></button>';
+    h+='<button class="b-rpl" data-action="imp-replace">🔄 Ersetzen<span class="b-bs">Alles überschreiben</span></button>';
+    h+='<button class="dc-no" data-action="imp-cancel">Abbrechen</button></div>';
+  }
+  if(state.impStatus==="success")h+='<div class="b-suc">✅ Import erfolgreich!</div>';
+  if(state.impStatus==="error")h+='<div class="b-err">❌ Ungültige Datei</div>';
+  h+='<div class="b-inf"><h3>💡 Tipp</h3><p>Backup regelmäßig in iCloud/Google Drive sichern. Erinnerung kommt alle 2 Wochen.</p></div></div>';
+  return h;
+}
+
+// =========== EVENT HANDLING ===========
+function bindEvents(){
+  var app=document.getElementById("app");
+  app.onclick=function(e){
+    var t=e.target.closest("[data-action]");
+    if(!t)return;
+    var a=t.getAttribute("data-action");
+
+    if(a==="go"){state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;render();}
+    else if(a==="start"){initSession(t.getAttribute("data-day"),null,null);state.view="track";render();}
+    else if(a==="toggle-ex"){var ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;render();}
+    else if(a==="save"){saveSession();render();}
+    else if(a==="edit"){
+      var day=t.getAttribute("data-day"),date=t.getAttribute("data-date");
+      var sess=(allData[day]||[]).find(function(s){return s.date===date;});
+      if(sess){state.editing={day:day,date:date};initSession(day,date,sess.exercises);state.view="track";render();}
+    }
+    else if(a==="del-ask"){state.delConfirm={day:t.getAttribute("data-day"),date:t.getAttribute("data-date")};render();}
+    else if(a==="del-confirm"){
+      var dy=t.getAttribute("data-day"),dt=t.getAttribute("data-date");
+      allData[dy]=(allData[dy]||[]).filter(function(s){return s.date!==dt;});
+      if(allData[dy].length===0)delete allData[dy];
+      save();state.delConfirm=null;render();
+    }
+    else if(a==="del-cancel"){state.delConfirm=null;render();}
+    else if(a==="export"){exportData();state.showRem=false;render();}
+    else if(a==="backup-now"){exportData();state.showRem=false;render();}
+    else if(a==="dismiss-rem"){state.showRem=false;render();}
+    else if(a==="imp-merge"){doImport("merge");}
+    else if(a==="imp-replace"){doImport("replace");}
+    else if(a==="imp-cancel"){state.impStatus=null;state.impData=null;render();}
+  };
+
+  // Input changes (delegated)
+  app.oninput=function(e){
+    var t=e.target;
+    if(t.getAttribute("data-action")==="set-val"){
+      var ex=t.getAttribute("data-ex"),si=parseInt(t.getAttribute("data-si")),field=t.getAttribute("data-field");
+      if(state.session[ex]&&state.session[ex][si])state.session[ex][si][field]=t.value;
+      // Update volume display without full re-render
+      updateVolDisplay(ex);
+    }
+    else if(t.getAttribute("data-action")==="set-date"){state.date=t.value;}
+  };
+
+  // File input
+  var fi=app.querySelector("[data-action='import-file']");
+  if(fi)fi.onchange=function(e){
+    var f=e.target.files&&e.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(ev){
+      try{var p=JSON.parse(ev.target.result);var d=p.data||p;if(typeof d!=="object")throw 0;state.impData=d;state.impStatus="confirm";render();}
+      catch(err){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);}
     };
-    reader.readAsText(file);
-    e.target.value = "";
-  }
+    r.readAsText(f);
+  };
+}
 
-  function confirmImport(mode) {
-    if (mode === "replace") {
-      setAllData(importPayload);
-    } else {
-      setAllData(function(prev) {
-        var merged = Object.assign({}, prev);
-        Object.keys(importPayload).forEach(function(day) {
-          if (!merged[day]) merged[day] = [];
-          else merged[day] = merged[day].slice();
-          importPayload[day].forEach(function(s) {
-            var idx = merged[day].findIndex(function(ex) { return ex.date === s.date; });
-            if (idx >= 0) merged[day][idx] = s;
-            else merged[day].push(s);
-          });
-        });
-        return merged;
+function updateVolDisplay(ex){
+  // Lightweight vol update without full re-render
+  var sets=state.session[ex]||[];
+  var cv=vol(sets);
+  // We can just let the next full render catch it — inputs keep focus this way
+}
+
+function initSession(day,date,exData){
+  state.day=day;state.date=date||today();
+  if(exData){state.session=JSON.parse(JSON.stringify(exData));}
+  else{
+    var arr=allData[day]||[];
+    var existing=arr.find(function(s){return s.date===state.date;});
+    if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
+    else{var se={};PLAN[day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<SETS;i++)se[e].push({kg:"",reps:""});});state.session=se;}
+  }
+  state.expanded=PLAN[day].exercises[0];
+}
+
+function saveSession(){
+  if(!allData[state.day])allData[state.day]=[];
+  var idx=-1;
+  for(var i=0;i<allData[state.day].length;i++){if(allData[state.day][i].date===state.date){idx=i;break;}}
+  var entry={date:state.date,exercises:state.session};
+  if(idx>=0)allData[state.day][idx]=entry;else allData[state.day].push(entry);
+  save();state.editing=null;state.view="history";
+}
+
+function doImport(mode){
+  if(mode==="replace"){allData=state.impData;}
+  else{
+    for(var day in state.impData){
+      if(!allData[day])allData[day]=[];
+      state.impData[day].forEach(function(s){
+        var idx=-1;for(var i=0;i<allData[day].length;i++){if(allData[day][i].date===s.date){idx=i;break;}}
+        if(idx>=0)allData[day][idx]=s;else allData[day].push(s);
       });
     }
-    setImportPayload(null);
-    setImportStatus("success");
-    setTimeout(function() { setImportStatus(null); }, 3000);
   }
-
-  function getAllSessions() {
-    var sessions = [];
-    Object.keys(allData).forEach(function(day) {
-      (allData[day] || []).forEach(function(session) {
-        var totalVol = Object.values(session.exercises || {}).reduce(function(sum, sets) { return sum + getVolume(sets); }, 0);
-        var exerciseCount = Object.entries(session.exercises || {}).filter(function(pair) { return pair[1].some(function(s) { return s.kg || s.reps; }); }).length;
-        sessions.push({ day: day, date: session.date, totalVol: totalVol, exerciseCount: exerciseCount, exercises: session.exercises });
-      });
-    });
-    return sessions.sort(function(a, b) { return b.date.localeCompare(a.date); });
-  }
-
-  function getChartData(day) {
-    var sessions = (allData[day] || []).slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
-    return sessions.map(function(s, i) {
-      var point = { name: "W" + (i + 1), date: s.date };
-      PLAN[day].exercises.forEach(function(ex) {
-        point[ex] = s.exercises && s.exercises[ex] ? getVolume(s.exercises[ex]) : 0;
-      });
-      return point;
-    });
-  }
-
-  function getTotalSessions() {
-    return Object.values(allData).reduce(function(sum, d) { return sum + d.length; }, 0);
-  }
-
-  function getPersonalBests() {
-    var pbs = {};
-    Object.keys(allData).forEach(function(day) {
-      allData[day].forEach(function(s) {
-        Object.keys(s.exercises || {}).forEach(function(ex) {
-          var maxKg = Math.max.apply(null, s.exercises[ex].map(function(st) { return Number(st.kg) || 0; }));
-          if (!pbs[ex] || maxKg > pbs[ex]) pbs[ex] = maxKg;
-        });
-      });
-    });
-    return pbs;
-  }
-
-  var S = styles;
-
-  // ============= HOME =============
-  if (view === "home") {
-    var suggested = suggestedDay();
-    var totalSessions = getTotalSessions();
-    return (
-      <div style={S.container}>
-        <div style={S.header}>
-          <h1 style={S.title}>Pau<span style={S.titleAccent}>log</span></h1>
-          <p style={S.subtitle}>Push / Pull / Legs Tracker</p>
-        </div>
-        <div style={S.statsBar}>
-          <div style={S.statItem}>
-            <span style={S.statNumber}>{totalSessions}</span>
-            <span style={S.statLabel}>Sessions</span>
-          </div>
-          <div style={S.statDivider} />
-          <div style={S.statItem}>
-            <span style={S.statNumber}>{Object.keys(getPersonalBests()).length}</span>
-            <span style={S.statLabel}>Übungen</span>
-          </div>
-        </div>
-        <div style={S.section}>
-          <h2 style={S.sectionTitle}>Training starten</h2>
-          {Object.entries(PLAN).map(function(pair) {
-            var day = pair[0], info = pair[1];
-            return (
-              <button key={day} onClick={function() { startSession(day); }}
-                style={Object.assign({}, S.dayButton, {borderLeft: "4px solid " + info.color}, suggested === day ? { background: info.color + "11" } : {})}>
-                <div>
-                  <div style={S.dayName}>{day}</div>
-                  <div style={S.dayMuscles}>{info.muscles}</div>
-                </div>
-                <div style={Object.assign({}, S.dayArrow, {color: info.color})}>→</div>
-              </button>
-            );
-          })}
-        </div>
-        <div style={S.bottomButtons}>
-          <button onClick={function() { setView("history"); }} style={S.secondaryButton}>📋 Sessions verwalten</button>
-          <button onClick={function() { setView("dashboard"); }} style={S.secondaryButton}>📊 Dashboard</button>
-          <button onClick={function() { setView("backup"); }} style={S.secondaryButton}>💾 Backup & Restore</button>
-        </div>
-        {showBackupReminder && totalSessions > 0 && (
-          <div style={S.reminderBanner}>
-            <div style={S.reminderText}>
-              <span>⚠️</span>
-              <span>{getLastBackup() ? "Letztes Backup: " + formatDate(getLastBackup()) : "Du hast noch kein Backup erstellt!"}</span>
-            </div>
-            <div style={S.reminderActions}>
-              <button onClick={function() { exportData(allData); setShowBackupReminder(false); }} style={S.reminderBtn}>Jetzt sichern</button>
-              <button onClick={function() { setShowBackupReminder(false); }} style={S.reminderDismiss}>Später</button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ============= TRACKING =============
-  if (view === "track") {
-    var dayInfo = PLAN[selectedDay];
-    var isEditing = !!editingSession;
-    return (
-      <div style={S.container}>
-        <div style={Object.assign({}, S.trackHeader, {borderBottom: "3px solid " + dayInfo.color})}>
-          <button onClick={function() { setView(isEditing ? "history" : "home"); setEditingSession(null); }} style={S.backBtn}>←</button>
-          <div>
-            <h2 style={S.trackTitle}>{isEditing ? "Session bearbeiten" : selectedDay}</h2>
-            <p style={S.trackSub}>{dayInfo.muscles}</p>
-          </div>
-          <input type="date" value={sessionDate} onChange={function(e) { setSessionDate(e.target.value); }} style={S.dateInput} />
-        </div>
-        <div style={S.exerciseList}>
-          {dayInfo.exercises.map(function(ex) {
-            var isExpanded = expandedExercise === ex;
-            var prev = getPreviousSession(selectedDay, ex);
-            var currentVol = getVolume(currentSession[ex] || []);
-            var prevVol = prev ? getVolume(prev) : 0;
-            var hasDelta = currentVol > 0 && prevVol > 0;
-            var delta = hasDelta ? Math.round(((currentVol - prevVol) / prevVol) * 100) : 0;
-            return (
-              <div key={ex} style={S.exerciseCard}>
-                <button onClick={function() { setExpandedExercise(isExpanded ? null : ex); }}
-                  style={Object.assign({}, S.exerciseHeader, {borderLeft: "3px solid " + dayInfo.color})}>
-                  <div style={S.exerciseHeaderLeft}>
-                    <span style={S.exerciseName}>{ex}</span>
-                    {currentVol > 0 && (
-                      <span style={S.volBadge}>
-                        {"Vol: " + currentVol.toLocaleString()}
-                        {hasDelta && <span style={{ color: delta >= 0 ? "#10B981" : "#EF4444", marginLeft: 4 }}>
-                          {(delta >= 0 ? "↑" : "↓") + Math.abs(delta) + "%"}
-                        </span>}
-                      </span>
-                    )}
-                  </div>
-                  <span style={S.expandIcon}>{isExpanded ? "▲" : "▼"}</span>
-                </button>
-                {isExpanded && (
-                  <div style={S.setsContainer}>
-                    {prev && (
-                      <div style={S.prevSession}>
-                        <span style={S.prevLabel}>Letzte Session:</span>
-                        <div style={S.prevSets}>
-                          {prev.map(function(s, i) {
-                            return (s.kg || s.reps) ? <span key={i} style={S.prevSet}>{s.kg}kg×{s.reps}</span> : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    <div style={S.setsGrid}>
-                      <div style={S.setHeaderRow}>
-                        <span style={S.setHeaderLabel}></span>
-                        <span style={S.setHeaderKg}>kg</span>
-                        <span style={S.setHeaderReps}>Wdh</span>
-                      </div>
-                      {(currentSession[ex] || []).map(function(set, i) {
-                        return (
-                          <div key={i} style={S.setRow}>
-                            <span style={Object.assign({}, S.setNumber, {background: dayInfo.color})}>{i + 1}</span>
-                            <input type="number" inputMode="decimal" placeholder={prev && prev[i] ? prev[i].kg || "—" : "—"} value={set.kg}
-                              onChange={function(e) { updateSet(ex, i, "kg", e.target.value); }} style={S.input} />
-                            <input type="number" inputMode="numeric" placeholder={prev && prev[i] ? prev[i].reps || "—" : "—"} value={set.reps}
-                              onChange={function(e) { updateSet(ex, i, "reps", e.target.value); }} style={S.input} />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <button onClick={saveSession} disabled={saving} style={S.saveButton}>
-          {saving ? "Speichern..." : isEditing ? "✓ Änderungen speichern" : "✓ Session speichern"}
-        </button>
-      </div>
-    );
-  }
-
-  // ============= HISTORY =============
-  if (view === "history") {
-    var sessions = getAllSessions();
-    var grouped = {};
-    sessions.forEach(function(s) {
-      var month = s.date.slice(0, 7);
-      if (!grouped[month]) grouped[month] = [];
-      grouped[month].push(s);
-    });
-    var monthNames = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-    return (
-      <div style={S.container}>
-        <div style={S.historyHeader}>
-          <button onClick={function() { setView("home"); }} style={S.backBtn}>←</button>
-          <h2 style={S.historyTitle}>📋 Alle Sessions</h2>
-          <span style={S.historyCount}>{sessions.length + " gesamt"}</span>
-        </div>
-        {sessions.length === 0 ? (
-          <div style={S.emptyState}>
-            <p style={S.emptyIcon}>🏋️</p>
-            <p style={S.emptyText}>Noch keine Sessions vorhanden</p>
-            <p style={S.emptySubtext}>Starte dein erstes Training!</p>
-          </div>
-        ) : (
-          Object.entries(grouped).map(function(pair) {
-            var month = pair[0], monthSessions = pair[1];
-            var parts = month.split("-");
-            return (
-              <div key={month}>
-                <div style={S.monthHeader}>
-                  <span style={S.monthName}>{monthNames[parseInt(parts[1]) - 1] + " " + parts[0]}</span>
-                  <span style={S.monthCount}>{monthSessions.length + " Sessions"}</span>
-                </div>
-                {monthSessions.map(function(s) {
-                  var dInfo = PLAN[s.day];
-                  var isDeleting = deleteConfirm && deleteConfirm.day === s.day && deleteConfirm.date === s.date;
-                  return (
-                    <div key={s.day + "-" + s.date} style={S.sessionCard}>
-                      <div style={Object.assign({}, S.sessionColorBar, {background: dInfo ? dInfo.color : "#64748B"})} />
-                      <div style={S.sessionContent}>
-                        <div style={S.sessionTop}>
-                          <div>
-                            <div style={S.sessionDay}>{s.day}</div>
-                            <div style={S.sessionDate}>{formatDate(s.date)}</div>
-                          </div>
-                          <div style={S.sessionStats}>
-                            <span style={S.sessionVol}>{s.totalVol.toLocaleString() + " Vol"}</span>
-                            <span style={S.sessionExCount}>{s.exerciseCount + " Übungen"}</span>
-                          </div>
-                        </div>
-                        <div style={S.sessionExercises}>
-                          {Object.entries(s.exercises || {}).map(function(exPair) {
-                            var exName = exPair[0], sets = exPair[1];
-                            var vol = getVolume(sets);
-                            if (vol === 0) return null;
-                            var maxKg = Math.max.apply(null, sets.map(function(st) { return Number(st.kg) || 0; }));
-                            return (
-                              <div key={exName} style={S.sessionExRow}>
-                                <span style={S.sessionExName}>{exName}</span>
-                                <span style={S.sessionExDetail}>{maxKg + "kg · " + vol.toLocaleString() + " vol"}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {isDeleting ? (
-                          <div style={S.deleteConfirmBar}>
-                            <span style={S.deleteConfirmText}>Wirklich löschen?</span>
-                            <button onClick={function() { deleteSession(s.day, s.date); }} style={S.confirmDeleteBtn}>Ja, löschen</button>
-                            <button onClick={function() { setDeleteConfirm(null); }} style={S.cancelDeleteBtn}>Abbrechen</button>
-                          </div>
-                        ) : (
-                          <div style={S.sessionActions}>
-                            <button onClick={function() { setEditingSession({ day: s.day, date: s.date }); startSession(s.day, s.date, s.exercises); }} style={S.editBtn}>✏️ Bearbeiten</button>
-                            <button onClick={function() { setDeleteConfirm({ day: s.day, date: s.date }); }} style={S.deleteBtn}>🗑 Löschen</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })
-        )}
-      </div>
-    );
-  }
-
-  // ============= DASHBOARD =============
-  if (view === "dashboard") {
-    var pbs = getPersonalBests();
-    return (
-      <div style={S.container}>
-        <div style={S.dashHeader}>
-          <button onClick={function() { setView("home"); }} style={S.backBtn}>←</button>
-          <h2 style={S.dashTitle}>📊 Dashboard</h2>
-        </div>
-        {Object.entries(PLAN).map(function(pair) {
-          var day = pair[0], info = pair[1];
-          var data = getChartData(day);
-          if (data.length === 0) return (
-            <div key={day} style={S.chartSection}>
-              <h3 style={Object.assign({}, S.chartTitle, {color: info.color})}>{day}</h3>
-              <p style={S.noData}>Noch keine Daten vorhanden</p>
-            </div>
-          );
-          return (
-            <div key={day} style={S.chartSection}>
-              <h3 style={Object.assign({}, S.chartTitle, {color: info.color})}>{day}</h3>
-              <p style={S.chartSub}>Volumen-Progression (kg × Wdh)</p>
-              <div style={S.chartWrap}>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94A3B8" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
-                    <Tooltip contentStyle={{ background: "#1E293B", border: "none", borderRadius: 8, fontSize: 12 }} labelStyle={{ color: "#94A3B8" }} />
-                    {info.exercises.map(function(ex, i) {
-                      return <Line key={ex} type="monotone" dataKey={ex} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} name={ex} />;
-                    })}
-                    <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          );
-        })}
-        {Object.keys(pbs).length > 0 && (
-          <div style={S.pbSection}>
-            <h3 style={S.pbTitle}>🏆 Persönliche Bestleistungen</h3>
-            {Object.entries(pbs).filter(function(p) { return p[1] > 0; }).sort(function(a, b) { return b[1] - a[1]; })
-              .map(function(p) {
-                return (
-                  <div key={p[0]} style={S.pbRow}>
-                    <span style={S.pbExercise}>{p[0]}</span>
-                    <span style={S.pbKg}>{p[1] + " kg"}</span>
-                  </div>
-                );
-              })}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ============= BACKUP =============
-  if (view === "backup") {
-    var lastBackup = getLastBackup();
-    var bkTotalSessions = getTotalSessions();
-    return (
-      <div style={S.container}>
-        <div style={S.dashHeader}>
-          <button onClick={function() { setView("home"); }} style={S.backBtn}>←</button>
-          <h2 style={S.dashTitle}>💾 Backup & Restore</h2>
-        </div>
-        <div style={S.backupSection}>
-          <div style={S.backupCard}>
-            <h3 style={S.backupCardTitle}>📤 Daten exportieren</h3>
-            <p style={S.backupCardDesc}>{"Speichert alle " + bkTotalSessions + " Sessions als JSON-Datei auf deinem Gerät."}</p>
-            {lastBackup && <p style={S.backupLastDate}>{"Letztes Backup: " + formatDate(lastBackup)}</p>}
-            <button onClick={function() { exportData(allData); setShowBackupReminder(false); }}
-              disabled={bkTotalSessions === 0}
-              style={Object.assign({}, S.backupExportBtn, bkTotalSessions === 0 ? {opacity: 0.4} : {})}>
-              ↓ Backup herunterladen
-            </button>
-          </div>
-          <div style={S.backupCard}>
-            <h3 style={S.backupCardTitle}>📥 Daten importieren</h3>
-            <p style={S.backupCardDesc}>Lade eine zuvor exportierte JSON-Datei, um deine Daten wiederherzustellen.</p>
-            <label style={S.backupImportBtn}>
-              ↑ Datei auswählen
-              <input type="file" accept=".json,application/json" onChange={handleImport} style={{display:"none"}} />
-            </label>
-          </div>
-          {importStatus === "confirm" && importPayload && (
-            <div style={S.backupConfirmCard}>
-              <h3 style={S.backupCardTitle}>Import-Modus wählen</h3>
-              <p style={S.backupCardDesc}>
-                {"Die Datei enthält " + Object.values(importPayload).reduce(function(s,d) { return s + d.length; }, 0) + " Sessions."}
-              </p>
-              <button onClick={function() { confirmImport("merge"); }} style={S.backupMergeBtn}>
-                🔀 Zusammenführen
-                <span style={S.backupBtnSub}>Bestehende Daten behalten, neue hinzufügen</span>
-              </button>
-              <button onClick={function() { confirmImport("replace"); }} style={S.backupReplaceBtn}>
-                🔄 Ersetzen
-                <span style={S.backupBtnSub}>Alle bestehenden Daten überschreiben</span>
-              </button>
-              <button onClick={function() { setImportStatus(null); setImportPayload(null); }} style={S.cancelDeleteBtn}>Abbrechen</button>
-            </div>
-          )}
-          {importStatus === "success" && (
-            <div style={S.backupStatusSuccess}>✅ Daten erfolgreich importiert!</div>
-          )}
-          {importStatus === "error" && (
-            <div style={S.backupStatusError}>❌ Ungültige Datei – bitte eine Paulog-Backup-Datei wählen.</div>
-          )}
-          <div style={S.backupInfoCard}>
-            <h3 style={Object.assign({}, S.backupCardTitle, {fontSize: 13})}>💡 Tipp</h3>
-            <p style={S.backupCardDesc}>
-              Speichere dein Backup regelmäßig in iCloud, Google Drive oder einem anderen Cloud-Ordner.
-              So sind deine Daten auch bei Gerätewechsel oder Browser-Reset sicher.
-              Die App erinnert dich alle 2 Wochen automatisch.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return <div style={S.container}><p style={{padding:40,textAlign:"center"}}>Laden...</p></div>;
+  save();state.impData=null;state.impStatus="success";render();
+  setTimeout(function(){state.impStatus=null;render();},3000);
 }
 
-var styles = {
-  container: {
-    maxWidth: 480, margin: "0 auto", minHeight: "100vh",
-    background: "#0F172A", color: "#E2E8F0",
-    fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif", paddingBottom: 100,
-  },
-  header: { padding: "32px 20px 16px", textAlign: "center" },
-  title: { fontSize: 32, fontWeight: 800, letterSpacing: 4, margin: 0, color: "#F8FAFC" },
-  titleAccent: { color: "#10B981" },
-  subtitle: { fontSize: 13, color: "#64748B", marginTop: 4, letterSpacing: 2, textTransform: "uppercase" },
-  statsBar: {
-    display: "flex", justifyContent: "center", alignItems: "center", gap: 24,
-    padding: "16px 20px", margin: "0 20px 8px", background: "#1E293B", borderRadius: 12,
-  },
-  statItem: { display: "flex", flexDirection: "column", alignItems: "center" },
-  statNumber: { fontSize: 24, fontWeight: 700, color: "#F8FAFC" },
-  statLabel: { fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: 1 },
-  statDivider: { width: 1, height: 32, background: "#334155" },
-  section: { padding: "12px 20px" },
-  sectionTitle: { fontSize: 13, fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 },
-  dayButton: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    width: "100%", padding: "16px", marginBottom: 10, background: "#1E293B",
-    border: "none", borderRadius: 10, cursor: "pointer", textAlign: "left", color: "#E2E8F0", fontFamily: "inherit",
-  },
-  dayName: { fontSize: 16, fontWeight: 700 },
-  dayMuscles: { fontSize: 12, color: "#94A3B8", marginTop: 2 },
-  dayArrow: { fontSize: 22, fontWeight: 700 },
-  bottomButtons: { padding: "8px 20px", display: "flex", flexDirection: "column", gap: 8 },
-  secondaryButton: {
-    width: "100%", padding: "14px", background: "transparent",
-    border: "1px solid #334155", borderRadius: 10, color: "#94A3B8",
-    fontSize: 15, cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
-  },
-  trackHeader: {
-    display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
-    background: "#1E293B", position: "sticky", top: 0, zIndex: 10,
-  },
-  backBtn: { background: "none", border: "none", color: "#94A3B8", fontSize: 24, cursor: "pointer", padding: "4px 8px" },
-  trackTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: "#F8FAFC" },
-  trackSub: { margin: 0, fontSize: 11, color: "#64748B" },
-  dateInput: {
-    marginLeft: "auto", background: "#0F172A", border: "1px solid #334155",
-    borderRadius: 8, color: "#E2E8F0", padding: "6px 10px", fontSize: 13, fontFamily: "inherit",
-  },
-  exerciseList: { padding: "8px 12px" },
-  exerciseCard: { marginBottom: 8, borderRadius: 10, overflow: "hidden", background: "#1E293B" },
-  exerciseHeader: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    width: "100%", padding: "14px", background: "#1E293B", border: "none",
-    cursor: "pointer", color: "#E2E8F0", textAlign: "left", fontFamily: "inherit",
-  },
-  exerciseHeaderLeft: { display: "flex", flexDirection: "column", gap: 4 },
-  exerciseName: { fontSize: 14, fontWeight: 700 },
-  volBadge: { fontSize: 11, color: "#94A3B8" },
-  expandIcon: { fontSize: 10, color: "#64748B" },
-  setsContainer: { padding: "0 14px 14px" },
-  prevSession: { background: "#0F172A", borderRadius: 8, padding: "8px 12px", marginBottom: 10 },
-  prevLabel: { fontSize: 10, color: "#64748B", textTransform: "uppercase", letterSpacing: 1 },
-  prevSets: { display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" },
-  prevSet: { fontSize: 12, color: "#94A3B8", background: "#1E293B", padding: "2px 8px", borderRadius: 4 },
-  setsGrid: { display: "flex", flexDirection: "column", gap: 6 },
-  setHeaderRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr", gap: 8, marginBottom: 2 },
-  setHeaderLabel: { fontSize: 10, color: "#475569" },
-  setHeaderKg: { fontSize: 10, color: "#475569", textAlign: "center" },
-  setHeaderReps: { fontSize: 10, color: "#475569", textAlign: "center" },
-  setRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr", gap: 8, alignItems: "center" },
-  setNumber: {
-    width: 32, height: 32, borderRadius: 8, display: "flex",
-    alignItems: "center", justifyContent: "center", color: "#FFF", fontWeight: 700, fontSize: 14,
-  },
-  input: {
-    width: "100%", padding: "10px 8px", background: "#0F172A",
-    border: "1px solid #334155", borderRadius: 8, color: "#F8FAFC",
-    fontSize: 16, textAlign: "center", fontWeight: 600, outline: "none",
-    boxSizing: "border-box", fontFamily: "inherit",
-  },
-  saveButton: {
-    position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
-    width: "calc(100% - 48px)", maxWidth: 440, padding: "16px",
-    background: "#3B82F6", border: "none", borderRadius: 12, color: "#FFF",
-    fontSize: 16, fontWeight: 700, cursor: "pointer", zIndex: 20,
-    boxShadow: "0 4px 24px rgba(59,130,246,0.4)", fontFamily: "inherit",
-  },
-  historyHeader: {
-    display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
-    background: "#1E293B", position: "sticky", top: 0, zIndex: 10,
-  },
-  historyTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: "#F8FAFC" },
-  historyCount: { marginLeft: "auto", fontSize: 12, color: "#64748B", background: "#0F172A", padding: "4px 10px", borderRadius: 12 },
-  emptyState: { textAlign: "center", padding: "60px 20px" },
-  emptyIcon: { fontSize: 48, margin: 0 },
-  emptyText: { fontSize: 16, fontWeight: 600, color: "#94A3B8", marginTop: 12 },
-  emptySubtext: { fontSize: 13, color: "#475569" },
-  monthHeader: {
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    padding: "12px 20px 6px", borderBottom: "1px solid #1E293B",
-  },
-  monthName: { fontSize: 14, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1 },
-  monthCount: { fontSize: 11, color: "#475569" },
-  sessionCard: {
-    display: "flex", margin: "8px 12px", borderRadius: 10,
-    overflow: "hidden", background: "#1E293B",
-  },
-  sessionColorBar: { width: 4, flexShrink: 0 },
-  sessionContent: { flex: 1, padding: "12px 14px" },
-  sessionTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
-  sessionDay: { fontSize: 14, fontWeight: 700, color: "#F8FAFC" },
-  sessionDate: { fontSize: 12, color: "#64748B", marginTop: 2 },
-  sessionStats: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 },
-  sessionVol: { fontSize: 13, fontWeight: 700, color: "#E2E8F0" },
-  sessionExCount: { fontSize: 11, color: "#64748B" },
-  sessionExercises: {
-    marginTop: 10, paddingTop: 10, borderTop: "1px solid #0F172A",
-    display: "flex", flexDirection: "column", gap: 4,
-  },
-  sessionExRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  sessionExName: { fontSize: 12, color: "#94A3B8" },
-  sessionExDetail: { fontSize: 11, color: "#64748B" },
-  sessionActions: {
-    display: "flex", gap: 8, marginTop: 12, paddingTop: 10, borderTop: "1px solid #0F172A",
-  },
-  editBtn: {
-    flex: 1, padding: "8px", background: "#1E3A5F", border: "none",
-    borderRadius: 8, color: "#60A5FA", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-  },
-  deleteBtn: {
-    flex: 1, padding: "8px", background: "#3B1C1C", border: "none",
-    borderRadius: 8, color: "#F87171", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-  },
-  deleteConfirmBar: {
-    display: "flex", alignItems: "center", gap: 8, marginTop: 12,
-    paddingTop: 10, borderTop: "1px solid #0F172A",
-  },
-  deleteConfirmText: { fontSize: 13, color: "#F87171", fontWeight: 600, flex: 1 },
-  confirmDeleteBtn: {
-    padding: "8px 14px", background: "#DC2626", border: "none",
-    borderRadius: 8, color: "#FFF", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-  },
-  cancelDeleteBtn: {
-    padding: "8px 14px", background: "#334155", border: "none",
-    borderRadius: 8, color: "#94A3B8", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-  },
-  dashHeader: {
-    display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
-    background: "#1E293B", position: "sticky", top: 0, zIndex: 10,
-  },
-  dashTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: "#F8FAFC" },
-  chartSection: { padding: "16px 20px", borderBottom: "1px solid #1E293B" },
-  chartTitle: { fontSize: 16, fontWeight: 700, margin: "0 0 2px" },
-  chartSub: { fontSize: 11, color: "#64748B", margin: "0 0 12px" },
-  chartWrap: { background: "#1E293B", borderRadius: 10, padding: "12px 4px" },
-  noData: { fontSize: 13, color: "#475569", fontStyle: "italic" },
-  pbSection: { padding: "16px 20px" },
-  pbTitle: { fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#F8FAFC" },
-  pbRow: {
-    display: "flex", justifyContent: "space-between", padding: "10px 12px",
-    background: "#1E293B", borderRadius: 8, marginBottom: 6,
-  },
-  pbExercise: { fontSize: 13, color: "#CBD5E1" },
-  pbKg: { fontSize: 14, fontWeight: 700, color: "#F59E0B" },
-  reminderBanner: {
-    margin: "8px 20px 0", padding: "14px 16px", background: "#1E293B",
-    borderRadius: 10, border: "1px solid #F59E0B33",
-  },
-  reminderText: { display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#F59E0B" },
-  reminderActions: { display: "flex", gap: 8, marginTop: 10 },
-  reminderBtn: {
-    flex: 1, padding: "8px", background: "#F59E0B", border: "none",
-    borderRadius: 8, color: "#0F172A", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-  },
-  reminderDismiss: {
-    padding: "8px 14px", background: "transparent", border: "1px solid #334155",
-    borderRadius: 8, color: "#64748B", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
-  },
-  backupSection: { padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 },
-  backupCard: { background: "#1E293B", borderRadius: 12, padding: "20px" },
-  backupCardTitle: { fontSize: 15, fontWeight: 700, color: "#F8FAFC", marginBottom: 6 },
-  backupCardDesc: { fontSize: 13, color: "#94A3B8", lineHeight: 1.5, marginBottom: 12 },
-  backupLastDate: { fontSize: 12, color: "#64748B", marginBottom: 12, fontStyle: "italic" },
-  backupExportBtn: {
-    width: "100%", padding: "12px", background: "#3B82F6", border: "none",
-    borderRadius: 8, color: "#FFF", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-  },
-  backupImportBtn: {
-    display: "block", width: "100%", padding: "12px", background: "#1E3A5F",
-    border: "1px dashed #3B82F6", borderRadius: 8, color: "#60A5FA", fontSize: 14,
-    fontWeight: 600, cursor: "pointer", textAlign: "center", fontFamily: "inherit",
-  },
-  backupConfirmCard: {
-    background: "#1E293B", borderRadius: 12, padding: "20px",
-    border: "1px solid #334155", display: "flex", flexDirection: "column", gap: 8,
-  },
-  backupMergeBtn: {
-    width: "100%", padding: "12px", background: "#10B981", border: "none",
-    borderRadius: 8, color: "#FFF", fontSize: 14, fontWeight: 700, cursor: "pointer",
-    fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-  },
-  backupReplaceBtn: {
-    width: "100%", padding: "12px", background: "#F59E0B", border: "none",
-    borderRadius: 8, color: "#0F172A", fontSize: 14, fontWeight: 700, cursor: "pointer",
-    fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-  },
-  backupBtnSub: { fontSize: 11, fontWeight: 400, opacity: 0.8 },
-  backupStatusSuccess: {
-    padding: "14px", background: "#064E3B", borderRadius: 10,
-    color: "#6EE7B7", fontSize: 14, fontWeight: 600, textAlign: "center",
-  },
-  backupStatusError: {
-    padding: "14px", background: "#7F1D1D", borderRadius: 10,
-    color: "#FCA5A5", fontSize: 14, fontWeight: 600, textAlign: "center",
-  },
-  backupInfoCard: {
-    background: "#1E293B", borderRadius: 12, padding: "16px",
-    border: "1px solid #334155",
-  },
-};
+// Init
+allData=load();
+state.showRem=daysBack()>=14&&totalSess()>0;
+render();
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+})();
 </script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function() {});
-}
-</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}</script>
 </body>
 </html>
