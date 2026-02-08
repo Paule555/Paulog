@@ -17,27 +17,34 @@
 html, body, #root { height: 100%; width: 100%; }
 body {
   font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
-  background: #0F172A;
-  color: #E2E8F0;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  background: #0F172A; color: #E2E8F0;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
 }
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }
 input[type="date"] { -webkit-appearance: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
+#error-display { display:none; color:#F87171; text-align:center; padding:40px 20px; font-size:14px; }
 </style>
 </head>
 <body>
 <div id="root"></div>
+<div id="error-display"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
 
-<script type="text/babel">
+<script>
+window.onerror = function(msg, url, line) {
+  var el = document.getElementById('error-display');
+  el.style.display = 'block';
+  el.innerHTML = '<h2>Fehler beim Laden</h2><p>' + msg + '</p><p>Zeile: ' + line + '</p><p>Bitte prüfe deine Internetverbindung und lade die Seite neu.</p>';
+};
+</script>
+
+<script type="text/babel" data-presets="react">
 const { useState, useEffect, useCallback } = React;
 const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } = Recharts;
 
@@ -67,38 +74,38 @@ const CHART_COLORS = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899
 
 function loadData() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    var raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  } catch(e) { return {}; }
 }
 
 function saveDataToStorage(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-  catch (e) { console.error("Save failed:", e); }
+  catch(e) { console.error("Save failed:", e); }
 }
 
 function getLastBackup() {
-  try { return localStorage.getItem(BACKUP_KEY) || null; } catch { return null; }
+  try { return localStorage.getItem(BACKUP_KEY) || null; } catch(e) { return null; }
 }
 
 function setLastBackup() {
-  try { localStorage.setItem(BACKUP_KEY, getToday()); } catch {}
+  try { localStorage.setItem(BACKUP_KEY, getToday()); } catch(e) {}
 }
 
 function daysSinceBackup() {
-  const last = getLastBackup();
+  var last = getLastBackup();
   if (!last) return Infinity;
-  const diff = new Date() - new Date(last + "T00:00:00");
+  var diff = new Date() - new Date(last + "T00:00:00");
   return Math.floor(diff / 86400000);
 }
 
 function exportData(allData) {
-  const payload = { app: "paulog", version: 1, exported: new Date().toISOString(), data: allData };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  var payload = { app: "paulog", version: 1, exported: new Date().toISOString(), data: allData };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
   a.href = url;
-  a.download = `paulog-backup-${getToday()}.json`;
+  a.download = "paulog-backup-" + getToday() + ".json";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -107,19 +114,19 @@ function exportData(allData) {
 }
 
 function getVolume(sets) {
-  return sets.reduce((sum, s) => sum + (Number(s.kg) || 0) * (Number(s.reps) || 0), 0);
+  return sets.reduce(function(sum, s) { return sum + (Number(s.kg) || 0) * (Number(s.reps) || 0); }, 0);
 }
 
 function getToday() { return new Date().toISOString().split("T")[0]; }
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  const days = ["So","Mo","Di","Mi","Do","Fr","Sa"];
-  return `${days[d.getDay()]}, ${d.getDate().toString().padStart(2,"0")}.${(d.getMonth()+1).toString().padStart(2,"0")}.${d.getFullYear()}`;
+  var d = new Date(dateStr + "T00:00:00");
+  var days = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+  return days[d.getDay()] + ", " + String(d.getDate()).padStart(2,"0") + "." + String(d.getMonth()+1).padStart(2,"0") + "." + d.getFullYear();
 }
 
 function suggestedDay() {
-  const wd = new Date().getDay();
+  var wd = new Date().getDay();
   if (wd === 1) return "Push (Mo)";
   if (wd === 3) return "Pull (Mi)";
   if (wd === 5) return "Legs (Fr)";
@@ -129,116 +136,75 @@ function suggestedDay() {
 function App() {
   const [view, setView] = useState("home");
   const [selectedDay, setSelectedDay] = useState(null);
-  const [allData, setAllData] = useState(() => loadData());
+  const [allData, setAllData] = useState(function() { return loadData(); });
   const [currentSession, setCurrentSession] = useState({});
   const [sessionDate, setSessionDate] = useState(getToday());
   const [saving, setSaving] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [importStatus, setImportStatus] = useState(null); // null | "success" | "error" | "confirm"
+  const [importStatus, setImportStatus] = useState(null);
   const [importPayload, setImportPayload] = useState(null);
-  const [showBackupReminder, setShowBackupReminder] = useState(() => daysSinceBackup() >= BACKUP_REMINDER_DAYS && Object.keys(loadData()).length > 0);
+  const [showBackupReminder, setShowBackupReminder] = useState(function() {
+    return daysSinceBackup() >= BACKUP_REMINDER_DAYS && Object.keys(loadData()).length > 0;
+  });
 
-  useEffect(() => { saveDataToStorage(allData); }, [allData]);
+  useEffect(function() { saveDataToStorage(allData); }, [allData]);
 
-  const handleImport = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        const data = parsed.data || parsed;
-        if (typeof data !== "object") throw new Error("Invalid");
-        setImportPayload(data);
-        setImportStatus("confirm");
-      } catch {
-        setImportStatus("error");
-        setTimeout(() => setImportStatus(null), 3000);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
-
-  const confirmImport = (mode) => {
-    if (mode === "replace") {
-      setAllData(importPayload);
-    } else {
-      // merge
-      setAllData(prev => {
-        const merged = { ...prev };
-        Object.entries(importPayload).forEach(([day, sessions]) => {
-          if (!merged[day]) merged[day] = [];
-          sessions.forEach(s => {
-            const exists = merged[day].some(existing => existing.date === s.date);
-            if (!exists) merged[day].push(s);
-            else {
-              const idx = merged[day].findIndex(existing => existing.date === s.date);
-              merged[day][idx] = s;
-            }
-          });
-        });
-        return merged;
-      });
-    }
-    setImportPayload(null);
-    setImportStatus("success");
-    setTimeout(() => setImportStatus(null), 3000);
-  };
-
-  const getPreviousSession = useCallback(
-    (day, exercise) => {
-      const dayData = allData[day] || [];
-      const sorted = [...dayData].sort((a, b) => b.date.localeCompare(a.date));
-      for (const session of sorted) {
-        if (session.date === sessionDate) continue;
-        const ex = session.exercises?.[exercise];
-        if (ex && ex.some((s) => s.kg || s.reps)) return ex;
+  var getPreviousSession = useCallback(
+    function(day, exercise) {
+      var dayData = allData[day] || [];
+      var sorted = dayData.slice().sort(function(a, b) { return b.date.localeCompare(a.date); });
+      for (var i = 0; i < sorted.length; i++) {
+        if (sorted[i].date === sessionDate) continue;
+        var ex = sorted[i].exercises && sorted[i].exercises[exercise];
+        if (ex && ex.some(function(s) { return s.kg || s.reps; })) return ex;
       }
       return null;
     },
     [allData, sessionDate]
   );
 
-  const startSession = (day, date, existingData) => {
+  function startSession(day, date, existingData) {
     setSelectedDay(day);
     setSessionDate(date || getToday());
     if (existingData) {
       setCurrentSession(JSON.parse(JSON.stringify(existingData)));
     } else {
-      const existing = (allData[day] || []).find((s) => s.date === (date || getToday()));
-      if (existing?.exercises) {
+      var dayArr = allData[day] || [];
+      var existing = dayArr.find(function(s) { return s.date === (date || getToday()); });
+      if (existing && existing.exercises) {
         setCurrentSession(JSON.parse(JSON.stringify(existing.exercises)));
       } else {
-        const session = {};
-        PLAN[day].exercises.forEach((ex) => {
-          session[ex] = Array.from({ length: NUM_SETS }, () => ({ kg: "", reps: "" }));
+        var session = {};
+        PLAN[day].exercises.forEach(function(ex) {
+          session[ex] = Array.from({ length: NUM_SETS }, function() { return { kg: "", reps: "" }; });
         });
         setCurrentSession(session);
       }
     }
     setExpandedExercise(PLAN[day].exercises[0]);
     setView("track");
-  };
+  }
 
-  const updateSet = (exercise, setIdx, field, value) => {
-    setCurrentSession((prev) => {
-      const next = { ...prev };
-      next[exercise] = [...next[exercise]];
-      next[exercise][setIdx] = { ...next[exercise][setIdx], [field]: value };
+  function updateSet(exercise, setIdx, field, value) {
+    setCurrentSession(function(prev) {
+      var next = Object.assign({}, prev);
+      next[exercise] = prev[exercise].slice();
+      next[exercise][setIdx] = Object.assign({}, next[exercise][setIdx]);
+      next[exercise][setIdx][field] = value;
       return next;
     });
-  };
+  }
 
-  const saveSession = () => {
+  function saveSession() {
     setSaving(true);
-    setAllData(prev => {
-      const newData = { ...prev };
+    setAllData(function(prev) {
+      var newData = Object.assign({}, prev);
       if (!newData[selectedDay]) newData[selectedDay] = [];
-      const idx = newData[selectedDay].findIndex((s) => s.date === sessionDate);
-      const entry = { date: sessionDate, exercises: currentSession };
+      else newData[selectedDay] = newData[selectedDay].slice();
+      var idx = newData[selectedDay].findIndex(function(s) { return s.date === sessionDate; });
+      var entry = { date: sessionDate, exercises: currentSession };
       if (idx >= 0) newData[selectedDay][idx] = entry;
       else newData[selectedDay].push(entry);
       return newData;
@@ -246,61 +212,107 @@ function App() {
     setSaving(false);
     setEditingSession(null);
     setView("history");
-  };
+  }
 
-  const deleteSession = (day, date) => {
-    setAllData(prev => {
-      const newData = { ...prev };
-      newData[day] = (newData[day] || []).filter((s) => s.date !== date);
+  function deleteSession(day, date) {
+    setAllData(function(prev) {
+      var newData = Object.assign({}, prev);
+      newData[day] = (newData[day] || []).filter(function(s) { return s.date !== date; });
       if (newData[day].length === 0) delete newData[day];
       return newData;
     });
     setDeleteConfirm(null);
-  };
+  }
 
-  const getAllSessions = () => {
-    const sessions = [];
-    Object.entries(allData).forEach(([day, dayData]) => {
-      (dayData || []).forEach((session) => {
-        const totalVol = Object.values(session.exercises || {}).reduce((sum, sets) => sum + getVolume(sets), 0);
-        const exerciseCount = Object.entries(session.exercises || {}).filter(([, sets]) => sets.some((s) => s.kg || s.reps)).length;
-        sessions.push({ day, date: session.date, totalVol, exerciseCount, exercises: session.exercises });
+  function handleImport(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var parsed = JSON.parse(ev.target.result);
+        var data = parsed.data || parsed;
+        if (typeof data !== "object") throw new Error("Invalid");
+        setImportPayload(data);
+        setImportStatus("confirm");
+      } catch(err) {
+        setImportStatus("error");
+        setTimeout(function() { setImportStatus(null); }, 3000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  function confirmImport(mode) {
+    if (mode === "replace") {
+      setAllData(importPayload);
+    } else {
+      setAllData(function(prev) {
+        var merged = Object.assign({}, prev);
+        Object.keys(importPayload).forEach(function(day) {
+          if (!merged[day]) merged[day] = [];
+          else merged[day] = merged[day].slice();
+          importPayload[day].forEach(function(s) {
+            var idx = merged[day].findIndex(function(ex) { return ex.date === s.date; });
+            if (idx >= 0) merged[day][idx] = s;
+            else merged[day].push(s);
+          });
+        });
+        return merged;
+      });
+    }
+    setImportPayload(null);
+    setImportStatus("success");
+    setTimeout(function() { setImportStatus(null); }, 3000);
+  }
+
+  function getAllSessions() {
+    var sessions = [];
+    Object.keys(allData).forEach(function(day) {
+      (allData[day] || []).forEach(function(session) {
+        var totalVol = Object.values(session.exercises || {}).reduce(function(sum, sets) { return sum + getVolume(sets); }, 0);
+        var exerciseCount = Object.entries(session.exercises || {}).filter(function(pair) { return pair[1].some(function(s) { return s.kg || s.reps; }); }).length;
+        sessions.push({ day: day, date: session.date, totalVol: totalVol, exerciseCount: exerciseCount, exercises: session.exercises });
       });
     });
-    return sessions.sort((a, b) => b.date.localeCompare(a.date));
-  };
+    return sessions.sort(function(a, b) { return b.date.localeCompare(a.date); });
+  }
 
-  const getChartData = (day) => {
-    const sessions = (allData[day] || []).sort((a, b) => a.date.localeCompare(b.date));
-    return sessions.map((s, i) => {
-      const point = { name: `W${i + 1}`, date: s.date };
-      PLAN[day].exercises.forEach((ex) => {
-        point[ex] = s.exercises?.[ex] ? getVolume(s.exercises[ex]) : 0;
+  function getChartData(day) {
+    var sessions = (allData[day] || []).slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
+    return sessions.map(function(s, i) {
+      var point = { name: "W" + (i + 1), date: s.date };
+      PLAN[day].exercises.forEach(function(ex) {
+        point[ex] = s.exercises && s.exercises[ex] ? getVolume(s.exercises[ex]) : 0;
       });
       return point;
     });
-  };
+  }
 
-  const getTotalSessions = () => Object.values(allData).reduce((sum, d) => sum + d.length, 0);
+  function getTotalSessions() {
+    return Object.values(allData).reduce(function(sum, d) { return sum + d.length; }, 0);
+  }
 
-  const getPersonalBests = () => {
-    const pbs = {};
-    Object.entries(allData).forEach(([, sessions]) => {
-      sessions.forEach((s) => {
-        Object.entries(s.exercises || {}).forEach(([ex, sets]) => {
-          const maxKg = Math.max(...sets.map((st) => Number(st.kg) || 0));
+  function getPersonalBests() {
+    var pbs = {};
+    Object.keys(allData).forEach(function(day) {
+      allData[day].forEach(function(s) {
+        Object.keys(s.exercises || {}).forEach(function(ex) {
+          var maxKg = Math.max.apply(null, s.exercises[ex].map(function(st) { return Number(st.kg) || 0; }));
           if (!pbs[ex] || maxKg > pbs[ex]) pbs[ex] = maxKg;
         });
       });
     });
     return pbs;
-  };
+  }
 
-  const S = styles;
+  var S = styles;
 
   // ============= HOME =============
   if (view === "home") {
-    const suggested = suggestedDay();
+    var suggested = suggestedDay();
+    var totalSessions = getTotalSessions();
     return (
       <div style={S.container}>
         <div style={S.header}>
@@ -309,7 +321,7 @@ function App() {
         </div>
         <div style={S.statsBar}>
           <div style={S.statItem}>
-            <span style={S.statNumber}>{getTotalSessions()}</span>
+            <span style={S.statNumber}>{totalSessions}</span>
             <span style={S.statLabel}>Sessions</span>
           </div>
           <div style={S.statDivider} />
@@ -320,31 +332,34 @@ function App() {
         </div>
         <div style={S.section}>
           <h2 style={S.sectionTitle}>Training starten</h2>
-          {Object.entries(PLAN).map(([day, info]) => (
-            <button key={day} onClick={() => startSession(day)}
-              style={{...S.dayButton, borderLeft: `4px solid ${info.color}`, ...(suggested === day ? { background: `${info.color}11` } : {})}}>
-              <div>
-                <div style={S.dayName}>{day}</div>
-                <div style={S.dayMuscles}>{info.muscles}</div>
-              </div>
-              <div style={{...S.dayArrow, color: info.color}}>→</div>
-            </button>
-          ))}
+          {Object.entries(PLAN).map(function(pair) {
+            var day = pair[0], info = pair[1];
+            return (
+              <button key={day} onClick={function() { startSession(day); }}
+                style={Object.assign({}, S.dayButton, {borderLeft: "4px solid " + info.color}, suggested === day ? { background: info.color + "11" } : {})}>
+                <div>
+                  <div style={S.dayName}>{day}</div>
+                  <div style={S.dayMuscles}>{info.muscles}</div>
+                </div>
+                <div style={Object.assign({}, S.dayArrow, {color: info.color})}>→</div>
+              </button>
+            );
+          })}
         </div>
         <div style={S.bottomButtons}>
-          <button onClick={() => setView("history")} style={S.secondaryButton}>📋 Sessions verwalten</button>
-          <button onClick={() => setView("dashboard")} style={S.secondaryButton}>📊 Dashboard</button>
-          <button onClick={() => setView("backup")} style={S.secondaryButton}>💾 Backup & Restore</button>
+          <button onClick={function() { setView("history"); }} style={S.secondaryButton}>📋 Sessions verwalten</button>
+          <button onClick={function() { setView("dashboard"); }} style={S.secondaryButton}>📊 Dashboard</button>
+          <button onClick={function() { setView("backup"); }} style={S.secondaryButton}>💾 Backup & Restore</button>
         </div>
-        {showBackupReminder && getTotalSessions() > 0 && (
+        {showBackupReminder && totalSessions > 0 && (
           <div style={S.reminderBanner}>
             <div style={S.reminderText}>
-              <span style={S.reminderIcon}>⚠️</span>
-              <span>{getLastBackup() ? `Letztes Backup: ${formatDate(getLastBackup())}` : "Du hast noch kein Backup erstellt!"}</span>
+              <span>⚠️</span>
+              <span>{getLastBackup() ? "Letztes Backup: " + formatDate(getLastBackup()) : "Du hast noch kein Backup erstellt!"}</span>
             </div>
             <div style={S.reminderActions}>
-              <button onClick={() => { exportData(allData); setShowBackupReminder(false); }} style={S.reminderBtn}>Jetzt sichern</button>
-              <button onClick={() => setShowBackupReminder(false)} style={S.reminderDismiss}>Später</button>
+              <button onClick={function() { exportData(allData); setShowBackupReminder(false); }} style={S.reminderBtn}>Jetzt sichern</button>
+              <button onClick={function() { setShowBackupReminder(false); }} style={S.reminderDismiss}>Später</button>
             </div>
           </div>
         )}
@@ -354,37 +369,37 @@ function App() {
 
   // ============= TRACKING =============
   if (view === "track") {
-    const dayInfo = PLAN[selectedDay];
-    const isEditing = !!editingSession;
+    var dayInfo = PLAN[selectedDay];
+    var isEditing = !!editingSession;
     return (
       <div style={S.container}>
-        <div style={{...S.trackHeader, borderBottom: `3px solid ${dayInfo.color}`}}>
-          <button onClick={() => { setView(isEditing ? "history" : "home"); setEditingSession(null); }} style={S.backBtn}>←</button>
+        <div style={Object.assign({}, S.trackHeader, {borderBottom: "3px solid " + dayInfo.color})}>
+          <button onClick={function() { setView(isEditing ? "history" : "home"); setEditingSession(null); }} style={S.backBtn}>←</button>
           <div>
             <h2 style={S.trackTitle}>{isEditing ? "Session bearbeiten" : selectedDay}</h2>
             <p style={S.trackSub}>{dayInfo.muscles}</p>
           </div>
-          <input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} style={S.dateInput} />
+          <input type="date" value={sessionDate} onChange={function(e) { setSessionDate(e.target.value); }} style={S.dateInput} />
         </div>
         <div style={S.exerciseList}>
-          {dayInfo.exercises.map((ex) => {
-            const isExpanded = expandedExercise === ex;
-            const prev = getPreviousSession(selectedDay, ex);
-            const currentVol = getVolume(currentSession[ex] || []);
-            const prevVol = prev ? getVolume(prev) : 0;
-            const hasDelta = currentVol > 0 && prevVol > 0;
-            const delta = hasDelta ? Math.round(((currentVol - prevVol) / prevVol) * 100) : 0;
+          {dayInfo.exercises.map(function(ex) {
+            var isExpanded = expandedExercise === ex;
+            var prev = getPreviousSession(selectedDay, ex);
+            var currentVol = getVolume(currentSession[ex] || []);
+            var prevVol = prev ? getVolume(prev) : 0;
+            var hasDelta = currentVol > 0 && prevVol > 0;
+            var delta = hasDelta ? Math.round(((currentVol - prevVol) / prevVol) * 100) : 0;
             return (
               <div key={ex} style={S.exerciseCard}>
-                <button onClick={() => setExpandedExercise(isExpanded ? null : ex)}
-                  style={{...S.exerciseHeader, borderLeft: `3px solid ${dayInfo.color}`}}>
+                <button onClick={function() { setExpandedExercise(isExpanded ? null : ex); }}
+                  style={Object.assign({}, S.exerciseHeader, {borderLeft: "3px solid " + dayInfo.color})}>
                   <div style={S.exerciseHeaderLeft}>
                     <span style={S.exerciseName}>{ex}</span>
                     {currentVol > 0 && (
                       <span style={S.volBadge}>
-                        Vol: {currentVol.toLocaleString()}
+                        {"Vol: " + currentVol.toLocaleString()}
                         {hasDelta && <span style={{ color: delta >= 0 ? "#10B981" : "#EF4444", marginLeft: 4 }}>
-                          {delta >= 0 ? "↑" : "↓"}{Math.abs(delta)}%
+                          {(delta >= 0 ? "↑" : "↓") + Math.abs(delta) + "%"}
                         </span>}
                       </span>
                     )}
@@ -397,7 +412,9 @@ function App() {
                       <div style={S.prevSession}>
                         <span style={S.prevLabel}>Letzte Session:</span>
                         <div style={S.prevSets}>
-                          {prev.map((s, i) => (s.kg || s.reps) ? <span key={i} style={S.prevSet}>{s.kg}kg×{s.reps}</span> : null)}
+                          {prev.map(function(s, i) {
+                            return (s.kg || s.reps) ? <span key={i} style={S.prevSet}>{s.kg}kg×{s.reps}</span> : null;
+                          })}
                         </div>
                       </div>
                     )}
@@ -407,15 +424,17 @@ function App() {
                         <span style={S.setHeaderKg}>kg</span>
                         <span style={S.setHeaderReps}>Wdh</span>
                       </div>
-                      {currentSession[ex]?.map((set, i) => (
-                        <div key={i} style={S.setRow}>
-                          <span style={{...S.setNumber, background: dayInfo.color}}>{i + 1}</span>
-                          <input type="number" inputMode="decimal" placeholder={prev?.[i]?.kg || "—"} value={set.kg}
-                            onChange={(e) => updateSet(ex, i, "kg", e.target.value)} style={S.input} />
-                          <input type="number" inputMode="numeric" placeholder={prev?.[i]?.reps || "—"} value={set.reps}
-                            onChange={(e) => updateSet(ex, i, "reps", e.target.value)} style={S.input} />
-                        </div>
-                      ))}
+                      {(currentSession[ex] || []).map(function(set, i) {
+                        return (
+                          <div key={i} style={S.setRow}>
+                            <span style={Object.assign({}, S.setNumber, {background: dayInfo.color})}>{i + 1}</span>
+                            <input type="number" inputMode="decimal" placeholder={prev && prev[i] ? prev[i].kg || "—" : "—"} value={set.kg}
+                              onChange={function(e) { updateSet(ex, i, "kg", e.target.value); }} style={S.input} />
+                            <input type="number" inputMode="numeric" placeholder={prev && prev[i] ? prev[i].reps || "—" : "—"} value={set.reps}
+                              onChange={function(e) { updateSet(ex, i, "reps", e.target.value); }} style={S.input} />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -432,20 +451,20 @@ function App() {
 
   // ============= HISTORY =============
   if (view === "history") {
-    const sessions = getAllSessions();
-    const grouped = {};
-    sessions.forEach((s) => {
-      const month = s.date.slice(0, 7);
+    var sessions = getAllSessions();
+    var grouped = {};
+    sessions.forEach(function(s) {
+      var month = s.date.slice(0, 7);
       if (!grouped[month]) grouped[month] = [];
       grouped[month].push(s);
     });
-    const monthNames = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+    var monthNames = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
     return (
       <div style={S.container}>
         <div style={S.historyHeader}>
-          <button onClick={() => setView("home")} style={S.backBtn}>←</button>
+          <button onClick={function() { setView("home"); }} style={S.backBtn}>←</button>
           <h2 style={S.historyTitle}>📋 Alle Sessions</h2>
-          <span style={S.historyCount}>{sessions.length} gesamt</span>
+          <span style={S.historyCount}>{sessions.length + " gesamt"}</span>
         </div>
         {sessions.length === 0 ? (
           <div style={S.emptyState}>
@@ -454,20 +473,21 @@ function App() {
             <p style={S.emptySubtext}>Starte dein erstes Training!</p>
           </div>
         ) : (
-          Object.entries(grouped).map(([month, monthSessions]) => {
-            const [y, m] = month.split("-");
+          Object.entries(grouped).map(function(pair) {
+            var month = pair[0], monthSessions = pair[1];
+            var parts = month.split("-");
             return (
               <div key={month}>
                 <div style={S.monthHeader}>
-                  <span style={S.monthName}>{monthNames[parseInt(m) - 1]} {y}</span>
-                  <span style={S.monthCount}>{monthSessions.length} Sessions</span>
+                  <span style={S.monthName}>{monthNames[parseInt(parts[1]) - 1] + " " + parts[0]}</span>
+                  <span style={S.monthCount}>{monthSessions.length + " Sessions"}</span>
                 </div>
-                {monthSessions.map((s) => {
-                  const dayInfo = PLAN[s.day];
-                  const isDeleting = deleteConfirm?.day === s.day && deleteConfirm?.date === s.date;
+                {monthSessions.map(function(s) {
+                  var dInfo = PLAN[s.day];
+                  var isDeleting = deleteConfirm && deleteConfirm.day === s.day && deleteConfirm.date === s.date;
                   return (
-                    <div key={`${s.day}-${s.date}`} style={S.sessionCard}>
-                      <div style={{...S.sessionColorBar, background: dayInfo?.color || "#64748B"}} />
+                    <div key={s.day + "-" + s.date} style={S.sessionCard}>
+                      <div style={Object.assign({}, S.sessionColorBar, {background: dInfo ? dInfo.color : "#64748B"})} />
                       <div style={S.sessionContent}>
                         <div style={S.sessionTop}>
                           <div>
@@ -475,19 +495,20 @@ function App() {
                             <div style={S.sessionDate}>{formatDate(s.date)}</div>
                           </div>
                           <div style={S.sessionStats}>
-                            <span style={S.sessionVol}>{s.totalVol.toLocaleString()} Vol</span>
-                            <span style={S.sessionExCount}>{s.exerciseCount} Übungen</span>
+                            <span style={S.sessionVol}>{s.totalVol.toLocaleString() + " Vol"}</span>
+                            <span style={S.sessionExCount}>{s.exerciseCount + " Übungen"}</span>
                           </div>
                         </div>
                         <div style={S.sessionExercises}>
-                          {Object.entries(s.exercises || {}).map(([ex, sets]) => {
-                            const vol = getVolume(sets);
+                          {Object.entries(s.exercises || {}).map(function(exPair) {
+                            var exName = exPair[0], sets = exPair[1];
+                            var vol = getVolume(sets);
                             if (vol === 0) return null;
-                            const maxKg = Math.max(...sets.map((st) => Number(st.kg) || 0));
+                            var maxKg = Math.max.apply(null, sets.map(function(st) { return Number(st.kg) || 0; }));
                             return (
-                              <div key={ex} style={S.sessionExRow}>
-                                <span style={S.sessionExName}>{ex}</span>
-                                <span style={S.sessionExDetail}>{maxKg}kg · {vol.toLocaleString()} vol</span>
+                              <div key={exName} style={S.sessionExRow}>
+                                <span style={S.sessionExName}>{exName}</span>
+                                <span style={S.sessionExDetail}>{maxKg + "kg · " + vol.toLocaleString() + " vol"}</span>
                               </div>
                             );
                           })}
@@ -495,13 +516,13 @@ function App() {
                         {isDeleting ? (
                           <div style={S.deleteConfirmBar}>
                             <span style={S.deleteConfirmText}>Wirklich löschen?</span>
-                            <button onClick={() => deleteSession(s.day, s.date)} style={S.confirmDeleteBtn}>Ja, löschen</button>
-                            <button onClick={() => setDeleteConfirm(null)} style={S.cancelDeleteBtn}>Abbrechen</button>
+                            <button onClick={function() { deleteSession(s.day, s.date); }} style={S.confirmDeleteBtn}>Ja, löschen</button>
+                            <button onClick={function() { setDeleteConfirm(null); }} style={S.cancelDeleteBtn}>Abbrechen</button>
                           </div>
                         ) : (
                           <div style={S.sessionActions}>
-                            <button onClick={() => { setEditingSession({ day: s.day, date: s.date }); startSession(s.day, s.date, s.exercises); }} style={S.editBtn}>✏️ Bearbeiten</button>
-                            <button onClick={() => setDeleteConfirm({ day: s.day, date: s.date })} style={S.deleteBtn}>🗑 Löschen</button>
+                            <button onClick={function() { setEditingSession({ day: s.day, date: s.date }); startSession(s.day, s.date, s.exercises); }} style={S.editBtn}>✏️ Bearbeiten</button>
+                            <button onClick={function() { setDeleteConfirm({ day: s.day, date: s.date }); }} style={S.deleteBtn}>🗑 Löschen</button>
                           </div>
                         )}
                       </div>
@@ -518,24 +539,25 @@ function App() {
 
   // ============= DASHBOARD =============
   if (view === "dashboard") {
-    const pbs = getPersonalBests();
+    var pbs = getPersonalBests();
     return (
       <div style={S.container}>
         <div style={S.dashHeader}>
-          <button onClick={() => setView("home")} style={S.backBtn}>←</button>
+          <button onClick={function() { setView("home"); }} style={S.backBtn}>←</button>
           <h2 style={S.dashTitle}>📊 Dashboard</h2>
         </div>
-        {Object.entries(PLAN).map(([day, info]) => {
-          const data = getChartData(day);
+        {Object.entries(PLAN).map(function(pair) {
+          var day = pair[0], info = pair[1];
+          var data = getChartData(day);
           if (data.length === 0) return (
             <div key={day} style={S.chartSection}>
-              <h3 style={{...S.chartTitle, color: info.color}}>{day}</h3>
+              <h3 style={Object.assign({}, S.chartTitle, {color: info.color})}>{day}</h3>
               <p style={S.noData}>Noch keine Daten vorhanden</p>
             </div>
           );
           return (
             <div key={day} style={S.chartSection}>
-              <h3 style={{...S.chartTitle, color: info.color}}>{day}</h3>
+              <h3 style={Object.assign({}, S.chartTitle, {color: info.color})}>{day}</h3>
               <p style={S.chartSub}>Volumen-Progression (kg × Wdh)</p>
               <div style={S.chartWrap}>
                 <ResponsiveContainer width="100%" height={220}>
@@ -543,9 +565,9 @@ function App() {
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94A3B8" }} />
                     <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
                     <Tooltip contentStyle={{ background: "#1E293B", border: "none", borderRadius: 8, fontSize: 12 }} labelStyle={{ color: "#94A3B8" }} />
-                    {info.exercises.map((ex, i) => (
-                      <Line key={ex} type="monotone" dataKey={ex} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} name={ex} />
-                    ))}
+                    {info.exercises.map(function(ex, i) {
+                      return <Line key={ex} type="monotone" dataKey={ex} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} name={ex} />;
+                    })}
                     <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -556,13 +578,15 @@ function App() {
         {Object.keys(pbs).length > 0 && (
           <div style={S.pbSection}>
             <h3 style={S.pbTitle}>🏆 Persönliche Bestleistungen</h3>
-            {Object.entries(pbs).filter(([, kg]) => kg > 0).sort((a, b) => b[1] - a[1])
-              .map(([ex, kg]) => (
-                <div key={ex} style={S.pbRow}>
-                  <span style={S.pbExercise}>{ex}</span>
-                  <span style={S.pbKg}>{kg} kg</span>
-                </div>
-              ))}
+            {Object.entries(pbs).filter(function(p) { return p[1] > 0; }).sort(function(a, b) { return b[1] - a[1]; })
+              .map(function(p) {
+                return (
+                  <div key={p[0]} style={S.pbRow}>
+                    <span style={S.pbExercise}>{p[0]}</span>
+                    <span style={S.pbKg}>{p[1] + " kg"}</span>
+                  </div>
+                );
+              })}
           </div>
         )}
       </div>
@@ -571,27 +595,25 @@ function App() {
 
   // ============= BACKUP =============
   if (view === "backup") {
-    const lastBackup = getLastBackup();
-    const totalSessions = getTotalSessions();
+    var lastBackup = getLastBackup();
+    var bkTotalSessions = getTotalSessions();
     return (
       <div style={S.container}>
         <div style={S.dashHeader}>
-          <button onClick={() => setView("home")} style={S.backBtn}>←</button>
+          <button onClick={function() { setView("home"); }} style={S.backBtn}>←</button>
           <h2 style={S.dashTitle}>💾 Backup & Restore</h2>
         </div>
-
         <div style={S.backupSection}>
           <div style={S.backupCard}>
             <h3 style={S.backupCardTitle}>📤 Daten exportieren</h3>
-            <p style={S.backupCardDesc}>Speichert alle {totalSessions} Sessions als JSON-Datei auf deinem Gerät.</p>
-            {lastBackup && <p style={S.backupLastDate}>Letztes Backup: {formatDate(lastBackup)}</p>}
-            <button onClick={() => { exportData(allData); setShowBackupReminder(false); }}
-              disabled={totalSessions === 0}
-              style={{...S.backupExportBtn, ...(totalSessions === 0 ? {opacity: 0.4} : {})}}>
+            <p style={S.backupCardDesc}>{"Speichert alle " + bkTotalSessions + " Sessions als JSON-Datei auf deinem Gerät."}</p>
+            {lastBackup && <p style={S.backupLastDate}>{"Letztes Backup: " + formatDate(lastBackup)}</p>}
+            <button onClick={function() { exportData(allData); setShowBackupReminder(false); }}
+              disabled={bkTotalSessions === 0}
+              style={Object.assign({}, S.backupExportBtn, bkTotalSessions === 0 ? {opacity: 0.4} : {})}>
               ↓ Backup herunterladen
             </button>
           </div>
-
           <div style={S.backupCard}>
             <h3 style={S.backupCardTitle}>📥 Daten importieren</h3>
             <p style={S.backupCardDesc}>Lade eine zuvor exportierte JSON-Datei, um deine Daten wiederherzustellen.</p>
@@ -600,36 +622,31 @@ function App() {
               <input type="file" accept=".json,application/json" onChange={handleImport} style={{display:"none"}} />
             </label>
           </div>
-
           {importStatus === "confirm" && importPayload && (
             <div style={S.backupConfirmCard}>
               <h3 style={S.backupCardTitle}>Import-Modus wählen</h3>
               <p style={S.backupCardDesc}>
-                Die Datei enthält {Object.values(importPayload).reduce((s,d) => s + d.length, 0)} Sessions.
+                {"Die Datei enthält " + Object.values(importPayload).reduce(function(s,d) { return s + d.length; }, 0) + " Sessions."}
               </p>
-              <button onClick={() => confirmImport("merge")} style={S.backupMergeBtn}>
+              <button onClick={function() { confirmImport("merge"); }} style={S.backupMergeBtn}>
                 🔀 Zusammenführen
                 <span style={S.backupBtnSub}>Bestehende Daten behalten, neue hinzufügen</span>
               </button>
-              <button onClick={() => confirmImport("replace")} style={S.backupReplaceBtn}>
+              <button onClick={function() { confirmImport("replace"); }} style={S.backupReplaceBtn}>
                 🔄 Ersetzen
                 <span style={S.backupBtnSub}>Alle bestehenden Daten überschreiben</span>
               </button>
-              <button onClick={() => { setImportStatus(null); setImportPayload(null); }} style={S.cancelDeleteBtn}>
-                Abbrechen
-              </button>
+              <button onClick={function() { setImportStatus(null); setImportPayload(null); }} style={S.cancelDeleteBtn}>Abbrechen</button>
             </div>
           )}
-
           {importStatus === "success" && (
             <div style={S.backupStatusSuccess}>✅ Daten erfolgreich importiert!</div>
           )}
           {importStatus === "error" && (
             <div style={S.backupStatusError}>❌ Ungültige Datei – bitte eine Paulog-Backup-Datei wählen.</div>
           )}
-
           <div style={S.backupInfoCard}>
-            <h3 style={{...S.backupCardTitle, fontSize: 13}}>💡 Tipp</h3>
+            <h3 style={Object.assign({}, S.backupCardTitle, {fontSize: 13})}>💡 Tipp</h3>
             <p style={S.backupCardDesc}>
               Speichere dein Backup regelmäßig in iCloud, Google Drive oder einem anderen Cloud-Ordner.
               So sind deine Daten auch bei Gerätewechsel oder Browser-Reset sicher.
@@ -640,9 +657,11 @@ function App() {
       </div>
     );
   }
+
+  return <div style={S.container}><p style={{padding:40,textAlign:"center"}}>Laden...</p></div>;
 }
 
-const styles = {
+var styles = {
   container: {
     maxWidth: 480, margin: "0 auto", minHeight: "100vh",
     background: "#0F172A", color: "#E2E8F0",
@@ -665,8 +684,7 @@ const styles = {
   dayButton: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
     width: "100%", padding: "16px", marginBottom: 10, background: "#1E293B",
-    border: "none", borderRadius: 10, cursor: "pointer", textAlign: "left", color: "#E2E8F0",
-    fontFamily: "inherit",
+    border: "none", borderRadius: 10, cursor: "pointer", textAlign: "left", color: "#E2E8F0", fontFamily: "inherit",
   },
   dayName: { fontSize: 16, fontWeight: 700 },
   dayMuscles: { fontSize: 12, color: "#94A3B8", marginTop: 2 },
@@ -804,14 +822,11 @@ const styles = {
   },
   pbExercise: { fontSize: 13, color: "#CBD5E1" },
   pbKg: { fontSize: 14, fontWeight: 700, color: "#F59E0B" },
-
-  // Backup reminder
   reminderBanner: {
     margin: "8px 20px 0", padding: "14px 16px", background: "#1E293B",
     borderRadius: 10, border: "1px solid #F59E0B33",
   },
   reminderText: { display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#F59E0B" },
-  reminderIcon: { fontSize: 16 },
   reminderActions: { display: "flex", gap: 8, marginTop: 10 },
   reminderBtn: {
     flex: 1, padding: "8px", background: "#F59E0B", border: "none",
@@ -821,12 +836,8 @@ const styles = {
     padding: "8px 14px", background: "transparent", border: "1px solid #334155",
     borderRadius: 8, color: "#64748B", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
   },
-
-  // Backup view
   backupSection: { padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 },
-  backupCard: {
-    background: "#1E293B", borderRadius: 12, padding: "20px",
-  },
+  backupCard: { background: "#1E293B", borderRadius: 12, padding: "20px" },
   backupCardTitle: { fontSize: 15, fontWeight: 700, color: "#F8FAFC", marginBottom: 6 },
   backupCardDesc: { fontSize: 13, color: "#94A3B8", lineHeight: 1.5, marginBottom: 12 },
   backupLastDate: { fontSize: 12, color: "#64748B", marginBottom: 12, fontStyle: "italic" },
@@ -873,7 +884,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').catch(function() {});
 }
 </script>
 </body>
