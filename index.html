@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#10B981">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Paulog">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Paulog – Workout Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; width: 100%; }
+body {
+  font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  background: #0F172A;
+  color: #E2E8F0;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+input[type="date"] { -webkit-appearance: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } = Recharts;
+
+const PLAN = {
+  "Push (Mo)": {
+    muscles: "Brust / Schulter / Trizeps",
+    color: "#3B82F6",
+    exercises: ["Bankdrücken LH","Schulterdrücken KH","Schrägbankdrücken KH","Seitheben Kabel","Kabel Flys","Trizeps Pushdown Seil"],
+  },
+  "Pull (Mi)": {
+    muscles: "Rücken / Bizeps / hintere Schulter",
+    color: "#10B981",
+    exercises: ["Latzug","T-Bar Row","Rudern Kabel eng","Reverse Fly Kabel","Langhantel Curls","Hammercurls KH"],
+  },
+  "Legs (Fr)": {
+    muscles: "Beine / Core",
+    color: "#F59E0B",
+    exercises: ["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Plank / Cable Crunch"],
+  },
+};
+
+const NUM_SETS = 4;
+const STORAGE_KEY = "paulog-data";
+const BACKUP_KEY = "paulog-last-backup";
+const BACKUP_REMINDER_DAYS = 14;
+const CHART_COLORS = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899"];
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveDataToStorage(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  catch (e) { console.error("Save failed:", e); }
+}
+
+function getLastBackup() {
+  try { return localStorage.getItem(BACKUP_KEY) || null; } catch { return null; }
+}
+
+function setLastBackup() {
+  try { localStorage.setItem(BACKUP_KEY, getToday()); } catch {}
+}
+
+function daysSinceBackup() {
+  const last = getLastBackup();
+  if (!last) return Infinity;
+  const diff = new Date() - new Date(last + "T00:00:00");
+  return Math.floor(diff / 86400000);
+}
+
+function exportData(allData) {
+  const payload = { app: "paulog", version: 1, exported: new Date().toISOString(), data: allData };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `paulog-backup-${getToday()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  setLastBackup();
+}
+
+function getVolume(sets) {
+  return sets.reduce((sum, s) => sum + (Number(s.kg) || 0) * (Number(s.reps) || 0), 0);
+}
+
+function getToday() { return new Date().toISOString().split("T")[0]; }
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const days = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+  return `${days[d.getDay()]}, ${d.getDate().toString().padStart(2,"0")}.${(d.getMonth()+1).toString().padStart(2,"0")}.${d.getFullYear()}`;
+}
+
+function suggestedDay() {
+  const wd = new Date().getDay();
+  if (wd === 1) return "Push (Mo)";
+  if (wd === 3) return "Pull (Mi)";
+  if (wd === 5) return "Legs (Fr)";
+  return null;
+}
+
+function App() {
+  const [view, setView] = useState("home");
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [allData, setAllData] = useState(() => loadData());
+  const [currentSession, setCurrentSession] = useState({});
+  const [sessionDate, setSessionDate] = useState(getToday());
+  const [saving, setSaving] = useState(false);
+  const [expandedExercise, setExpandedExercise] = useState(null);
+  const [editingSession, setEditingSession] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [importStatus, setImportStatus] = useState(null); // null | "success" | "error" | "confirm"
+  const [importPayload, setImportPayload] = useState(null);
+  const [showBackupReminder, setShowBackupReminder] = useState(() => daysSinceBackup() >= BACKUP_REMINDER_DAYS && Object.keys(loadData()).length > 0);
+
+  useEffect(() => { saveDataToStorage(allData); }, [allData]);
+
+  const handleImport = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        const data = parsed.data || parsed;
+        if (typeof data !== "object") throw new Error("Invalid");
+        setImportPayload(data);
+        setImportStatus("confirm");
+      } catch {
+        setImportStatus("error");
+        setTimeout(() => setImportStatus(null), 3000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const confirmImport = (mode) => {
+    if (mode === "replace") {
+      setAllData(importPayload);
+    } else {
+      // merge
+      setAllData(prev => {
+        const merged = { ...prev };
+        Object.entries(importPayload).forEach(([day, sessions]) => {
+          if (!merged[day]) merged[day] = [];
+          sessions.forEach(s => {
+            const exists = merged[day].some(existing => existing.date === s.date);
+            if (!exists) merged[day].push(s);
+            else {
+              const idx = merged[day].findIndex(existing => existing.date === s.date);
+              merged[day][idx] = s;
+            }
+          });
+        });
+        return merged;
+      });
+    }
+    setImportPayload(null);
+    setImportStatus("success");
+    setTimeout(() => setImportStatus(null), 3000);
+  };
+
+  const getPreviousSession = useCallback(
+    (day, exercise) => {
+      const dayData = allData[day] || [];
+      const sorted = [...dayData].sort((a, b) => b.date.localeCompare(a.date));
+      for (const session of sorted) {
+        if (session.date === sessionDate) continue;
+        const ex = session.exercises?.[exercise];
+        if (ex && ex.some((s) => s.kg || s.reps)) return ex;
+      }
+      return null;
+    },
+    [allData, sessionDate]
+  );
+
+  const startSession = (day, date, existingData) => {
+    setSelectedDay(day);
+    setSessionDate(date || getToday());
+    if (existingData) {
+      setCurrentSession(JSON.parse(JSON.stringify(existingData)));
+    } else {
+      const existing = (allData[day] || []).find((s) => s.date === (date || getToday()));
+      if (existing?.exercises) {
+        setCurrentSession(JSON.parse(JSON.stringify(existing.exercises)));
+      } else {
+        const session = {};
+        PLAN[day].exercises.forEach((ex) => {
+          session[ex] = Array.from({ length: NUM_SETS }, () => ({ kg: "", reps: "" }));
+        });
+        setCurrentSession(session);
+      }
+    }
+    setExpandedExercise(PLAN[day].exercises[0]);
+    setView("track");
+  };
+
+  const updateSet = (exercise, setIdx, field, value) => {
+    setCurrentSession((prev) => {
+      const next = { ...prev };
+      next[exercise] = [...next[exercise]];
+      next[exercise][setIdx] = { ...next[exercise][setIdx], [field]: value };
+      return next;
+    });
+  };
+
+  const saveSession = () => {
+    setSaving(true);
+    setAllData(prev => {
+      const newData = { ...prev };
+      if (!newData[selectedDay]) newData[selectedDay] = [];
+      const idx = newData[selectedDay].findIndex((s) => s.date === sessionDate);
+      const entry = { date: sessionDate, exercises: currentSession };
+      if (idx >= 0) newData[selectedDay][idx] = entry;
+      else newData[selectedDay].push(entry);
+      return newData;
+    });
+    setSaving(false);
+    setEditingSession(null);
+    setView("history");
+  };
+
+  const deleteSession = (day, date) => {
+    setAllData(prev => {
+      const newData = { ...prev };
+      newData[day] = (newData[day] || []).filter((s) => s.date !== date);
+      if (newData[day].length === 0) delete newData[day];
+      return newData;
+    });
+    setDeleteConfirm(null);
+  };
+
+  const getAllSessions = () => {
+    const sessions = [];
+    Object.entries(allData).forEach(([day, dayData]) => {
+      (dayData || []).forEach((session) => {
+        const totalVol = Object.values(session.exercises || {}).reduce((sum, sets) => sum + getVolume(sets), 0);
+        const exerciseCount = Object.entries(session.exercises || {}).filter(([, sets]) => sets.some((s) => s.kg || s.reps)).length;
+        sessions.push({ day, date: session.date, totalVol, exerciseCount, exercises: session.exercises });
+      });
+    });
+    return sessions.sort((a, b) => b.date.localeCompare(a.date));
+  };
+
+  const getChartData = (day) => {
+    const sessions = (allData[day] || []).sort((a, b) => a.date.localeCompare(b.date));
+    return sessions.map((s, i) => {
+      const point = { name: `W${i + 1}`, date: s.date };
+      PLAN[day].exercises.forEach((ex) => {
+        point[ex] = s.exercises?.[ex] ? getVolume(s.exercises[ex]) : 0;
+      });
+      return point;
+    });
+  };
+
+  const getTotalSessions = () => Object.values(allData).reduce((sum, d) => sum + d.length, 0);
+
+  const getPersonalBests = () => {
+    const pbs = {};
+    Object.entries(allData).forEach(([, sessions]) => {
+      sessions.forEach((s) => {
+        Object.entries(s.exercises || {}).forEach(([ex, sets]) => {
+          const maxKg = Math.max(...sets.map((st) => Number(st.kg) || 0));
+          if (!pbs[ex] || maxKg > pbs[ex]) pbs[ex] = maxKg;
+        });
+      });
+    });
+    return pbs;
+  };
+
+  const S = styles;
+
+  // ============= HOME =============
+  if (view === "home") {
+    const suggested = suggestedDay();
+    return (
+      <div style={S.container}>
+        <div style={S.header}>
+          <h1 style={S.title}>Pau<span style={S.titleAccent}>log</span></h1>
+          <p style={S.subtitle}>Push / Pull / Legs Tracker</p>
+        </div>
+        <div style={S.statsBar}>
+          <div style={S.statItem}>
+            <span style={S.statNumber}>{getTotalSessions()}</span>
+            <span style={S.statLabel}>Sessions</span>
+          </div>
+          <div style={S.statDivider} />
+          <div style={S.statItem}>
+            <span style={S.statNumber}>{Object.keys(getPersonalBests()).length}</span>
+            <span style={S.statLabel}>Übungen</span>
+          </div>
+        </div>
+        <div style={S.section}>
+          <h2 style={S.sectionTitle}>Training starten</h2>
+          {Object.entries(PLAN).map(([day, info]) => (
+            <button key={day} onClick={() => startSession(day)}
+              style={{...S.dayButton, borderLeft: `4px solid ${info.color}`, ...(suggested === day ? { background: `${info.color}11` } : {})}}>
+              <div>
+                <div style={S.dayName}>{day}</div>
+                <div style={S.dayMuscles}>{info.muscles}</div>
+              </div>
+              <div style={{...S.dayArrow, color: info.color}}>→</div>
+            </button>
+          ))}
+        </div>
+        <div style={S.bottomButtons}>
+          <button onClick={() => setView("history")} style={S.secondaryButton}>📋 Sessions verwalten</button>
+          <button onClick={() => setView("dashboard")} style={S.secondaryButton}>📊 Dashboard</button>
+          <button onClick={() => setView("backup")} style={S.secondaryButton}>💾 Backup & Restore</button>
+        </div>
+        {showBackupReminder && getTotalSessions() > 0 && (
+          <div style={S.reminderBanner}>
+            <div style={S.reminderText}>
+              <span style={S.reminderIcon}>⚠️</span>
+              <span>{getLastBackup() ? `Letztes Backup: ${formatDate(getLastBackup())}` : "Du hast noch kein Backup erstellt!"}</span>
+            </div>
+            <div style={S.reminderActions}>
+              <button onClick={() => { exportData(allData); setShowBackupReminder(false); }} style={S.reminderBtn}>Jetzt sichern</button>
+              <button onClick={() => setShowBackupReminder(false)} style={S.reminderDismiss}>Später</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============= TRACKING =============
+  if (view === "track") {
+    const dayInfo = PLAN[selectedDay];
+    const isEditing = !!editingSession;
+    return (
+      <div style={S.container}>
+        <div style={{...S.trackHeader, borderBottom: `3px solid ${dayInfo.color}`}}>
+          <button onClick={() => { setView(isEditing ? "history" : "home"); setEditingSession(null); }} style={S.backBtn}>←</button>
+          <div>
+            <h2 style={S.trackTitle}>{isEditing ? "Session bearbeiten" : selectedDay}</h2>
+            <p style={S.trackSub}>{dayInfo.muscles}</p>
+          </div>
+          <input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} style={S.dateInput} />
+        </div>
+        <div style={S.exerciseList}>
+          {dayInfo.exercises.map((ex) => {
+            const isExpanded = expandedExercise === ex;
+            const prev = getPreviousSession(selectedDay, ex);
+            const currentVol = getVolume(currentSession[ex] || []);
+            const prevVol = prev ? getVolume(prev) : 0;
+            const hasDelta = currentVol > 0 && prevVol > 0;
+            const delta = hasDelta ? Math.round(((currentVol - prevVol) / prevVol) * 100) : 0;
+            return (
+              <div key={ex} style={S.exerciseCard}>
+                <button onClick={() => setExpandedExercise(isExpanded ? null : ex)}
+                  style={{...S.exerciseHeader, borderLeft: `3px solid ${dayInfo.color}`}}>
+                  <div style={S.exerciseHeaderLeft}>
+                    <span style={S.exerciseName}>{ex}</span>
+                    {currentVol > 0 && (
+                      <span style={S.volBadge}>
+                        Vol: {currentVol.toLocaleString()}
+                        {hasDelta && <span style={{ color: delta >= 0 ? "#10B981" : "#EF4444", marginLeft: 4 }}>
+                          {delta >= 0 ? "↑" : "↓"}{Math.abs(delta)}%
+                        </span>}
+                      </span>
+                    )}
+                  </div>
+                  <span style={S.expandIcon}>{isExpanded ? "▲" : "▼"}</span>
+                </button>
+                {isExpanded && (
+                  <div style={S.setsContainer}>
+                    {prev && (
+                      <div style={S.prevSession}>
+                        <span style={S.prevLabel}>Letzte Session:</span>
+                        <div style={S.prevSets}>
+                          {prev.map((s, i) => (s.kg || s.reps) ? <span key={i} style={S.prevSet}>{s.kg}kg×{s.reps}</span> : null)}
+                        </div>
+                      </div>
+                    )}
+                    <div style={S.setsGrid}>
+                      <div style={S.setHeaderRow}>
+                        <span style={S.setHeaderLabel}></span>
+                        <span style={S.setHeaderKg}>kg</span>
+                        <span style={S.setHeaderReps}>Wdh</span>
+                      </div>
+                      {currentSession[ex]?.map((set, i) => (
+                        <div key={i} style={S.setRow}>
+                          <span style={{...S.setNumber, background: dayInfo.color}}>{i + 1}</span>
+                          <input type="number" inputMode="decimal" placeholder={prev?.[i]?.kg || "—"} value={set.kg}
+                            onChange={(e) => updateSet(ex, i, "kg", e.target.value)} style={S.input} />
+                          <input type="number" inputMode="numeric" placeholder={prev?.[i]?.reps || "—"} value={set.reps}
+                            onChange={(e) => updateSet(ex, i, "reps", e.target.value)} style={S.input} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={saveSession} disabled={saving} style={S.saveButton}>
+          {saving ? "Speichern..." : isEditing ? "✓ Änderungen speichern" : "✓ Session speichern"}
+        </button>
+      </div>
+    );
+  }
+
+  // ============= HISTORY =============
+  if (view === "history") {
+    const sessions = getAllSessions();
+    const grouped = {};
+    sessions.forEach((s) => {
+      const month = s.date.slice(0, 7);
+      if (!grouped[month]) grouped[month] = [];
+      grouped[month].push(s);
+    });
+    const monthNames = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+    return (
+      <div style={S.container}>
+        <div style={S.historyHeader}>
+          <button onClick={() => setView("home")} style={S.backBtn}>←</button>
+          <h2 style={S.historyTitle}>📋 Alle Sessions</h2>
+          <span style={S.historyCount}>{sessions.length} gesamt</span>
+        </div>
+        {sessions.length === 0 ? (
+          <div style={S.emptyState}>
+            <p style={S.emptyIcon}>🏋️</p>
+            <p style={S.emptyText}>Noch keine Sessions vorhanden</p>
+            <p style={S.emptySubtext}>Starte dein erstes Training!</p>
+          </div>
+        ) : (
+          Object.entries(grouped).map(([month, monthSessions]) => {
+            const [y, m] = month.split("-");
+            return (
+              <div key={month}>
+                <div style={S.monthHeader}>
+                  <span style={S.monthName}>{monthNames[parseInt(m) - 1]} {y}</span>
+                  <span style={S.monthCount}>{monthSessions.length} Sessions</span>
+                </div>
+                {monthSessions.map((s) => {
+                  const dayInfo = PLAN[s.day];
+                  const isDeleting = deleteConfirm?.day === s.day && deleteConfirm?.date === s.date;
+                  return (
+                    <div key={`${s.day}-${s.date}`} style={S.sessionCard}>
+                      <div style={{...S.sessionColorBar, background: dayInfo?.color || "#64748B"}} />
+                      <div style={S.sessionContent}>
+                        <div style={S.sessionTop}>
+                          <div>
+                            <div style={S.sessionDay}>{s.day}</div>
+                            <div style={S.sessionDate}>{formatDate(s.date)}</div>
+                          </div>
+                          <div style={S.sessionStats}>
+                            <span style={S.sessionVol}>{s.totalVol.toLocaleString()} Vol</span>
+                            <span style={S.sessionExCount}>{s.exerciseCount} Übungen</span>
+                          </div>
+                        </div>
+                        <div style={S.sessionExercises}>
+                          {Object.entries(s.exercises || {}).map(([ex, sets]) => {
+                            const vol = getVolume(sets);
+                            if (vol === 0) return null;
+                            const maxKg = Math.max(...sets.map((st) => Number(st.kg) || 0));
+                            return (
+                              <div key={ex} style={S.sessionExRow}>
+                                <span style={S.sessionExName}>{ex}</span>
+                                <span style={S.sessionExDetail}>{maxKg}kg · {vol.toLocaleString()} vol</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {isDeleting ? (
+                          <div style={S.deleteConfirmBar}>
+                            <span style={S.deleteConfirmText}>Wirklich löschen?</span>
+                            <button onClick={() => deleteSession(s.day, s.date)} style={S.confirmDeleteBtn}>Ja, löschen</button>
+                            <button onClick={() => setDeleteConfirm(null)} style={S.cancelDeleteBtn}>Abbrechen</button>
+                          </div>
+                        ) : (
+                          <div style={S.sessionActions}>
+                            <button onClick={() => { setEditingSession({ day: s.day, date: s.date }); startSession(s.day, s.date, s.exercises); }} style={S.editBtn}>✏️ Bearbeiten</button>
+                            <button onClick={() => setDeleteConfirm({ day: s.day, date: s.date })} style={S.deleteBtn}>🗑 Löschen</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
+  // ============= DASHBOARD =============
+  if (view === "dashboard") {
+    const pbs = getPersonalBests();
+    return (
+      <div style={S.container}>
+        <div style={S.dashHeader}>
+          <button onClick={() => setView("home")} style={S.backBtn}>←</button>
+          <h2 style={S.dashTitle}>📊 Dashboard</h2>
+        </div>
+        {Object.entries(PLAN).map(([day, info]) => {
+          const data = getChartData(day);
+          if (data.length === 0) return (
+            <div key={day} style={S.chartSection}>
+              <h3 style={{...S.chartTitle, color: info.color}}>{day}</h3>
+              <p style={S.noData}>Noch keine Daten vorhanden</p>
+            </div>
+          );
+          return (
+            <div key={day} style={S.chartSection}>
+              <h3 style={{...S.chartTitle, color: info.color}}>{day}</h3>
+              <p style={S.chartSub}>Volumen-Progression (kg × Wdh)</p>
+              <div style={S.chartWrap}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94A3B8" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
+                    <Tooltip contentStyle={{ background: "#1E293B", border: "none", borderRadius: 8, fontSize: 12 }} labelStyle={{ color: "#94A3B8" }} />
+                    {info.exercises.map((ex, i) => (
+                      <Line key={ex} type="monotone" dataKey={ex} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} name={ex} />
+                    ))}
+                    <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          );
+        })}
+        {Object.keys(pbs).length > 0 && (
+          <div style={S.pbSection}>
+            <h3 style={S.pbTitle}>🏆 Persönliche Bestleistungen</h3>
+            {Object.entries(pbs).filter(([, kg]) => kg > 0).sort((a, b) => b[1] - a[1])
+              .map(([ex, kg]) => (
+                <div key={ex} style={S.pbRow}>
+                  <span style={S.pbExercise}>{ex}</span>
+                  <span style={S.pbKg}>{kg} kg</span>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============= BACKUP =============
+  if (view === "backup") {
+    const lastBackup = getLastBackup();
+    const totalSessions = getTotalSessions();
+    return (
+      <div style={S.container}>
+        <div style={S.dashHeader}>
+          <button onClick={() => setView("home")} style={S.backBtn}>←</button>
+          <h2 style={S.dashTitle}>💾 Backup & Restore</h2>
+        </div>
+
+        <div style={S.backupSection}>
+          <div style={S.backupCard}>
+            <h3 style={S.backupCardTitle}>📤 Daten exportieren</h3>
+            <p style={S.backupCardDesc}>Speichert alle {totalSessions} Sessions als JSON-Datei auf deinem Gerät.</p>
+            {lastBackup && <p style={S.backupLastDate}>Letztes Backup: {formatDate(lastBackup)}</p>}
+            <button onClick={() => { exportData(allData); setShowBackupReminder(false); }}
+              disabled={totalSessions === 0}
+              style={{...S.backupExportBtn, ...(totalSessions === 0 ? {opacity: 0.4} : {})}}>
+              ↓ Backup herunterladen
+            </button>
+          </div>
+
+          <div style={S.backupCard}>
+            <h3 style={S.backupCardTitle}>📥 Daten importieren</h3>
+            <p style={S.backupCardDesc}>Lade eine zuvor exportierte JSON-Datei, um deine Daten wiederherzustellen.</p>
+            <label style={S.backupImportBtn}>
+              ↑ Datei auswählen
+              <input type="file" accept=".json,application/json" onChange={handleImport} style={{display:"none"}} />
+            </label>
+          </div>
+
+          {importStatus === "confirm" && importPayload && (
+            <div style={S.backupConfirmCard}>
+              <h3 style={S.backupCardTitle}>Import-Modus wählen</h3>
+              <p style={S.backupCardDesc}>
+                Die Datei enthält {Object.values(importPayload).reduce((s,d) => s + d.length, 0)} Sessions.
+              </p>
+              <button onClick={() => confirmImport("merge")} style={S.backupMergeBtn}>
+                🔀 Zusammenführen
+                <span style={S.backupBtnSub}>Bestehende Daten behalten, neue hinzufügen</span>
+              </button>
+              <button onClick={() => confirmImport("replace")} style={S.backupReplaceBtn}>
+                🔄 Ersetzen
+                <span style={S.backupBtnSub}>Alle bestehenden Daten überschreiben</span>
+              </button>
+              <button onClick={() => { setImportStatus(null); setImportPayload(null); }} style={S.cancelDeleteBtn}>
+                Abbrechen
+              </button>
+            </div>
+          )}
+
+          {importStatus === "success" && (
+            <div style={S.backupStatusSuccess}>✅ Daten erfolgreich importiert!</div>
+          )}
+          {importStatus === "error" && (
+            <div style={S.backupStatusError}>❌ Ungültige Datei – bitte eine Paulog-Backup-Datei wählen.</div>
+          )}
+
+          <div style={S.backupInfoCard}>
+            <h3 style={{...S.backupCardTitle, fontSize: 13}}>💡 Tipp</h3>
+            <p style={S.backupCardDesc}>
+              Speichere dein Backup regelmäßig in iCloud, Google Drive oder einem anderen Cloud-Ordner.
+              So sind deine Daten auch bei Gerätewechsel oder Browser-Reset sicher.
+              Die App erinnert dich alle 2 Wochen automatisch.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
+const styles = {
+  container: {
+    maxWidth: 480, margin: "0 auto", minHeight: "100vh",
+    background: "#0F172A", color: "#E2E8F0",
+    fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif", paddingBottom: 100,
+  },
+  header: { padding: "32px 20px 16px", textAlign: "center" },
+  title: { fontSize: 32, fontWeight: 800, letterSpacing: 4, margin: 0, color: "#F8FAFC" },
+  titleAccent: { color: "#10B981" },
+  subtitle: { fontSize: 13, color: "#64748B", marginTop: 4, letterSpacing: 2, textTransform: "uppercase" },
+  statsBar: {
+    display: "flex", justifyContent: "center", alignItems: "center", gap: 24,
+    padding: "16px 20px", margin: "0 20px 8px", background: "#1E293B", borderRadius: 12,
+  },
+  statItem: { display: "flex", flexDirection: "column", alignItems: "center" },
+  statNumber: { fontSize: 24, fontWeight: 700, color: "#F8FAFC" },
+  statLabel: { fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: 1 },
+  statDivider: { width: 1, height: 32, background: "#334155" },
+  section: { padding: "12px 20px" },
+  sectionTitle: { fontSize: 13, fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 },
+  dayButton: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    width: "100%", padding: "16px", marginBottom: 10, background: "#1E293B",
+    border: "none", borderRadius: 10, cursor: "pointer", textAlign: "left", color: "#E2E8F0",
+    fontFamily: "inherit",
+  },
+  dayName: { fontSize: 16, fontWeight: 700 },
+  dayMuscles: { fontSize: 12, color: "#94A3B8", marginTop: 2 },
+  dayArrow: { fontSize: 22, fontWeight: 700 },
+  bottomButtons: { padding: "8px 20px", display: "flex", flexDirection: "column", gap: 8 },
+  secondaryButton: {
+    width: "100%", padding: "14px", background: "transparent",
+    border: "1px solid #334155", borderRadius: 10, color: "#94A3B8",
+    fontSize: 15, cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+  },
+  trackHeader: {
+    display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
+    background: "#1E293B", position: "sticky", top: 0, zIndex: 10,
+  },
+  backBtn: { background: "none", border: "none", color: "#94A3B8", fontSize: 24, cursor: "pointer", padding: "4px 8px" },
+  trackTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: "#F8FAFC" },
+  trackSub: { margin: 0, fontSize: 11, color: "#64748B" },
+  dateInput: {
+    marginLeft: "auto", background: "#0F172A", border: "1px solid #334155",
+    borderRadius: 8, color: "#E2E8F0", padding: "6px 10px", fontSize: 13, fontFamily: "inherit",
+  },
+  exerciseList: { padding: "8px 12px" },
+  exerciseCard: { marginBottom: 8, borderRadius: 10, overflow: "hidden", background: "#1E293B" },
+  exerciseHeader: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    width: "100%", padding: "14px", background: "#1E293B", border: "none",
+    cursor: "pointer", color: "#E2E8F0", textAlign: "left", fontFamily: "inherit",
+  },
+  exerciseHeaderLeft: { display: "flex", flexDirection: "column", gap: 4 },
+  exerciseName: { fontSize: 14, fontWeight: 700 },
+  volBadge: { fontSize: 11, color: "#94A3B8" },
+  expandIcon: { fontSize: 10, color: "#64748B" },
+  setsContainer: { padding: "0 14px 14px" },
+  prevSession: { background: "#0F172A", borderRadius: 8, padding: "8px 12px", marginBottom: 10 },
+  prevLabel: { fontSize: 10, color: "#64748B", textTransform: "uppercase", letterSpacing: 1 },
+  prevSets: { display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" },
+  prevSet: { fontSize: 12, color: "#94A3B8", background: "#1E293B", padding: "2px 8px", borderRadius: 4 },
+  setsGrid: { display: "flex", flexDirection: "column", gap: 6 },
+  setHeaderRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr", gap: 8, marginBottom: 2 },
+  setHeaderLabel: { fontSize: 10, color: "#475569" },
+  setHeaderKg: { fontSize: 10, color: "#475569", textAlign: "center" },
+  setHeaderReps: { fontSize: 10, color: "#475569", textAlign: "center" },
+  setRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr", gap: 8, alignItems: "center" },
+  setNumber: {
+    width: 32, height: 32, borderRadius: 8, display: "flex",
+    alignItems: "center", justifyContent: "center", color: "#FFF", fontWeight: 700, fontSize: 14,
+  },
+  input: {
+    width: "100%", padding: "10px 8px", background: "#0F172A",
+    border: "1px solid #334155", borderRadius: 8, color: "#F8FAFC",
+    fontSize: 16, textAlign: "center", fontWeight: 600, outline: "none",
+    boxSizing: "border-box", fontFamily: "inherit",
+  },
+  saveButton: {
+    position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
+    width: "calc(100% - 48px)", maxWidth: 440, padding: "16px",
+    background: "#3B82F6", border: "none", borderRadius: 12, color: "#FFF",
+    fontSize: 16, fontWeight: 700, cursor: "pointer", zIndex: 20,
+    boxShadow: "0 4px 24px rgba(59,130,246,0.4)", fontFamily: "inherit",
+  },
+  historyHeader: {
+    display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
+    background: "#1E293B", position: "sticky", top: 0, zIndex: 10,
+  },
+  historyTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: "#F8FAFC" },
+  historyCount: { marginLeft: "auto", fontSize: 12, color: "#64748B", background: "#0F172A", padding: "4px 10px", borderRadius: 12 },
+  emptyState: { textAlign: "center", padding: "60px 20px" },
+  emptyIcon: { fontSize: 48, margin: 0 },
+  emptyText: { fontSize: 16, fontWeight: 600, color: "#94A3B8", marginTop: 12 },
+  emptySubtext: { fontSize: 13, color: "#475569" },
+  monthHeader: {
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    padding: "12px 20px 6px", borderBottom: "1px solid #1E293B",
+  },
+  monthName: { fontSize: 14, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1 },
+  monthCount: { fontSize: 11, color: "#475569" },
+  sessionCard: {
+    display: "flex", margin: "8px 12px", borderRadius: 10,
+    overflow: "hidden", background: "#1E293B",
+  },
+  sessionColorBar: { width: 4, flexShrink: 0 },
+  sessionContent: { flex: 1, padding: "12px 14px" },
+  sessionTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
+  sessionDay: { fontSize: 14, fontWeight: 700, color: "#F8FAFC" },
+  sessionDate: { fontSize: 12, color: "#64748B", marginTop: 2 },
+  sessionStats: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 },
+  sessionVol: { fontSize: 13, fontWeight: 700, color: "#E2E8F0" },
+  sessionExCount: { fontSize: 11, color: "#64748B" },
+  sessionExercises: {
+    marginTop: 10, paddingTop: 10, borderTop: "1px solid #0F172A",
+    display: "flex", flexDirection: "column", gap: 4,
+  },
+  sessionExRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  sessionExName: { fontSize: 12, color: "#94A3B8" },
+  sessionExDetail: { fontSize: 11, color: "#64748B" },
+  sessionActions: {
+    display: "flex", gap: 8, marginTop: 12, paddingTop: 10, borderTop: "1px solid #0F172A",
+  },
+  editBtn: {
+    flex: 1, padding: "8px", background: "#1E3A5F", border: "none",
+    borderRadius: 8, color: "#60A5FA", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+  },
+  deleteBtn: {
+    flex: 1, padding: "8px", background: "#3B1C1C", border: "none",
+    borderRadius: 8, color: "#F87171", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+  },
+  deleteConfirmBar: {
+    display: "flex", alignItems: "center", gap: 8, marginTop: 12,
+    paddingTop: 10, borderTop: "1px solid #0F172A",
+  },
+  deleteConfirmText: { fontSize: 13, color: "#F87171", fontWeight: 600, flex: 1 },
+  confirmDeleteBtn: {
+    padding: "8px 14px", background: "#DC2626", border: "none",
+    borderRadius: 8, color: "#FFF", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+  },
+  cancelDeleteBtn: {
+    padding: "8px 14px", background: "#334155", border: "none",
+    borderRadius: 8, color: "#94A3B8", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+  },
+  dashHeader: {
+    display: "flex", alignItems: "center", gap: 12, padding: "16px 20px",
+    background: "#1E293B", position: "sticky", top: 0, zIndex: 10,
+  },
+  dashTitle: { margin: 0, fontSize: 18, fontWeight: 700, color: "#F8FAFC" },
+  chartSection: { padding: "16px 20px", borderBottom: "1px solid #1E293B" },
+  chartTitle: { fontSize: 16, fontWeight: 700, margin: "0 0 2px" },
+  chartSub: { fontSize: 11, color: "#64748B", margin: "0 0 12px" },
+  chartWrap: { background: "#1E293B", borderRadius: 10, padding: "12px 4px" },
+  noData: { fontSize: 13, color: "#475569", fontStyle: "italic" },
+  pbSection: { padding: "16px 20px" },
+  pbTitle: { fontSize: 16, fontWeight: 700, marginBottom: 12, color: "#F8FAFC" },
+  pbRow: {
+    display: "flex", justifyContent: "space-between", padding: "10px 12px",
+    background: "#1E293B", borderRadius: 8, marginBottom: 6,
+  },
+  pbExercise: { fontSize: 13, color: "#CBD5E1" },
+  pbKg: { fontSize: 14, fontWeight: 700, color: "#F59E0B" },
+
+  // Backup reminder
+  reminderBanner: {
+    margin: "8px 20px 0", padding: "14px 16px", background: "#1E293B",
+    borderRadius: 10, border: "1px solid #F59E0B33",
+  },
+  reminderText: { display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#F59E0B" },
+  reminderIcon: { fontSize: 16 },
+  reminderActions: { display: "flex", gap: 8, marginTop: 10 },
+  reminderBtn: {
+    flex: 1, padding: "8px", background: "#F59E0B", border: "none",
+    borderRadius: 8, color: "#0F172A", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+  },
+  reminderDismiss: {
+    padding: "8px 14px", background: "transparent", border: "1px solid #334155",
+    borderRadius: 8, color: "#64748B", fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+  },
+
+  // Backup view
+  backupSection: { padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 },
+  backupCard: {
+    background: "#1E293B", borderRadius: 12, padding: "20px",
+  },
+  backupCardTitle: { fontSize: 15, fontWeight: 700, color: "#F8FAFC", marginBottom: 6 },
+  backupCardDesc: { fontSize: 13, color: "#94A3B8", lineHeight: 1.5, marginBottom: 12 },
+  backupLastDate: { fontSize: 12, color: "#64748B", marginBottom: 12, fontStyle: "italic" },
+  backupExportBtn: {
+    width: "100%", padding: "12px", background: "#3B82F6", border: "none",
+    borderRadius: 8, color: "#FFF", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+  },
+  backupImportBtn: {
+    display: "block", width: "100%", padding: "12px", background: "#1E3A5F",
+    border: "1px dashed #3B82F6", borderRadius: 8, color: "#60A5FA", fontSize: 14,
+    fontWeight: 600, cursor: "pointer", textAlign: "center", fontFamily: "inherit",
+  },
+  backupConfirmCard: {
+    background: "#1E293B", borderRadius: 12, padding: "20px",
+    border: "1px solid #334155", display: "flex", flexDirection: "column", gap: 8,
+  },
+  backupMergeBtn: {
+    width: "100%", padding: "12px", background: "#10B981", border: "none",
+    borderRadius: 8, color: "#FFF", fontSize: 14, fontWeight: 700, cursor: "pointer",
+    fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+  },
+  backupReplaceBtn: {
+    width: "100%", padding: "12px", background: "#F59E0B", border: "none",
+    borderRadius: 8, color: "#0F172A", fontSize: 14, fontWeight: 700, cursor: "pointer",
+    fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+  },
+  backupBtnSub: { fontSize: 11, fontWeight: 400, opacity: 0.8 },
+  backupStatusSuccess: {
+    padding: "14px", background: "#064E3B", borderRadius: 10,
+    color: "#6EE7B7", fontSize: 14, fontWeight: 600, textAlign: "center",
+  },
+  backupStatusError: {
+    padding: "14px", background: "#7F1D1D", borderRadius: 10,
+    color: "#FCA5A5", fontSize: 14, fontWeight: 600, textAlign: "center",
+  },
+  backupInfoCard: {
+    background: "#1E293B", borderRadius: 12, padding: "16px",
+    border: "1px solid #334155",
+  },
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
