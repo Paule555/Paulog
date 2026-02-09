@@ -1,6 +1,6 @@
 # Paulog – Workout Tracker
 
-  **`https://DEIN-USERNAME.github.io/paulog/`**
+  **`https://paule555.github.io/Paulog/`**
 
 ---
 
