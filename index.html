@@ -463,7 +463,14 @@ function bindEvents(){
       // Update volume display without full re-render
       updateVolDisplay(ex);
     }
-    else if(t.getAttribute("data-action")==="set-date"){state.date=t.value;}
+    else if(t.getAttribute("data-action")==="set-date"){
+      state.date=t.value;
+      var arr=allData[state.day]||[];
+      var existing=arr.find(function(s){return s.date===state.date;});
+      if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
+      else{var se={};PLAN[state.day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<SETS;i++)se[e].push({kg:"",reps:""});});state.session=se;}
+      render();
+    }
   };
 
   // File input
@@ -518,7 +525,7 @@ function doImport(mode){
       });
     }
   }
-  save();state.impData=null;state.impStatus="success";render();
+  save();state.impData=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
   setTimeout(function(){state.impStatus=null;render();},3000);
 }
 

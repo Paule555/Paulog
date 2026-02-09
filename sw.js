@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paulog-v8';
+const CACHE_NAME = 'paulog-v10';
 const ASSETS = [
   './',
   './index.html',
