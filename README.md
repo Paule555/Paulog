@@ -1,39 +1,5 @@
 # Paulog – Workout Tracker
 
-Dein persönlicher Push/Pull/Legs Tracker als Progressive Web App.
-
----
-
-## 🚀 Deployment auf GitHub Pages (Schritt für Schritt)
-
-### 1. GitHub-Account erstellen (falls noch nicht vorhanden)
-→ https://github.com/signup
-
-### 2. Neues Repository erstellen
-- Gehe zu https://github.com/new
-- **Repository name:** `paulog` (oder ein anderer Name)
-- **Public** auswählen (muss öffentlich sein für kostenlose GitHub Pages)
-- Haken bei **"Add a README file"** NICHT setzen
-- Klick auf **"Create repository"**
-
-### 3. Dateien hochladen
-- Auf der Repository-Seite klicke auf **"uploading an existing file"**
-- Ziehe alle 5 Dateien aus dem `paulog`-Ordner per Drag & Drop hinein:
-  - `index.html`
-  - `manifest.json`
-  - `sw.js`
-  - `icon-192.png`
-  - `icon-512.png`
-- Klick auf **"Commit changes"**
-
-### 4. GitHub Pages aktivieren
-- Gehe zu **Settings** → **Pages** (linke Seitenleiste)
-- Unter **"Source"** wähle: **Deploy from a branch**
-- Branch: **main** / Ordner: **/ (root)**
-- Klick auf **Save**
-
-### 5. Fertig! 🎉
-- Nach ca. 1-2 Minuten ist deine App live unter:
   **`https://DEIN-USERNAME.github.io/paulog/`**
 
 ---
