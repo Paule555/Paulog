@@ -218,11 +218,30 @@ function exportData(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);setLB();
 }
 
+function getKW(dateStr){
+  var d=new Date(dateStr+"T00:00:00");
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+3-(d.getDay()+6)%7);
+  var w1=new Date(d.getFullYear(),0,4);
+  return Math.round(((d-w1)/864e5-3+(w1.getDay()+6)%7)/7)+1;
+}
+
 // Chart
 function drawChart(day){
   var info=PLAN[day],sessions=(allData[day]||[]).slice().sort(function(a,b){return a.date>b.date?1:-1;});
   if(sessions.length===0)return'<p class="no-data">Noch keine Daten</p>';
-  var data=sessions.map(function(s,i){var pt={name:"W"+(i+1)};info.exercises.forEach(function(ex){pt[ex]=s.exercises&&s.exercises[ex]?vol(s.exercises[ex]):0;});return pt;});
+  // Group by KW
+  var kwMap={};
+  sessions.forEach(function(s){
+    var kw="KW"+getKW(s.date);
+    if(!kwMap[kw])kwMap[kw]={};
+    info.exercises.forEach(function(ex){
+      var v=s.exercises&&s.exercises[ex]?vol(s.exercises[ex]):0;
+      if(v>0){if(!kwMap[kw][ex]||v>kwMap[kw][ex])kwMap[kw][ex]=v;}
+    });
+  });
+  var kwKeys=Object.keys(kwMap);
+  var data=kwKeys.map(function(kw){var pt={name:kw};info.exercises.forEach(function(ex){pt[ex]=kwMap[kw][ex]||0;});return pt;});
   var W=340,H=200,pl=45,pt2=20,pr=10,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
   var allV=[];data.forEach(function(p){info.exercises.forEach(function(ex){if(p[ex])allV.push(p[ex]);});});
   var maxV=Math.max.apply(null,allV)||1;
@@ -300,7 +319,7 @@ function renderTrack(){
     var cv=vol(sets),pv=prev?vol(prev):0,hd=cv>0&&pv>0,delta=hd?Math.round(((cv-pv)/pv)*100):0;
     h+='<div class="e-card"><button class="e-hdr" style="border-left:3px solid '+info.color+'" data-action="toggle-ex" data-ex="'+esc(ex)+'">';
     h+='<div><span class="e-name">'+esc(ex)+'</span>';
-    if(cv>0){h+='<div class="e-vol">Vol: '+cv.toLocaleString();if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
+    if(cv>0){h+='<div class="e-vol">'+cv.toLocaleString()+' kg';if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
     h+='</div><span class="e-icon">'+(isX?'▲':'▼')+'</span></button>';
     if(isX){
       h+='<div class="e-body">';
@@ -333,9 +352,9 @@ function renderHistory(){
       var inf=PLAN[s.day],isDel=state.delConfirm&&state.delConfirm.day===s.day&&state.delConfirm.date===s.date;
       h+='<div class="s-card"><div class="bar" style="background:'+(inf?inf.color:'#64748B')+'"></div><div class="cont">';
       h+='<div class="top"><div><div class="day">'+esc(s.day)+'</div><div class="date">'+fmtDate(s.date)+'</div></div>';
-      h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' Vol</span><span class="exc">'+s.exerciseCount+' Übungen</span></div></div>';
+      h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' kg</span><span class="exc">'+s.exerciseCount+' Übungen</span></div></div>';
       h+='<div class="exs">';
-      for(var ex in s.exercises||{}){var v=vol(s.exercises[ex]);if(v===0)continue;var mk=0;s.exercises[ex].forEach(function(st){var kk=Number(st.kg)||0;if(kk>mk)mk=kk;});h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+'kg · '+v.toLocaleString()+' vol</span></div>';}
+      for(var ex in s.exercises||{}){var v=vol(s.exercises[ex]);if(v===0)continue;var mk=0;s.exercises[ex].forEach(function(st){var kk=Number(st.kg)||0;if(kk>mk)mk=kk;});h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+'kg · '+v.toLocaleString()+' kg</span></div>';}
       h+='</div>';
       if(isDel){h+='<div class="dc-bar"><span class="dc-txt">Wirklich löschen?</span><button class="dc-yes" data-action="del-confirm" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">Ja</button><button class="dc-no" data-action="del-cancel">Nein</button></div>';}
       else{h+='<div class="acts"><button class="act-edit" data-action="edit" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">✏️ Bearbeiten</button><button class="act-del" data-action="del-ask" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">🗑 Löschen</button></div>';}
@@ -350,7 +369,7 @@ function renderDash(){
   var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>📊 Dashboard</h2></div>';
   for(var day in PLAN){
     var info=PLAN[day];
-    h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Volumen-Progression (kg × Wdh)</p><div class="c-wrap">'+drawChart(day)+'</div></div>';
+    h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Trainingsvolumen pro Kalenderwoche (kg × Wdh)</p><div class="c-wrap">'+drawChart(day)+'</div></div>';
   }
   var pbArr=[];for(var ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
   pbArr.sort(function(a,b){return b[1]-a[1];});
