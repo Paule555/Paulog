@@ -115,8 +115,10 @@ button{font-family:inherit;cursor:pointer}
 .no-data{font-size:13px;color:#475569;font-style:italic}
 .pb-sec{padding:16px 20px}
 .pb-sec h3{font-size:16px;font-weight:700;margin-bottom:12px;color:#F8FAFC}
-.pb-row{display:flex;justify-content:space-between;padding:10px 12px;background:#1E293B;border-radius:8px;margin-bottom:6px}
+.pb-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1E293B;border-radius:8px;margin-bottom:6px}
+.pb-left{display:flex;flex-direction:column;gap:2px}
 .pb-row .ex{font-size:13px;color:#CBD5E1}
+.pb-date{font-size:11px;color:#64748B}
 .pb-row .kg{font-size:14px;font-weight:700;color:#F59E0B}
 /* Backup */
 .b-sec{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
@@ -151,9 +153,9 @@ button{font-family:inherit;cursor:pointer}
 "use strict";
 
 var PLAN = {
-  "Push (Mo)": {muscles:"Brust / Schulter / Trizeps",color:"#3B82F6",exercises:["Bankdrücken LH","Schulterdrücken KH","Schrägbankdrücken KH","Seitheben Kabel","Kabel Flys","Trizeps Pushdown Seil"]},
-  "Pull (Mi)": {muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",exercises:["Latzug","T-Bar Row","Rudern Kabel eng","Reverse Fly Kabel","Langhantel Curls","Hammercurls KH"]},
-  "Legs (Fr)": {muscles:"Beine / Core",color:"#F59E0B",exercises:["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Plank / Cable Crunch"]}
+  "Push": {muscles:"Brust / Schulter / Trizeps",color:"#3B82F6",exercises:["Bankdrücken LH","Schulterdrücken KH","Schrägbankdrücken KH","Seitheben Kabel","Kabel Flys","Trizeps Pushdown Seil"]},
+  "Pull": {muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",exercises:["Latzug","T-Bar Row","Rudern Kabel eng","Reverse Fly Kabel","Langhantel Curls","Hammercurls KH"]},
+  "Legs": {muscles:"Beine / Core",color:"#F59E0B",exercises:["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Plank / Cable Crunch"]}
 };
 var SETS=4, SK="paulog-data", BK="paulog-bk", CC=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899"];
 var MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
@@ -178,13 +180,13 @@ function today(){return new Date().toISOString().split("T")[0];}
 function fmtDate(ds){var d=new Date(ds+"T00:00:00");return DN[d.getDay()]+", "+p2(d.getDate())+"."+p2(d.getMonth()+1)+"."+d.getFullYear();}
 function p2(n){return n<10?"0"+n:""+n;}
 function vol(sets){var s=0;for(var i=0;i<sets.length;i++)s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);return s;}
-function sugDay(){var w=new Date().getDay();if(w===1)return"Push (Mo)";if(w===3)return"Pull (Mi)";if(w===5)return"Legs (Fr)";return null;}
+function sugDay(){var w=new Date().getDay();if(w===1)return"Push";if(w===3)return"Pull";if(w===5)return"Legs";return null;}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function totalSess(){var t=0;for(var k in allData)t+=allData[k].length;return t;}
 
 function getPB(){
   var pbs={};
-  for(var k in allData){allData[k].forEach(function(s){for(var ex in s.exercises||{}){var mx=0;s.exercises[ex].forEach(function(st){var v=Number(st.kg)||0;if(v>mx)mx=v;});if(!pbs[ex]||mx>pbs[ex])pbs[ex]=mx;}});}
+  for(var k in allData){allData[k].forEach(function(s){for(var ex in s.exercises||{}){var mx=0;s.exercises[ex].forEach(function(st){var v=Number(st.kg)||0;if(v>mx)mx=v;});if(mx>0){if(!pbs[ex]||mx>pbs[ex].kg){pbs[ex]={kg:mx,date:s.date};}else if(mx===pbs[ex].kg&&s.date<pbs[ex].date){pbs[ex].date=s.date;}}}});}
   return pbs;
 }
 
@@ -350,11 +352,11 @@ function renderDash(){
     var info=PLAN[day];
     h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Volumen-Progression (kg × Wdh)</p><div class="c-wrap">'+drawChart(day)+'</div></div>';
   }
-  var pbArr=[];for(var ex in pbs)if(pbs[ex]>0)pbArr.push([ex,pbs[ex]]);
+  var pbArr=[];for(var ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
   pbArr.sort(function(a,b){return b[1]-a[1];});
   if(pbArr.length>0){
     h+='<div class="pb-sec"><h3>🏆 Persönliche Bestleistungen</h3>';
-    pbArr.forEach(function(p){h+='<div class="pb-row"><span class="ex">'+esc(p[0])+'</span><span class="kg">'+p[1]+' kg</span></div>';});
+    pbArr.forEach(function(p){h+='<div class="pb-row"><div class="pb-left"><span class="ex">'+esc(p[0])+'</span><span class="pb-date">'+fmtDate(p[2])+'</span></div><span class="kg">'+p[1]+' kg</span></div>';});
     h+='</div>';
   }
   return h;
@@ -485,6 +487,11 @@ function doImport(mode){
 
 // Init
 allData=load();
+// Migrate old keys
+var migrate={"Push (Mo)":"Push","Pull (Mi)":"Pull","Legs (Fr)":"Legs"};
+var didMigrate=false;
+for(var old in migrate){if(allData[old]){allData[migrate[old]]=(allData[migrate[old]]||[]).concat(allData[old]);delete allData[old];didMigrate=true;}}
+if(didMigrate)save();
 state.showRem=daysBack()>=14&&totalSess()>0;
 render();
 
