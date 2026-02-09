@@ -113,6 +113,11 @@ button{font-family:inherit;cursor:pointer}
 .c-legend span{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:10px;color:#94A3B8}
 .c-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block}
 .no-data{font-size:13px;color:#475569;font-style:italic}
+.d-filter{padding:12px 20px;display:flex;align-items:center;gap:10px}
+.d-filter-l{font-size:12px;color:#64748B;white-space:nowrap}
+.d-filter-opts{display:flex;gap:6px;flex-wrap:wrap}
+.d-filter-btn{padding:6px 12px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#94A3B8;font-size:12px;font-weight:600}
+.d-filter-btn.active{background:#10B981;border-color:#10B981;color:#FFF}
 .pb-sec{padding:16px 20px}
 .pb-sec h3{font-size:16px;font-weight:700;margin-bottom:12px;color:#F8FAFC}
 .pb-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1E293B;border-radius:8px;margin-bottom:6px}
@@ -164,7 +169,7 @@ var DN=["So","Mo","Di","Mi","Do","Fr","Sa"];
 // State
 var state = {
   view:"home", day:null, date:today(), session:{}, expanded:null,
-  editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false
+  editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0
 };
 var allData = {};
 
@@ -227,9 +232,16 @@ function getKW(dateStr){
 }
 
 // Chart
-function drawChart(day){
+function drawChart(day,maxWeeks){
   var info=PLAN[day],sessions=(allData[day]||[]).slice().sort(function(a,b){return a.date>b.date?1:-1;});
   if(sessions.length===0)return'<p class="no-data">Noch keine Daten</p>';
+  // Filter by date if maxWeeks > 0
+  if(maxWeeks>0){
+    var cutoff=new Date();cutoff.setDate(cutoff.getDate()-maxWeeks*7);
+    var cutStr=cutoff.toISOString().split("T")[0];
+    sessions=sessions.filter(function(s){return s.date>=cutStr;});
+    if(sessions.length===0)return'<p class="no-data">Keine Daten im gewählten Zeitraum</p>';
+  }
   // Group by KW
   var kwMap={};
   sessions.forEach(function(s){
@@ -366,10 +378,15 @@ function renderHistory(){
 
 function renderDash(){
   var pbs=getPB();
+  var wk=state.dashWeeks;
+  var opts=[{v:0,l:"Alle"},{v:4,l:"4 Wo"},{v:8,l:"8 Wo"},{v:12,l:"12 Wo"},{v:24,l:"24 Wo"}];
   var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>📊 Dashboard</h2></div>';
+  h+='<div class="d-filter"><span class="d-filter-l">Zeitraum:</span><div class="d-filter-opts">';
+  opts.forEach(function(o){h+='<button class="d-filter-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
+  h+='</div></div>';
   for(var day in PLAN){
     var info=PLAN[day];
-    h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Trainingsvolumen pro Kalenderwoche (kg × Wdh)</p><div class="c-wrap">'+drawChart(day)+'</div></div>';
+    h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Trainingsvolumen pro Kalenderwoche (kg × Wdh)</p><div class="c-wrap">'+drawChart(day,wk)+'</div></div>';
   }
   var pbArr=[];for(var ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
   pbArr.sort(function(a,b){return b[1]-a[1];});
@@ -429,6 +446,7 @@ function bindEvents(){
     }
     else if(a==="del-cancel"){state.delConfirm=null;render();}
     else if(a==="export"){exportData();state.showRem=false;render();}
+    else if(a==="set-weeks"){state.dashWeeks=parseInt(t.getAttribute("data-weeks"))||0;render();}
     else if(a==="backup-now"){exportData();state.showRem=false;render();}
     else if(a==="dismiss-rem"){state.showRem=false;render();}
     else if(a==="imp-merge"){doImport("merge");}
