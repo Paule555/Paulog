@@ -212,12 +212,12 @@ button{font-family:inherit;cursor:pointer}
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
 var EXERCISE_GROUPS = [
-  {group:"Brust",exercises:["Bankdrücken","Brustpresse","Butterfly","Kabel Flys","Schrägbankdrücken"]},
-  {group:"Schultern",exercises:["Arnold Press","Face Pulls","Frontdrücken","Reverse Fly","Schulterdrücken","Seitheben","Shrugs"]},
-  {group:"Trizeps",exercises:["French Press","Trizeps Kickbacks","Trizeps Pushdown","Trizeps über Kopf"]},
-  {group:"Rücken",exercises:["Einarmiges Rudern","Frontziehen sitzend","Kreuzheben","Latzug","Low Row","Rudern","T-Bar Row"]},
-  {group:"Bizeps",exercises:["Bicepscurls","Hammercurls","Konzentrationscurls","Scott Curls"]},
-  {group:"Beine",exercises:["Ausfallschritte","Beinbeuger","Beinpresse","Beinstrecker","Bulgarische Ausfallschritte","Hip Thrusts","Kniebeugen","Rumänisches Kreuzheben","Sumo Kniebeugen","Wadenheben"]},
+  {group:"Brust",exercises:["Bankdrücken LH","Bankdrücken KH","Brustpresse","Butterfly","Kabel Flys","Schrägbankdrücken LH","Schrägbankdrücken KH"]},
+  {group:"Schultern",exercises:["Arnold Press","Face Pulls","Frontdrücken","Reverse Fly","Schulterdrücken LH","Schulterdrücken KH","Seitheben KH","Seitheben Kabel","Shrugs LH","Shrugs KH"]},
+  {group:"Trizeps",exercises:["French Press LH","French Press KH","Trizeps Kickbacks","Trizeps Pushdown","Trizeps über Kopf LH","Trizeps über Kopf KH"]},
+  {group:"Rücken",exercises:["Einarmiges Rudern KH","Frontziehen sitzend","Kreuzheben LH","Kreuzheben KH","Latzug","Low Row","Rudern LH","Rudern KH","T-Bar Row"]},
+  {group:"Bizeps",exercises:["Bicepscurls LH","Bicepscurls KH","Hammercurls","Konzentrationscurls","Scott Curls LH","Scott Curls KH"]},
+  {group:"Beine",exercises:["Ausfallschritte LH","Ausfallschritte KH","Beinbeuger","Beinpresse","Beinstrecker","Bulgarische Ausfallschritte KH","Hip Thrusts LH","Hip Thrusts KH","Kniebeugen LH","Kniebeugen KH","Rumänisches Kreuzheben LH","Rumänisches Kreuzheben KH","Sumo Kniebeugen LH","Sumo Kniebeugen KH","Wadenheben"]},
   {group:"Core",exercises:["Ab Wheel Rollout","Beinheben hängend","Cable Crunch","Crunches","Plank","Russian Twist"]},
   {group:"Cardio",exercises:["Crosstrainer","Fahrrad","Joggen","Laufband","Rudergerät","Schwimmen","Seilspringen","Spinning","Stepper","Treppensteiger"]},
   {group:"Calisthenics",exercises:["Archer Push-Ups","Back Lever Holds","Diamond Push-Ups","Dips","Dragon Flag","Front Lever Holds","Handstand Push-Ups","Klimmzüge","L-Sit","Liegestütze","Muscle Ups","Negative Muscle Ups","Pike Push-Ups","Pistol Squats","Planche Lean","Ring Dips","Ring Rows","Skin the Cat","Toes to Bar"]}
@@ -230,9 +230,9 @@ EXERCISE_GROUPS.forEach(function(g){g.exercises.forEach(function(e){EXERCISE_CAT
 
 // =========== DEFAULT PLAN ===========
 var DEFAULT_PLAN = {
-  "Push":{muscles:"Brust / Schultern / Trizeps",color:"#3B82F6",sets:4,units:{},exercises:["Bankdrücken","Brustpresse","Schrägbankdrücken","Butterfly","Kabel Flys","Schulterdrücken","Frontdrücken","Seitheben","Trizeps Pushdown","Trizeps über Kopf","Liegestütze","Dips"]},
-  "Pull":{muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",sets:4,units:{},exercises:["Latzug","T-Bar Row","Rudern","Frontziehen sitzend","Low Row","Reverse Fly","Shrugs","Hammercurls","Bicepscurls","Klimmzüge"]},
-  "Legs":{muscles:"Beine / Core",color:"#F59E0B",sets:4,units:{"Plank":"sek"},exercises:["Rumänisches Kreuzheben","Ausfallschritte","Beinstrecker","Beinbeuger","Wadenheben","Beinpresse","Kniebeugen","Plank"]}
+  "Push":{muscles:"Brust / Schultern / Trizeps",color:"#3B82F6",sets:4,units:{},exercises:["Bankdrücken LH","Schrägbankdrücken KH","Schulterdrücken KH","Seitheben Kabel","Trizeps über Kopf"]},
+  "Pull":{muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",sets:4,units:{},exercises:["Latzug","T-Bar Row","Rudern","Reverse Fly","Bicepscurls"]},
+  "Legs":{muscles:"Beine / Core",color:"#F59E0B",sets:4,units:{"Plank":"sek"},exercises:["Rumänisches Kreuzheben","Beinstrecker","Beinbeuger","Ausfallschritte KH","Wadenheben","Plank"]}
 };
 
 var PLAN_KEY="paulog-plan";
