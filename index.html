@@ -188,6 +188,9 @@ button{font-family:inherit;cursor:pointer}
 .ex-btn-up{background:#1E293B;color:#94A3B8}
 .ex-btn-dn{background:#1E293B;color:#94A3B8}
 .ex-btn-del{background:#3B1C1C;color:#F87171}
+.ex-btn-unit{background:#1E293B;font-size:11px;font-weight:700;width:auto;padding:0 8px;border-radius:6px;border:1px solid #334155}
+.ex-btn-unit.is-kg{color:#3B82F6;border-color:#3B82F6}
+.ex-btn-unit.is-sek{color:#F59E0B;border-color:#F59E0B}
 .ed-addex{display:flex;gap:8px}
 .ed-addex select{flex:1;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;padding:10px;font-size:13px;font-family:inherit;min-width:0}
 .ed-addex select optgroup{color:#10B981;font-weight:700;font-style:normal;background:#0F172A;padding:4px 0}
@@ -209,24 +212,27 @@ button{font-family:inherit;cursor:pointer}
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
 var EXERCISE_GROUPS = [
-  {group:"Brust",exercises:["Bankdrücken","Bankdrücken LH","Brustpresse","Butterfly","Flachbankdrücken KH","Kabel Flys","Kabelzug Brust","Schrägbankdrücken","Schrägbankdrücken KH"]},
-  {group:"Schultern",exercises:["Arnold Press","Butterfly Reverse","Face Pulls","Frontdrücken","Nackenheben","Schulterdrücken KH","Seitheben","Seitheben Kabel","Shruggs"]},
-  {group:"Trizeps",exercises:["Dips Maschine","French Press","Kabel über Kopf","Trizeps Kabel","Trizeps Kickbacks","Trizeps Pushdown Seil"]},
-  {group:"Rücken",exercises:["Einarmiges Rudern KH","Frontziehen sitzend","Kreuzheben","Latzug","Low Row","Reverse Fly Kabel","Rudern","Rudern Kabel eng","T-Bar Row","Überzüge"]},
-  {group:"Bizeps",exercises:["Bicepscurls","Bicepscurls Kabel","Hammercurls KH","Konzentrationscurls","Langhantel Curls","Scott Curls"]},
-  {group:"Beine",exercises:["Ausfallschritte KH","Beinbeuger","Beinbeuger Maschine","Beinpresse","Beinstrecker","Beinstrecker frei","Beinstrecker Maschine","Bulgarische Ausfallschritte","Hip Thrusts","Kniebeugen","Rumänisches Kreuzheben","Sumo Kniebeugen","Waden","Wadenheben Maschine"]},
-  {group:"Core",exercises:["Ab Wheel Rollout","Beinheben hängend","Cable Crunch","Plank / Cable Crunch","Russian Twist"]},
+  {group:"Brust",exercises:["Bankdrücken","Brustpresse","Butterfly","Flachbankdrücken","Flys","Negativbankdrücken","Schrägbankdrücken","Überzüge"]},
+  {group:"Schultern",exercises:["Arnold Press","Face Pulls","Frontdrücken","Nackenheben","Reverse Fly","Schulterdrücken","Seitheben","Shrugs"]},
+  {group:"Trizeps",exercises:["French Press","Trizeps Kickbacks","Trizeps Pushdown","Trizeps über Kopf"]},
+  {group:"Rücken",exercises:["Einarmiges Rudern","Frontziehen sitzend","Kreuzheben","Latzug","Low Row","Rudern","T-Bar Row"]},
+  {group:"Bizeps",exercises:["Bicepscurls","Hammercurls","Konzentrationscurls","Scott Curls"]},
+  {group:"Beine",exercises:["Ausfallschritte","Beinbeuger","Beinpresse","Beinstrecker","Bulgarische Ausfallschritte","Hip Thrusts","Kniebeugen","Rumänisches Kreuzheben","Sumo Kniebeugen","Wadenheben"]},
+  {group:"Core",exercises:["Ab Wheel Rollout","Beinheben hängend","Cable Crunch","Crunches","Plank","Russian Twist"]},
+  {group:"Cardio",exercises:["Crosstrainer","Fahrrad","Joggen","Laufband","Rudergerät","Schwimmen","Seilspringen","Spinning","Stepper","Treppensteiger"]},
   {group:"Calisthenics",exercises:["Archer Push-Ups","Back Lever Holds","Diamond Push-Ups","Dips","Dragon Flag","Front Lever Holds","Handstand Push-Ups","Hanging Leg Raises","Klimmzüge","L-Sit","Liegestütze","Muscle Ups","Negative Muscle Ups","Pike Push-Ups","Pistol Squats","Planche Lean","Ring Dips","Ring Rows","Skin the Cat","Toes to Bar"]}
 ];
+// Exercises that default to "sek" (seconds) when added
+var DEFAULT_SEK={"Plank":1,"L-Sit":1,"Front Lever Holds":1,"Back Lever Holds":1,"Planche Lean":1,"Dragon Flag":1,"Crosstrainer":1,"Fahrrad":1,"Joggen":1,"Laufband":1,"Rudergerät":1,"Schwimmen":1,"Seilspringen":1,"Spinning":1,"Stepper":1,"Treppensteiger":1};
 // Flat list for lookups
 var EXERCISE_CATALOG=[];
 EXERCISE_GROUPS.forEach(function(g){g.exercises.forEach(function(e){EXERCISE_CATALOG.push(e);});});
 
 // =========== DEFAULT PLAN ===========
 var DEFAULT_PLAN = {
-  "Push":{muscles:"Brust / Schultern / Trizeps",color:"#3B82F6",sets:4,exercises:["Bankdrücken LH","Bankdrücken","Brustpresse","Schrägbankdrücken KH","Schrägbankdrücken","Butterfly","Kabelzug Brust","Kabel Flys","Schulterdrücken KH","Frontdrücken","Seitheben Kabel","Seitheben","Trizeps Pushdown Seil","Trizeps Kabel","Kabel über Kopf","Dips Maschine","Liegestütze","Dips"]},
-  "Pull":{muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",sets:4,exercises:["Latzug","T-Bar Row","Rudern Kabel eng","Frontziehen sitzend","Rudern","Überzüge","Low Row","Reverse Fly Kabel","Butterfly Reverse","Nackenheben","Shruggs","Langhantel Curls","Hammercurls KH","Bicepscurls","Bicepscurls Kabel","Klimmzüge"]},
-  "Legs":{muscles:"Beine / Core",color:"#F59E0B",sets:4,exercises:["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Beinstrecker frei","Beinpresse","Waden","Beinbeuger","Beinstrecker","Kniebeugen","Plank / Cable Crunch"]}
+  "Push":{muscles:"Brust / Schultern / Trizeps",color:"#3B82F6",sets:4,units:{},exercises:["Bankdrücken","Brustpresse","Schrägbankdrücken","Butterfly","Flys","Schulterdrücken","Frontdrücken","Seitheben","Trizeps Pushdown","Trizeps über Kopf","Liegestütze","Dips"]},
+  "Pull":{muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",sets:4,units:{},exercises:["Latzug","T-Bar Row","Rudern","Frontziehen sitzend","Low Row","Reverse Fly","Nackenheben","Shrugs","Hammercurls","Bicepscurls","Klimmzüge"]},
+  "Legs":{muscles:"Beine / Core",color:"#F59E0B",sets:4,units:{"Plank":"sek"},exercises:["Rumänisches Kreuzheben","Ausfallschritte","Beinstrecker","Beinbeuger","Wadenheben","Beinpresse","Kniebeugen","Plank"]}
 };
 
 var PLAN_KEY="paulog-plan";
@@ -249,6 +255,14 @@ function getPlanDayKeys(plan){
 }
 function getDaySets(plan,day){
   return(plan[day]&&plan[day].sets)||4;
+}
+function getExUnit(day,exercise){
+  if(PLAN[day]&&PLAN[day].units&&PLAN[day].units[exercise])return PLAN[day].units[exercise];
+  return "kg";
+}
+function findExUnit(exercise){
+  for(var d in PLAN){if(PLAN[d].units&&PLAN[d].units[exercise])return PLAN[d].units[exercise];}
+  return "kg";
 }
 
 var PLAN=loadPlan();
@@ -439,15 +453,17 @@ function renderTrack(){
   info.exercises.forEach(function(ex){
     var isX=state.expanded===ex,prev=getPrev(state.day,ex);
     var sets=state.session[ex]||[];
+    var unit=getExUnit(state.day,ex);
+    var unitLabel=unit==="sek"?"sek.":"kg";
     var cv=vol(sets),pv=prev?vol(prev):0,hd=cv>0&&pv>0,delta=hd?Math.round(((cv-pv)/pv)*100):0;
     h+='<div class="e-card"><button class="e-hdr" style="border-left:3px solid '+info.color+'" data-action="toggle-ex" data-ex="'+esc(ex)+'">';
     h+='<div><span class="e-name">'+esc(ex)+'</span>';
-    if(cv>0){h+='<div class="e-vol">'+cv.toLocaleString()+' kg';if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
+    if(cv>0){h+='<div class="e-vol">'+cv.toLocaleString()+' '+unitLabel;if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
     h+='</div><span class="e-icon">'+(isX?'▲':'▼')+'</span></button>';
     if(isX){
       h+='<div class="e-body">';
-      if(prev){h+='<div class="prev"><span class="prev-l">Letzte Session:</span><div class="prev-s">';prev.forEach(function(s){if(s.kg||s.reps)h+='<span>'+esc(s.kg)+'kg×'+esc(s.reps)+'</span>';});h+='</div></div>';}
-      h+='<div class="s-grid"><div class="s-hdr"><span></span><span>kg</span><span>Wdh</span></div>';
+      if(prev){h+='<div class="prev"><span class="prev-l">Letzte Session:</span><div class="prev-s">';prev.forEach(function(s){if(s.kg||s.reps)h+='<span>'+esc(s.kg)+unitLabel+'×'+esc(s.reps)+'</span>';});h+='</div></div>';}
+      h+='<div class="s-grid"><div class="s-hdr"><span></span><span>'+unitLabel+'</span><span>Wdh</span></div>';
       sets.forEach(function(set,i){
         var phK=prev&&prev[i]?prev[i].kg||'—':'—';var phR=prev&&prev[i]?prev[i].reps||'—':'—';
         h+='<div class="s-row"><span class="s-num" style="background:'+info.color+'">'+(i+1)+'</span>';
@@ -478,7 +494,7 @@ function renderHistory(){
       h+='<div class="top"><div><div class="day">'+esc(s.day)+'</div><div class="date">'+fmtDate(s.date)+'</div></div>';
       h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' kg</span><span class="exc">'+s.exerciseCount+' Übungen</span></div></div>';
       h+='<div class="exs">';
-      for(var ex in s.exercises||{}){var v=vol(s.exercises[ex]);if(v===0)continue;var mk=0;s.exercises[ex].forEach(function(st){var kk=Number(st.kg)||0;if(kk>mk)mk=kk;});h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+'kg · '+v.toLocaleString()+' kg</span></div>';}
+      for(var ex in s.exercises||{}){var v=vol(s.exercises[ex]);if(v===0)continue;var mk=0;s.exercises[ex].forEach(function(st){var kk=Number(st.kg)||0;if(kk>mk)mk=kk;});var eu=getExUnit(s.day,ex);var eul=eu==="sek"?"sek.":"kg";h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+eul+' · '+v.toLocaleString()+' '+eul+'</span></div>';}
       h+='</div>';
       if(isDel){h+='<div class="dc-bar"><span class="dc-txt">Wirklich löschen?</span><button class="dc-yes" data-action="del-confirm" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">Ja</button><button class="dc-no" data-action="del-cancel">Nein</button></div>';}
       else{h+='<div class="acts"><button class="act-edit" data-action="edit" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">✏️ Bearbeiten</button><button class="act-del" data-action="del-ask" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">🗑 Löschen</button></div>';}
@@ -511,7 +527,7 @@ function renderDash(){
   pbArr.sort(function(a,b){return b[1]-a[1];});
   if(pbArr.length>0){
     h+='<div class="pb-sec"><h3>🏆 Persönliche Bestleistungen</h3>';
-    pbArr.forEach(function(p){h+='<div class="pb-row"><div class="pb-left"><span class="ex">'+esc(p[0])+'</span><span class="pb-date">'+fmtDate(p[2])+'</span></div><span class="kg">'+p[1]+' kg</span></div>';});
+    pbArr.forEach(function(p){var pu=findExUnit(p[0]);var pul=pu==="sek"?"sek.":"kg";h+='<div class="pb-row"><div class="pb-left"><span class="ex">'+esc(p[0])+'</span><span class="pb-date">'+fmtDate(p[2])+'</span></div><span class="kg">'+p[1]+' '+pul+'</span></div>';});
     h+='</div>';
   }
   return h;
@@ -627,8 +643,10 @@ function renderEditDay(){
   h+='<div class="ed-exlist">';
   for(var ei=0;ei<d.exercises.length;ei++){
     var ex=d.exercises[ei];
+    var exUnit=(d.units&&d.units[ex])||"kg";
     h+='<div class="ed-exitem">';
     h+='<span class="ex-name">'+esc(ex)+'</span>';
+    h+='<button class="ex-btn ex-btn-unit '+(exUnit==="sek"?"is-sek":"is-kg")+'" data-action="toggle-unit" data-idx="'+ei+'">'+(exUnit==="sek"?"sek.":"kg")+'</button>';
     if(ei>0)h+='<button class="ex-btn ex-btn-up" data-action="ex-up" data-idx="'+ei+'">↑</button>';
     if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'">↓</button>';
     h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'">✕</button>';
@@ -711,13 +729,13 @@ function bindEvents(){
       var dn=t.getAttribute("data-day");
       state.editDay=dn;
       var inf=PLAN[dn];
-      state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice()};
+      state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice(),units:JSON.parse(JSON.stringify(inf.units||{}))};
       state.customExInput="";
       state.view="editday";render();
     }
     else if(a==="add-day"){
       state.editDay=null;
-      state.editDayData={name:"",muscles:"",color:PALETTE[getPlanDayKeys(PLAN).length%PALETTE.length],sets:4,exercises:[]};
+      state.editDayData={name:"",muscles:"",color:PALETTE[getPlanDayKeys(PLAN).length%PALETTE.length],sets:4,exercises:[],units:{}};
       state.customExInput="";
       state.view="editday";render();
     }
@@ -757,12 +775,33 @@ function bindEvents(){
     }
     else if(a==="ex-del"){
       var idx3=parseInt(t.getAttribute("data-idx"));
-      if(state.editDayData){state.editDayData.exercises.splice(idx3,1);render();}
+      if(state.editDayData){
+        var delEx=state.editDayData.exercises[idx3];
+        state.editDayData.exercises.splice(idx3,1);
+        if(state.editDayData.units)delete state.editDayData.units[delEx];
+        render();
+      }
+    }
+    else if(a==="toggle-unit"){
+      var tidx=parseInt(t.getAttribute("data-idx"));
+      if(state.editDayData){
+        var tex=state.editDayData.exercises[tidx];
+        if(!state.editDayData.units)state.editDayData.units={};
+        state.editDayData.units[tex]=(state.editDayData.units[tex]==="sek")?"kg":"sek";
+        if(state.editDayData.units[tex]==="kg")delete state.editDayData.units[tex];
+        render();
+      }
     }
     else if(a==="add-catalog-ex"){
       var sel=document.getElementById("ed-catalog");
       if(sel&&sel.value&&state.editDayData){
-        state.editDayData.exercises.push(sel.value);render();
+        var newEx=sel.value;
+        state.editDayData.exercises.push(newEx);
+        if(DEFAULT_SEK[newEx]){
+          if(!state.editDayData.units)state.editDayData.units={};
+          state.editDayData.units[newEx]="sek";
+        }
+        render();
       }
     }
     else if(a==="add-custom-ex"){
@@ -876,7 +915,7 @@ function saveDayEdits(){
     // Editing existing day
     for(var k in PLAN){
       if(k===oldName){
-        newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,exercises:d.exercises.slice()};
+        newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exercises:d.exercises.slice()};
       }else{
         newPlan[k]=PLAN[k];
       }
@@ -884,7 +923,7 @@ function saveDayEdits(){
   }else{
     // Adding new day
     for(var k2 in PLAN)newPlan[k2]=PLAN[k2];
-    newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,exercises:d.exercises.slice()};
+    newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exercises:d.exercises.slice()};
   }
 
   PLAN=newPlan;savePlan(PLAN);
