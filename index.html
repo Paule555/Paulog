@@ -190,6 +190,8 @@ button{font-family:inherit;cursor:pointer}
 .ex-btn-del{background:#3B1C1C;color:#F87171}
 .ed-addex{display:flex;gap:8px}
 .ed-addex select{flex:1;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;padding:10px;font-size:13px;font-family:inherit;min-width:0}
+.ed-addex select optgroup{color:#10B981;font-weight:700;font-style:normal;background:#0F172A;padding:4px 0}
+.ed-addex select option{color:#F8FAFC;font-weight:400;padding:4px 8px}
 .ed-addex button{padding:10px 16px;background:#10B981;border:none;border-radius:8px;color:#FFF;font-size:13px;font-weight:700;flex-shrink:0}
 .ed-custom{display:flex;gap:8px;margin-top:4px}
 .ed-custom input{flex:1;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;padding:10px;font-size:13px;font-family:inherit;min-width:0}
@@ -205,25 +207,20 @@ button{font-family:inherit;cursor:pointer}
 (function(){
 "use strict";
 
-// =========== EXERCISE CATALOG ===========
-var EXERCISE_CATALOG = [
-  // Brust
-  "Bankdrücken LH","Bankdrücken","Brustpresse","Schrägbankdrücken KH","Schrägbankdrücken","Butterfly","Kabelzug Brust","Kabel Flys","Flachbankdrücken KH",
-  // Schulter
-  "Schulterdrücken KH","Frontdrücken","Seitheben Kabel","Seitheben","Nackenheben","Shruggs","Butterfly Reverse","Arnold Press","Face Pulls",
-  // Trizeps
-  "Trizeps Pushdown Seil","Trizeps Kabel","Kabel über Kopf","Dips Maschine","French Press","Trizeps Kickbacks",
-  // Rücken
-  "Latzug","T-Bar Row","Rudern Kabel eng","Frontziehen sitzend","Rudern","Überzüge","Low Row","Reverse Fly Kabel","Kreuzheben","Einarmiges Rudern KH",
-  // Bizeps
-  "Langhantel Curls","Hammercurls KH","Bicepscurls","Bicepscurls Kabel","Konzentrationscurls","Scott Curls",
-  // Beine
-  "Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Beinstrecker frei","Beinpresse","Waden","Beinbeuger","Beinstrecker","Kniebeugen","Hip Thrusts","Bulgarische Ausfallschritte","Sumo Kniebeugen",
-  // Core
-  "Plank / Cable Crunch","Cable Crunch","Beinheben hängend","Russian Twist","Ab Wheel Rollout",
-  // Calisthenics
-  "Klimmzüge","Dips","Liegestütze","Muscle Ups","Handstand Push-Ups","Pistol Squats","Dragon Flag","L-Sit","Ring Rows","Pike Push-Ups","Archer Push-Ups","Diamond Push-Ups","Toes to Bar","Skin the Cat","Front Lever Holds","Back Lever Holds","Planche Lean","Ring Dips","Negative Muscle Ups","Hanging Leg Raises"
+// =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
+var EXERCISE_GROUPS = [
+  {group:"Brust",exercises:["Bankdrücken","Bankdrücken LH","Brustpresse","Butterfly","Flachbankdrücken KH","Kabel Flys","Kabelzug Brust","Schrägbankdrücken","Schrägbankdrücken KH"]},
+  {group:"Schultern",exercises:["Arnold Press","Butterfly Reverse","Face Pulls","Frontdrücken","Nackenheben","Schulterdrücken KH","Seitheben","Seitheben Kabel","Shruggs"]},
+  {group:"Trizeps",exercises:["Dips Maschine","French Press","Kabel über Kopf","Trizeps Kabel","Trizeps Kickbacks","Trizeps Pushdown Seil"]},
+  {group:"Rücken",exercises:["Einarmiges Rudern KH","Frontziehen sitzend","Kreuzheben","Latzug","Low Row","Reverse Fly Kabel","Rudern","Rudern Kabel eng","T-Bar Row","Überzüge"]},
+  {group:"Bizeps",exercises:["Bicepscurls","Bicepscurls Kabel","Hammercurls KH","Konzentrationscurls","Langhantel Curls","Scott Curls"]},
+  {group:"Beine",exercises:["Ausfallschritte KH","Beinbeuger","Beinbeuger Maschine","Beinpresse","Beinstrecker","Beinstrecker frei","Beinstrecker Maschine","Bulgarische Ausfallschritte","Hip Thrusts","Kniebeugen","Rumänisches Kreuzheben","Sumo Kniebeugen","Waden","Wadenheben Maschine"]},
+  {group:"Core",exercises:["Ab Wheel Rollout","Beinheben hängend","Cable Crunch","Plank / Cable Crunch","Russian Twist"]},
+  {group:"Calisthenics",exercises:["Archer Push-Ups","Back Lever Holds","Diamond Push-Ups","Dips","Dragon Flag","Front Lever Holds","Handstand Push-Ups","Hanging Leg Raises","Klimmzüge","L-Sit","Liegestütze","Muscle Ups","Negative Muscle Ups","Pike Push-Ups","Pistol Squats","Planche Lean","Ring Dips","Ring Rows","Skin the Cat","Toes to Bar"]}
 ];
+// Flat list for lookups
+var EXERCISE_CATALOG=[];
+EXERCISE_GROUPS.forEach(function(g){g.exercises.forEach(function(e){EXERCISE_CATALOG.push(e);});});
 
 // =========== DEFAULT PLAN ===========
 var DEFAULT_PLAN = {
@@ -322,10 +319,17 @@ function getAllSess(){
 }
 
 function exportData(){
-  var p={app:"paulog",version:2,exported:new Date().toISOString(),plan:PLAN,data:allData};
+  var p={app:"paulog",type:"data",version:2,exported:new Date().toISOString(),data:allData};
   var b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
-  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="paulog-backup-"+today()+".json";
+  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="paulog-daten-"+today()+".json";
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);setLB();
+}
+
+function exportPlan(){
+  var p={app:"paulog",type:"plan",version:2,exported:new Date().toISOString(),plan:PLAN};
+  var b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
+  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="paulog-plan-"+today()+".json";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function getKW(dateStr){
@@ -514,21 +518,44 @@ function renderDash(){
 }
 
 function renderBackup(){
-  var lb=getLB(),bts=totalSess();
+  var lb=getLB(),bts=totalSess(),dayCount=getPlanDayKeys(PLAN).length;
   var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>💾 Backup & Restore</h2></div>';
   h+='<div class="b-sec">';
-  h+='<div class="b-card"><h3>📤 Exportieren</h3><p>Alle '+bts+' Sessions + Trainingsplan als Datei speichern.</p>';
+
+  // === DATA EXPORT ===
+  h+='<div class="b-card"><h3>📤 Fortschritt exportieren</h3><p>Alle '+bts+' Sessions als Datei speichern.</p>';
   if(lb)h+='<p class="ld">Letztes Backup: '+fmtDate(lb)+'</p>';
-  h+='<button class="b-xbtn" data-action="export"'+(bts===0?' disabled style="opacity:0.4"':'')+'>↓ Backup herunterladen</button></div>';
-  h+='<div class="b-card"><h3>📥 Importieren</h3><p>Backup-Datei laden und wiederherstellen.</p>';
-  h+='<label class="b-ibtn">↑ Datei auswählen<input type="file" accept=".json" data-action="import-file" style="display:none"></label></div>';
-  if(state.impStatus==="confirm"&&state.impData){
+  h+='<button class="b-xbtn" data-action="export-data"'+(bts===0?' disabled style="opacity:0.4"':'')+'>↓ Daten-Backup herunterladen</button></div>';
+
+  // === PLAN EXPORT ===
+  h+='<div class="b-card"><h3>📤 Trainingsplan exportieren</h3><p>Aktuellen Plan ('+dayCount+' Tage) als Datei speichern.</p>';
+  h+='<button class="b-xbtn" style="background:#10B981;box-shadow:none" data-action="export-plan">↓ Plan herunterladen</button></div>';
+
+  // === DATA IMPORT ===
+  h+='<div class="b-card"><h3>📥 Fortschritt importieren</h3><p>Session-Daten aus Backup-Datei laden.</p>';
+  h+='<label class="b-ibtn">↑ Daten-Datei auswählen<input type="file" accept=".json" data-action="import-data-file" style="display:none"></label></div>';
+
+  if(state.impStatus==="confirm-data"&&state.impData){
     var ic=0;for(var k in state.impData)ic+=state.impData[k].length;
     h+='<div class="b-cnf"><h3>Import-Modus</h3><p>Datei enthält '+ic+' Sessions.</p>';
     h+='<button class="b-mrg" data-action="imp-merge">🔀 Zusammenführen<span class="b-bs">Bestehende behalten, neue hinzufügen</span></button>';
-    h+='<button class="b-rpl" data-action="imp-replace">🔄 Ersetzen<span class="b-bs">Alles überschreiben</span></button>';
+    h+='<button class="b-rpl" data-action="imp-replace">🔄 Ersetzen<span class="b-bs">Alle Sessions überschreiben</span></button>';
     h+='<button class="dc-no" data-action="imp-cancel">Abbrechen</button></div>';
   }
+
+  // === PLAN IMPORT ===
+  h+='<div class="b-card"><h3>📥 Trainingsplan importieren</h3><p>Plan aus Datei laden und übernehmen.</p>';
+  h+='<label class="b-ibtn" style="border-color:#10B981;color:#6EE7B7">↑ Plan-Datei auswählen<input type="file" accept=".json" data-action="import-plan-file" style="display:none"></label></div>';
+
+  if(state.impStatus==="confirm-plan"&&state.impPlan){
+    var pc=Object.keys(state.impPlan).length;
+    var exCount=0;for(var pk in state.impPlan)exCount+=state.impPlan[pk].exercises.length;
+    h+='<div class="b-cnf"><h3>Plan importieren</h3><p>Datei enthält '+pc+' Tage mit '+exCount+' Übungen.</p>';
+    h+='<button class="b-rpl" data-action="imp-plan-confirm">🔄 Plan übernehmen<span class="b-bs">Aktuellen Plan ersetzen</span></button>';
+    h+='<button class="dc-no" data-action="imp-cancel">Abbrechen</button></div>';
+  }
+
+  // Status messages
   if(state.impStatus==="success")h+='<div class="b-suc">✅ Import erfolgreich!</div>';
   if(state.impStatus==="error")h+='<div class="b-err">❌ Ungültige Datei</div>';
   h+='<div class="b-inf"><h3>💡 Tipp</h3><p>Backup regelmäßig in iCloud/Google Drive sichern. Erinnerung kommt alle 2 Wochen.</p></div></div>';
@@ -609,11 +636,20 @@ function renderEditDay(){
   }
   h+='</div>';
 
-  // Add from catalog
-  var available=EXERCISE_CATALOG.filter(function(e){return d.exercises.indexOf(e)===-1;});
-  if(available.length>0){
+  // Add from catalog (grouped by muscle group)
+  var usedSet={};d.exercises.forEach(function(e){usedSet[e]=true;});
+  var hasAvailable=false;
+  EXERCISE_GROUPS.forEach(function(g){g.exercises.forEach(function(e){if(!usedSet[e])hasAvailable=true;});});
+  if(hasAvailable){
     h+='<div class="ed-addex"><select id="ed-catalog"><option value="">— Übung aus Katalog wählen —</option>';
-    available.forEach(function(e){h+='<option value="'+esc(e)+'">'+esc(e)+'</option>';});
+    EXERCISE_GROUPS.forEach(function(g){
+      var avail=g.exercises.filter(function(e){return !usedSet[e];});
+      if(avail.length>0){
+        h+='<optgroup label="'+esc(g.group)+'">';
+        avail.forEach(function(e){h+='<option value="'+esc(e)+'">'+esc(e)+'</option>';});
+        h+='</optgroup>';
+      }
+    });
     h+='</select><button data-action="add-catalog-ex">+</button></div>';
   }
 
@@ -656,13 +692,19 @@ function bindEvents(){
       save();state.delConfirm=null;render();
     }
     else if(a==="del-cancel"){state.delConfirm=null;render();}
-    else if(a==="export"){exportData();state.showRem=false;render();}
+    else if(a==="export-data"){exportData();state.showRem=false;render();}
+    else if(a==="export-plan"){exportPlan();render();}
     else if(a==="set-weeks"){state.dashWeeks=parseInt(t.getAttribute("data-weeks"))||0;render();}
     else if(a==="backup-now"){exportData();state.showRem=false;render();}
     else if(a==="dismiss-rem"){state.showRem=false;render();}
     else if(a==="imp-merge"){doImport("merge");}
     else if(a==="imp-replace"){doImport("replace");}
-    else if(a==="imp-cancel"){state.impStatus=null;state.impData=null;render();}
+    else if(a==="imp-plan-confirm"){
+      if(state.impPlan){PLAN=state.impPlan;savePlan(PLAN);}
+      state.impPlan=null;state.impStatus="success";render();
+      setTimeout(function(){state.impStatus=null;render();},3000);
+    }
+    else if(a==="imp-cancel"){state.impStatus=null;state.impData=null;state.impPlan=null;render();}
 
     // ===== SETTINGS ACTIONS =====
     else if(a==="edit-day"){
@@ -760,9 +802,9 @@ function bindEvents(){
     if(t.id==="ed-custom-ex"){state.customExInput=t.value;}
   };
 
-  // File input
-  var fi=app.querySelector("[data-action='import-file']");
-  if(fi)fi.onchange=function(e){
+  // File input - Data import
+  var fiData=app.querySelector("[data-action='import-data-file']");
+  if(fiData)fiData.onchange=function(e){
     var f=e.target.files&&e.target.files[0];if(!f)return;
     var r=new FileReader();
     r.onload=function(ev){
@@ -770,13 +812,26 @@ function bindEvents(){
         var p=JSON.parse(ev.target.result);
         var d=p.data||p;
         if(typeof d!=="object")throw 0;
-        // Also import plan if present
-        if(p.plan&&typeof p.plan==="object"){
-          state.impPlan=p.plan;
-        }else{
-          state.impPlan=null;
-        }
-        state.impData=d;state.impStatus="confirm";render();
+        // Detect if it's a plan-only file
+        if(p.type==="plan"){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);return;}
+        state.impData=d;state.impStatus="confirm-data";render();
+      }
+      catch(err){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);}
+    };
+    r.readAsText(f);
+  };
+
+  // File input - Plan import
+  var fiPlan=app.querySelector("[data-action='import-plan-file']");
+  if(fiPlan)fiPlan.onchange=function(e){
+    var f=e.target.files&&e.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(ev){
+      try{
+        var p=JSON.parse(ev.target.result);
+        var plan=p.plan||null;
+        if(!plan||typeof plan!=="object"||Object.keys(plan).length===0)throw 0;
+        state.impPlan=plan;state.impStatus="confirm-plan";render();
       }
       catch(err){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);}
     };
@@ -886,10 +941,6 @@ function doImport(mode){
         if(idx>=0)allData[day][idx]=s;else allData[day].push(s);
       });
     }
-  }
-  // Also import plan if available
-  if(state.impPlan){
-    PLAN=state.impPlan;savePlan(PLAN);
   }
   save();state.impData=null;state.impPlan=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
   setTimeout(function(){state.impStatus=null;render();},3000);
