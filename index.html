@@ -150,6 +150,52 @@ button{font-family:inherit;cursor:pointer}
 .rem .ra{display:flex;gap:8px;margin-top:10px}
 .rem .rb{flex:1;padding:8px;background:#F59E0B;border:none;border-radius:8px;color:#0F172A;font-size:13px;font-weight:700}
 .rem .rd{padding:8px 14px;background:transparent;border:1px solid #334155;border-radius:8px;color:#64748B;font-size:13px}
+/* Settings */
+.set-sec{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.set-card{background:#1E293B;border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px}
+.set-card .sc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.set-card .sc-info{flex:1;min-width:0}
+.set-card .sc-name{font-size:15px;font-weight:700;color:#F8FAFC}
+.set-card .sc-musc{font-size:12px;color:#94A3B8;margin-top:2px}
+.set-card .sc-meta{font-size:11px;color:#64748B;margin-top:2px}
+.set-card .sc-acts{display:flex;gap:6px;flex-shrink:0}
+.sc-btn{width:36px;height:36px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sc-btn-edit{background:#1E3A5F;color:#60A5FA}
+.sc-btn-del{background:#3B1C1C;color:#F87171}
+.sc-btn-up{background:#0F172A;color:#94A3B8}
+.sc-btn-dn{background:#0F172A;color:#94A3B8}
+.set-add-btn{width:100%;padding:14px;background:transparent;border:2px dashed #334155;border-radius:12px;color:#64748B;font-size:14px;font-weight:600}
+.set-global{background:#1E293B;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.set-global h3{font-size:14px;font-weight:700;color:#F8FAFC}
+.sg-row{display:flex;align-items:center;justify-content:space-between}
+.sg-row label{font-size:13px;color:#94A3B8}
+.sg-row input,.sg-row select{background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;padding:8px 12px;font-size:14px;font-weight:600;width:80px;text-align:center;font-family:inherit}
+.set-reset{width:100%;padding:12px;background:#3B1C1C;border:1px solid #7F1D1D;border-radius:10px;color:#F87171;font-size:13px;font-weight:600;margin-top:8px}
+/* Edit Day */
+.ed-sec{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.ed-field{display:flex;flex-direction:column;gap:4px}
+.ed-field label{font-size:12px;color:#64748B;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.ed-field input[type=text],.ed-field input[type=number]{background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;padding:12px;font-size:15px;font-weight:600;outline:none;font-family:inherit}
+.ed-field input:focus{border-color:#3B82F6}
+.ed-colors{display:flex;gap:8px;flex-wrap:wrap}
+.ed-color{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.ed-color.active{border-color:#F8FAFC;box-shadow:0 0 0 2px #3B82F6}
+.ed-exlist{display:flex;flex-direction:column;gap:6px}
+.ed-exitem{display:flex;align-items:center;gap:8px;background:#0F172A;border-radius:8px;padding:10px 12px}
+.ed-exitem .ex-name{flex:1;font-size:14px;color:#E2E8F0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-exitem .ex-sets{font-size:12px;color:#64748B;margin-right:4px}
+.ex-btn{width:30px;height:30px;border-radius:6px;border:none;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ex-btn-up{background:#1E293B;color:#94A3B8}
+.ex-btn-dn{background:#1E293B;color:#94A3B8}
+.ex-btn-del{background:#3B1C1C;color:#F87171}
+.ed-addex{display:flex;gap:8px}
+.ed-addex select{flex:1;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;padding:10px;font-size:13px;font-family:inherit;min-width:0}
+.ed-addex button{padding:10px 16px;background:#10B981;border:none;border-radius:8px;color:#FFF;font-size:13px;font-weight:700;flex-shrink:0}
+.ed-custom{display:flex;gap:8px;margin-top:4px}
+.ed-custom input{flex:1;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;padding:10px;font-size:13px;font-family:inherit;min-width:0}
+.ed-custom button{padding:10px 16px;background:#8B5CF6;border:none;border-radius:8px;color:#FFF;font-size:13px;font-weight:700;flex-shrink:0}
+.ed-save{width:100%;padding:14px;background:#3B82F6;border:none;border-radius:10px;color:#FFF;font-size:15px;font-weight:700;margin-top:8px}
+.ed-cancel{width:100%;padding:12px;background:transparent;border:1px solid #334155;border-radius:10px;color:#94A3B8;font-size:14px;font-weight:600}
 .hidden{display:none}
 </style>
 </head>
@@ -159,19 +205,63 @@ button{font-family:inherit;cursor:pointer}
 (function(){
 "use strict";
 
-var PLAN = {
-  "Push": {muscles:"Brust / Schulter / Trizeps",color:"#3B82F6",exercises:["Bankdrücken LH","Schulterdrücken KH","Schrägbankdrücken KH","Seitheben Kabel","Kabel Flys","Trizeps Pushdown Seil"]},
-  "Pull": {muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",exercises:["Latzug","T-Bar Row","Rudern Kabel eng","Reverse Fly Kabel","Langhantel Curls","Hammercurls KH"]},
-  "Legs": {muscles:"Beine / Core",color:"#F59E0B",exercises:["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Plank / Cable Crunch"]}
+// =========== EXERCISE CATALOG ===========
+var EXERCISE_CATALOG = [
+  // Brust
+  "Bankdrücken LH","Bankdrücken","Brustpresse","Schrägbankdrücken KH","Schrägbankdrücken","Butterfly","Kabelzug Brust","Kabel Flys","Flachbankdrücken KH",
+  // Schulter
+  "Schulterdrücken KH","Frontdrücken","Seitheben Kabel","Seitheben","Nackenheben","Shruggs","Butterfly Reverse","Arnold Press","Face Pulls",
+  // Trizeps
+  "Trizeps Pushdown Seil","Trizeps Kabel","Kabel über Kopf","Dips Maschine","French Press","Trizeps Kickbacks",
+  // Rücken
+  "Latzug","T-Bar Row","Rudern Kabel eng","Frontziehen sitzend","Rudern","Überzüge","Low Row","Reverse Fly Kabel","Kreuzheben","Einarmiges Rudern KH",
+  // Bizeps
+  "Langhantel Curls","Hammercurls KH","Bicepscurls","Bicepscurls Kabel","Konzentrationscurls","Scott Curls",
+  // Beine
+  "Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Beinstrecker frei","Beinpresse","Waden","Beinbeuger","Beinstrecker","Kniebeugen","Hip Thrusts","Bulgarische Ausfallschritte","Sumo Kniebeugen",
+  // Core
+  "Plank / Cable Crunch","Cable Crunch","Beinheben hängend","Russian Twist","Ab Wheel Rollout",
+  // Calisthenics
+  "Klimmzüge","Dips","Liegestütze","Muscle Ups","Handstand Push-Ups","Pistol Squats","Dragon Flag","L-Sit","Ring Rows","Pike Push-Ups","Archer Push-Ups","Diamond Push-Ups","Toes to Bar","Skin the Cat","Front Lever Holds","Back Lever Holds","Planche Lean","Ring Dips","Negative Muscle Ups","Hanging Leg Raises"
+];
+
+// =========== DEFAULT PLAN ===========
+var DEFAULT_PLAN = {
+  "Push":{muscles:"Brust / Schultern / Trizeps",color:"#3B82F6",sets:4,exercises:["Bankdrücken LH","Bankdrücken","Brustpresse","Schrägbankdrücken KH","Schrägbankdrücken","Butterfly","Kabelzug Brust","Kabel Flys","Schulterdrücken KH","Frontdrücken","Seitheben Kabel","Seitheben","Trizeps Pushdown Seil","Trizeps Kabel","Kabel über Kopf","Dips Maschine","Liegestütze","Dips"]},
+  "Pull":{muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",sets:4,exercises:["Latzug","T-Bar Row","Rudern Kabel eng","Frontziehen sitzend","Rudern","Überzüge","Low Row","Reverse Fly Kabel","Butterfly Reverse","Nackenheben","Shruggs","Langhantel Curls","Hammercurls KH","Bicepscurls","Bicepscurls Kabel","Klimmzüge"]},
+  "Legs":{muscles:"Beine / Core",color:"#F59E0B",sets:4,exercises:["Rumänisches Kreuzheben","Ausfallschritte KH","Beinstrecker Maschine","Beinbeuger Maschine","Wadenheben Maschine","Beinstrecker frei","Beinpresse","Waden","Beinbeuger","Beinstrecker","Kniebeugen","Plank / Cable Crunch"]}
 };
-var SETS=4, SK="paulog-data", BK="paulog-bk", CC=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899"];
+
+var PLAN_KEY="paulog-plan";
+var SK="paulog-data", BK="paulog-bk";
+var CC=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316"];
+var PALETTE=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316","#06B6D4","#84CC16","#D946EF","#F43F5E"];
 var MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 var DN=["So","Mo","Di","Mi","Do","Fr","Sa"];
+
+// =========== PLAN MANAGEMENT ===========
+function loadPlan(){
+  try{var r=localStorage.getItem(PLAN_KEY);if(r){var p=JSON.parse(r);if(p&&typeof p==="object"&&Object.keys(p).length>0)return p;}}catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_PLAN));
+}
+function savePlan(plan){
+  try{localStorage.setItem(PLAN_KEY,JSON.stringify(plan));}catch(e){}
+}
+function getPlanDayKeys(plan){
+  return Object.keys(plan);
+}
+function getDaySets(plan,day){
+  return(plan[day]&&plan[day].sets)||4;
+}
+
+var PLAN=loadPlan();
 
 // State
 var state = {
   view:"home", day:null, date:today(), session:{}, expanded:null,
-  editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0
+  editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0,
+  // Settings state
+  editDay:null, editDayData:null, customExInput:""
 };
 var allData = {};
 
@@ -187,7 +277,20 @@ function today(){return new Date().toISOString().split("T")[0];}
 function fmtDate(ds){var d=new Date(ds+"T00:00:00");return DN[d.getDay()]+", "+p2(d.getDate())+"."+p2(d.getMonth()+1)+"."+d.getFullYear();}
 function p2(n){return n<10?"0"+n:""+n;}
 function vol(sets){var s=0;for(var i=0;i<sets.length;i++)s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);return s;}
-function sugDay(){var w=new Date().getDay();if(w===1)return"Push";if(w===3)return"Pull";if(w===5)return"Legs";return null;}
+function sugDay(){
+  var keys=getPlanDayKeys(PLAN);
+  if(keys.length===0)return null;
+  // Find which day has the oldest (or no) last session
+  var best=null,bestDate="9999";
+  for(var i=0;i<keys.length;i++){
+    var day=keys[i],arr=allData[day]||[];
+    if(arr.length===0)return day;
+    var last="";
+    for(var j=0;j<arr.length;j++){if(arr[j].date>last)last=arr[j].date;}
+    if(last<bestDate){bestDate=last;best=day;}
+  }
+  return best;
+}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function totalSess(){var t=0;for(var k in allData)t+=allData[k].length;return t;}
 
@@ -219,7 +322,7 @@ function getAllSess(){
 }
 
 function exportData(){
-  var p={app:"paulog",version:1,exported:new Date().toISOString(),data:allData};
+  var p={app:"paulog",version:2,exported:new Date().toISOString(),plan:PLAN,data:allData};
   var b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
   var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="paulog-backup-"+today()+".json";
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);setLB();
@@ -235,16 +338,16 @@ function getKW(dateStr){
 
 // Chart
 function drawChart(day,maxWeeks){
-  var info=PLAN[day],sessions=(allData[day]||[]).slice().sort(function(a,b){return a.date>b.date?1:-1;});
+  var info=PLAN[day];
+  if(!info)return'<p class="no-data">Tag nicht im aktuellen Plan</p>';
+  var sessions=(allData[day]||[]).slice().sort(function(a,b){return a.date>b.date?1:-1;});
   if(sessions.length===0)return'<p class="no-data">Noch keine Daten</p>';
-  // Filter by date if maxWeeks > 0
   if(maxWeeks>0){
     var cutoff=new Date();cutoff.setDate(cutoff.getDate()-maxWeeks*7);
     var cutStr=cutoff.toISOString().split("T")[0];
     sessions=sessions.filter(function(s){return s.date>=cutStr;});
     if(sessions.length===0)return'<p class="no-data">Keine Daten im gewählten Zeitraum</p>';
   }
-  // Group by KW
   var kwMap={};
   sessions.forEach(function(s){
     var kw="KW"+getKW(s.date);
@@ -263,22 +366,18 @@ function drawChart(day,maxWeeks){
   function y(v){return pt2+ch-(v/maxV)*ch;}
 
   var svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="max-width:'+W+'px">';
-  // Grid
   for(var g=0;g<=4;g++){var gv2=g/4*maxV,gy=y(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+Math.round(gv2)+'</text>';}
-  // X labels
   data.forEach(function(p,i){svg+='<text x="'+x(i)+'" y="'+(H-5)+'" fill="#64748B" font-size="9" text-anchor="middle">'+p.name+'</text>';});
-  // Lines
   info.exercises.forEach(function(ex,ei){
     var pts=[];data.forEach(function(p,i){if(p[ex])pts.push({x:x(i),y:y(p[ex])});});
     if(pts.length<1)return;
     var d=pts.map(function(p,i){return(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
-    svg+='<path d="'+d+'" fill="none" stroke="'+CC[ei%6]+'" stroke-width="2" stroke-linejoin="round"/>';
-    pts.forEach(function(p){svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="'+CC[ei%6]+'"/>';});
+    svg+='<path d="'+d+'" fill="none" stroke="'+CC[ei%CC.length]+'" stroke-width="2" stroke-linejoin="round"/>';
+    pts.forEach(function(p){svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="'+CC[ei%CC.length]+'"/>';});
   });
   svg+='</svg>';
-  // Legend
   svg+='<div class="c-legend">';
-  info.exercises.forEach(function(ex,i){svg+='<span><span class="dot" style="background:'+CC[i%6]+'"></span>'+esc(ex)+'</span>';});
+  info.exercises.forEach(function(ex,i){svg+='<span><span class="dot" style="background:'+CC[i%CC.length]+'"></span>'+esc(ex)+'</span>';});
   svg+='</div>';
   return svg;
 }
@@ -293,6 +392,8 @@ function render(){
   else if(v==="history") el.innerHTML=renderHistory();
   else if(v==="dashboard") el.innerHTML=renderDash();
   else if(v==="backup") el.innerHTML=renderBackup();
+  else if(v==="settings") el.innerHTML=renderSettings();
+  else if(v==="editday") el.innerHTML=renderEditDay();
 
   bindEvents();
 }
@@ -302,8 +403,9 @@ function renderHome(){
   var h='<div class="hdr"><h1>Pau<span>log</span></h1><p>Push / Pull / Legs Tracker</p></div>';
   h+='<div class="stats"><div class="stat"><span class="stat-n">'+ts+'</span><span class="stat-l">Sessions</span></div><div class="stat-div"></div><div class="stat"><span class="stat-n">'+pbCount+'</span><span class="stat-l">Übungen</span></div></div>';
   h+='<div class="sec"><h2 class="sec-t">Training starten</h2>';
-  for(var day in PLAN){
-    var info=PLAN[day],isSug=sug===day;
+  var dayKeys=getPlanDayKeys(PLAN);
+  for(var di=0;di<dayKeys.length;di++){
+    var day=dayKeys[di],info=PLAN[day],isSug=sug===day;
     h+='<button class="day-btn'+(isSug?' sug':'')+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
     h+='<div><div class="name">'+esc(day)+'</div><div class="musc">'+esc(info.muscles)+'</div></div>';
     h+='<div class="arr" style="color:'+info.color+'">→</div></button>';
@@ -311,6 +413,7 @@ function renderHome(){
   h+='</div>';
   h+='<div class="bbtn"><button class="sec-btn" data-action="go" data-view="history">📋 Sessions verwalten</button>';
   h+='<button class="sec-btn" data-action="go" data-view="dashboard">📊 Dashboard</button>';
+  h+='<button class="sec-btn" data-action="go" data-view="settings">⚙️ Einstellungen / Plan</button>';
   h+='<button class="sec-btn" data-action="go" data-view="backup">💾 Backup & Restore</button></div>';
   if(state.showRem&&ts>0){
     var lb=getLB();
@@ -322,6 +425,8 @@ function renderHome(){
 
 function renderTrack(){
   var info=PLAN[state.day],isEd=!!state.editing;
+  if(!info){state.view="home";return renderHome();}
+  var numSets=getDaySets(PLAN,state.day);
   var h='<div class="t-hdr" style="border-bottom:3px solid '+info.color+'">';
   h+='<button class="back" data-action="go" data-view="'+(isEd?'history':'home')+'">←</button>';
   h+='<div><h2>'+(isEd?'Session bearbeiten':esc(state.day))+'</h2><p class="sub">'+esc(info.muscles)+'</p></div>';
@@ -363,8 +468,9 @@ function renderHistory(){
     var pts=mo.split("-");
     h+='<div class="mo-hdr"><span class="name">'+MN[parseInt(pts[1])-1]+' '+pts[0]+'</span><span class="cnt">'+grp[mo].length+' Sessions</span></div>';
     grp[mo].forEach(function(s){
-      var inf=PLAN[s.day],isDel=state.delConfirm&&state.delConfirm.day===s.day&&state.delConfirm.date===s.date;
-      h+='<div class="s-card"><div class="bar" style="background:'+(inf?inf.color:'#64748B')+'"></div><div class="cont">';
+      var inf=PLAN[s.day],color=inf?inf.color:'#64748B';
+      var isDel=state.delConfirm&&state.delConfirm.day===s.day&&state.delConfirm.date===s.date;
+      h+='<div class="s-card"><div class="bar" style="background:'+color+'"></div><div class="cont">';
       h+='<div class="top"><div><div class="day">'+esc(s.day)+'</div><div class="date">'+fmtDate(s.date)+'</div></div>';
       h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' kg</span><span class="exc">'+s.exerciseCount+' Übungen</span></div></div>';
       h+='<div class="exs">';
@@ -386,9 +492,16 @@ function renderDash(){
   h+='<div class="d-filter"><span class="d-filter-l">Zeitraum:</span><div class="d-filter-opts">';
   opts.forEach(function(o){h+='<button class="d-filter-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
   h+='</div></div>';
-  for(var day in PLAN){
-    var info=PLAN[day];
+  var dayKeys=getPlanDayKeys(PLAN);
+  for(var di=0;di<dayKeys.length;di++){
+    var day=dayKeys[di],info=PLAN[day];
     h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Trainingsvolumen pro Kalenderwoche (kg × Wdh)</p><div class="c-wrap">'+drawChart(day,wk)+'</div></div>';
+  }
+  // Also show charts for days that have data but are no longer in the plan
+  for(var oldDay in allData){
+    if(!PLAN[oldDay]&&allData[oldDay].length>0){
+      h+='<div class="c-sec"><h3 style="color:#64748B">'+esc(oldDay)+' <span style="font-size:11px;color:#475569">(archiviert)</span></h3><p class="csub">Historische Daten</p><div class="c-wrap"><p class="no-data">Tag nicht mehr im aktiven Plan</p></div></div>';
+    }
   }
   var pbArr=[];for(var ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
   pbArr.sort(function(a,b){return b[1]-a[1];});
@@ -404,7 +517,7 @@ function renderBackup(){
   var lb=getLB(),bts=totalSess();
   var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>💾 Backup & Restore</h2></div>';
   h+='<div class="b-sec">';
-  h+='<div class="b-card"><h3>📤 Exportieren</h3><p>Alle '+bts+' Sessions als Datei speichern.</p>';
+  h+='<div class="b-card"><h3>📤 Exportieren</h3><p>Alle '+bts+' Sessions + Trainingsplan als Datei speichern.</p>';
   if(lb)h+='<p class="ld">Letztes Backup: '+fmtDate(lb)+'</p>';
   h+='<button class="b-xbtn" data-action="export"'+(bts===0?' disabled style="opacity:0.4"':'')+'>↓ Backup herunterladen</button></div>';
   h+='<div class="b-card"><h3>📥 Importieren</h3><p>Backup-Datei laden und wiederherstellen.</p>';
@@ -419,6 +532,102 @@ function renderBackup(){
   if(state.impStatus==="success")h+='<div class="b-suc">✅ Import erfolgreich!</div>';
   if(state.impStatus==="error")h+='<div class="b-err">❌ Ungültige Datei</div>';
   h+='<div class="b-inf"><h3>💡 Tipp</h3><p>Backup regelmäßig in iCloud/Google Drive sichern. Erinnerung kommt alle 2 Wochen.</p></div></div>';
+  return h;
+}
+
+// =========== SETTINGS VIEW ===========
+function renderSettings(){
+  var dayKeys=getPlanDayKeys(PLAN);
+  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>⚙️ Trainingsplan</h2></div>';
+  h+='<div class="set-sec">';
+
+  // Day cards
+  for(var i=0;i<dayKeys.length;i++){
+    var day=dayKeys[i],info=PLAN[day],ns=getDaySets(PLAN,day);
+    h+='<div class="set-card">';
+    h+='<div class="sc-dot" style="background:'+info.color+'"></div>';
+    h+='<div class="sc-info"><div class="sc-name">'+esc(day)+'</div><div class="sc-musc">'+esc(info.muscles)+'</div>';
+    h+='<div class="sc-meta">'+info.exercises.length+' Übungen · '+ns+' Sätze</div></div>';
+    h+='<div class="sc-acts">';
+    if(i>0)h+='<button class="sc-btn sc-btn-up" data-action="day-up" data-day="'+esc(day)+'" title="Hoch">↑</button>';
+    if(i<dayKeys.length-1)h+='<button class="sc-btn sc-btn-dn" data-action="day-down" data-day="'+esc(day)+'" title="Runter">↓</button>';
+    h+='<button class="sc-btn sc-btn-edit" data-action="edit-day" data-day="'+esc(day)+'" title="Bearbeiten">✏️</button>';
+    if(dayKeys.length>1)h+='<button class="sc-btn sc-btn-del" data-action="del-day" data-day="'+esc(day)+'" title="Löschen">✕</button>';
+    h+='</div></div>';
+  }
+
+  // Add day button
+  h+='<button class="set-add-btn" data-action="add-day">+ Trainingstag hinzufügen</button>';
+
+  // Reset to default
+  h+='<button class="set-reset" data-action="reset-plan">↺ Auf Standardplan zurücksetzen</button>';
+
+  h+='</div>';
+  return h;
+}
+
+// =========== EDIT DAY VIEW ===========
+function renderEditDay(){
+  var d=state.editDayData;
+  if(!d){state.view="settings";return renderSettings();}
+  var h='<div class="d-hdr" style="border-bottom:3px solid '+d.color+'">';
+  h+='<button class="back" data-action="cancel-edit-day">←</button>';
+  h+='<h2>'+(state.editDay?'Tag bearbeiten':'Neuer Tag')+'</h2></div>';
+  h+='<div class="ed-sec">';
+
+  // Name
+  h+='<div class="ed-field"><label>Name</label>';
+  h+='<input type="text" id="ed-name" value="'+esc(d.name)+'" placeholder="z.B. Push, Pull, Oberkörper…"></div>';
+
+  // Muscles
+  h+='<div class="ed-field"><label>Muskelgruppen</label>';
+  h+='<input type="text" id="ed-muscles" value="'+esc(d.muscles)+'" placeholder="z.B. Brust / Schultern / Trizeps"></div>';
+
+  // Sets
+  h+='<div class="ed-field"><label>Sätze pro Übung</label>';
+  h+='<input type="number" id="ed-sets" value="'+d.sets+'" min="1" max="10" inputmode="numeric"></div>';
+
+  // Color
+  h+='<div class="ed-field"><label>Farbe</label><div class="ed-colors">';
+  for(var ci=0;ci<PALETTE.length;ci++){
+    var c=PALETTE[ci];
+    h+='<div class="ed-color'+(d.color===c?' active':'')+'" style="background:'+c+'" data-action="set-color" data-color="'+c+'"></div>';
+  }
+  h+='</div></div>';
+
+  // Exercises
+  h+='<div class="ed-field"><label>Übungen ('+d.exercises.length+')</label>';
+  h+='<div class="ed-exlist">';
+  for(var ei=0;ei<d.exercises.length;ei++){
+    var ex=d.exercises[ei];
+    h+='<div class="ed-exitem">';
+    h+='<span class="ex-name">'+esc(ex)+'</span>';
+    if(ei>0)h+='<button class="ex-btn ex-btn-up" data-action="ex-up" data-idx="'+ei+'">↑</button>';
+    if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'">↓</button>';
+    h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'">✕</button>';
+    h+='</div>';
+  }
+  h+='</div>';
+
+  // Add from catalog
+  var available=EXERCISE_CATALOG.filter(function(e){return d.exercises.indexOf(e)===-1;});
+  if(available.length>0){
+    h+='<div class="ed-addex"><select id="ed-catalog"><option value="">— Übung aus Katalog wählen —</option>';
+    available.forEach(function(e){h+='<option value="'+esc(e)+'">'+esc(e)+'</option>';});
+    h+='</select><button data-action="add-catalog-ex">+</button></div>';
+  }
+
+  // Add custom
+  h+='<div class="ed-custom"><input type="text" id="ed-custom-ex" placeholder="Eigene Übung eingeben…" value="'+esc(state.customExInput||'')+'">';
+  h+='<button data-action="add-custom-ex">+</button></div>';
+  h+='</div>';
+
+  // Save / Cancel
+  h+='<div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:8px">';
+  h+='<button class="ed-save" data-action="save-day">✓ Speichern</button>';
+  h+='<button class="ed-cancel" data-action="cancel-edit-day">Abbrechen</button>';
+  h+='</div>';
+
   return h;
 }
 
@@ -454,6 +663,77 @@ function bindEvents(){
     else if(a==="imp-merge"){doImport("merge");}
     else if(a==="imp-replace"){doImport("replace");}
     else if(a==="imp-cancel"){state.impStatus=null;state.impData=null;render();}
+
+    // ===== SETTINGS ACTIONS =====
+    else if(a==="edit-day"){
+      var dn=t.getAttribute("data-day");
+      state.editDay=dn;
+      var inf=PLAN[dn];
+      state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice()};
+      state.customExInput="";
+      state.view="editday";render();
+    }
+    else if(a==="add-day"){
+      state.editDay=null;
+      state.editDayData={name:"",muscles:"",color:PALETTE[getPlanDayKeys(PLAN).length%PALETTE.length],sets:4,exercises:[]};
+      state.customExInput="";
+      state.view="editday";render();
+    }
+    else if(a==="del-day"){
+      var ddn=t.getAttribute("data-day");
+      if(confirm('Trainingstag "'+ddn+'" wirklich löschen?\n\nBestehende Session-Daten bleiben erhalten.')){
+        var newPlan={};
+        for(var k in PLAN){if(k!==ddn)newPlan[k]=PLAN[k];}
+        PLAN=newPlan;savePlan(PLAN);render();
+      }
+    }
+    else if(a==="day-up"){movePlanDay(t.getAttribute("data-day"),-1);}
+    else if(a==="day-down"){movePlanDay(t.getAttribute("data-day"),1);}
+    else if(a==="reset-plan"){
+      if(confirm('Plan auf Standard zurücksetzen?\n\nBestehende Session-Daten bleiben erhalten.')){
+        PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));savePlan(PLAN);render();
+      }
+    }
+
+    // ===== EDIT DAY ACTIONS =====
+    else if(a==="set-color"){
+      if(state.editDayData){state.editDayData.color=t.getAttribute("data-color");render();}
+    }
+    else if(a==="ex-up"){
+      var idx=parseInt(t.getAttribute("data-idx"));
+      if(state.editDayData&&idx>0){
+        var arr=state.editDayData.exercises;
+        var tmp=arr[idx];arr[idx]=arr[idx-1];arr[idx-1]=tmp;render();
+      }
+    }
+    else if(a==="ex-down"){
+      var idx2=parseInt(t.getAttribute("data-idx"));
+      if(state.editDayData&&idx2<state.editDayData.exercises.length-1){
+        var arr2=state.editDayData.exercises;
+        var tmp2=arr2[idx2];arr2[idx2]=arr2[idx2+1];arr2[idx2+1]=tmp2;render();
+      }
+    }
+    else if(a==="ex-del"){
+      var idx3=parseInt(t.getAttribute("data-idx"));
+      if(state.editDayData){state.editDayData.exercises.splice(idx3,1);render();}
+    }
+    else if(a==="add-catalog-ex"){
+      var sel=document.getElementById("ed-catalog");
+      if(sel&&sel.value&&state.editDayData){
+        state.editDayData.exercises.push(sel.value);render();
+      }
+    }
+    else if(a==="add-custom-ex"){
+      var ci=document.getElementById("ed-custom-ex");
+      if(ci&&ci.value.trim()&&state.editDayData){
+        state.editDayData.exercises.push(ci.value.trim());
+        state.customExInput="";render();
+      }
+    }
+    else if(a==="save-day"){saveDayEdits();}
+    else if(a==="cancel-edit-day"){
+      state.editDay=null;state.editDayData=null;state.customExInput="";state.view="settings";render();
+    }
   };
 
   // Input changes (delegated)
@@ -462,7 +742,6 @@ function bindEvents(){
     if(t.getAttribute("data-action")==="set-val"){
       var ex=t.getAttribute("data-ex"),si=parseInt(t.getAttribute("data-si")),field=t.getAttribute("data-field");
       if(state.session[ex]&&state.session[ex][si])state.session[ex][si][field]=t.value;
-      // Update volume display without full re-render
       updateVolDisplay(ex);
     }
     else if(t.getAttribute("data-action")==="set-date"){
@@ -470,9 +749,15 @@ function bindEvents(){
       var arr=allData[state.day]||[];
       var existing=arr.find(function(s){return s.date===state.date;});
       if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
-      else{var se={};PLAN[state.day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<SETS;i++)se[e].push({kg:"",reps:""});});state.session=se;}
+      else{
+        var se={};var numSets=getDaySets(PLAN,state.day);
+        PLAN[state.day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
+        state.session=se;
+      }
       render();
     }
+    // Track custom exercise input without re-render
+    if(t.id==="ed-custom-ex"){state.customExInput=t.value;}
   };
 
   // File input
@@ -481,30 +766,105 @@ function bindEvents(){
     var f=e.target.files&&e.target.files[0];if(!f)return;
     var r=new FileReader();
     r.onload=function(ev){
-      try{var p=JSON.parse(ev.target.result);var d=p.data||p;if(typeof d!=="object")throw 0;state.impData=d;state.impStatus="confirm";render();}
+      try{
+        var p=JSON.parse(ev.target.result);
+        var d=p.data||p;
+        if(typeof d!=="object")throw 0;
+        // Also import plan if present
+        if(p.plan&&typeof p.plan==="object"){
+          state.impPlan=p.plan;
+        }else{
+          state.impPlan=null;
+        }
+        state.impData=d;state.impStatus="confirm";render();
+      }
       catch(err){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);}
     };
     r.readAsText(f);
   };
 }
 
-function updateVolDisplay(ex){
-  // Lightweight vol update without full re-render
-  var sets=state.session[ex]||[];
-  var cv=vol(sets);
-  // We can just let the next full render catch it — inputs keep focus this way
+function updateVolDisplay(ex){}
+
+function movePlanDay(day,dir){
+  var keys=getPlanDayKeys(PLAN);
+  var idx=keys.indexOf(day);
+  if(idx<0)return;
+  var ni=idx+dir;
+  if(ni<0||ni>=keys.length)return;
+  var tmp=keys[idx];keys[idx]=keys[ni];keys[ni]=tmp;
+  var newPlan={};
+  for(var i=0;i<keys.length;i++)newPlan[keys[i]]=PLAN[keys[i]];
+  PLAN=newPlan;savePlan(PLAN);render();
+}
+
+function saveDayEdits(){
+  var d=state.editDayData;
+  // Read current values from inputs
+  var nameInput=document.getElementById("ed-name");
+  var muscInput=document.getElementById("ed-muscles");
+  var setsInput=document.getElementById("ed-sets");
+  if(nameInput)d.name=nameInput.value.trim();
+  if(muscInput)d.muscles=muscInput.value.trim();
+  if(setsInput)d.sets=Math.max(1,Math.min(10,parseInt(setsInput.value)||4));
+
+  if(!d.name){alert("Bitte einen Namen eingeben.");return;}
+  if(d.exercises.length===0){alert("Mindestens eine Übung hinzufügen.");return;}
+
+  var oldName=state.editDay;
+  // If renaming, check for conflicts
+  if(d.name!==oldName&&PLAN[d.name]){alert('Ein Tag mit dem Namen "'+d.name+'" existiert bereits.');return;}
+
+  // Build new plan preserving order
+  var newPlan={};
+  if(oldName){
+    // Editing existing day
+    for(var k in PLAN){
+      if(k===oldName){
+        newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,exercises:d.exercises.slice()};
+      }else{
+        newPlan[k]=PLAN[k];
+      }
+    }
+  }else{
+    // Adding new day
+    for(var k2 in PLAN)newPlan[k2]=PLAN[k2];
+    newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,exercises:d.exercises.slice()};
+  }
+
+  PLAN=newPlan;savePlan(PLAN);
+  state.editDay=null;state.editDayData=null;state.customExInput="";
+  state.view="settings";render();
 }
 
 function initSession(day,date,exData){
   state.day=day;state.date=date||today();
+  var numSets=getDaySets(PLAN,day);
   if(exData){state.session=JSON.parse(JSON.stringify(exData));}
   else{
     var arr=allData[day]||[];
     var existing=arr.find(function(s){return s.date===state.date;});
     if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
-    else{var se={};PLAN[day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<SETS;i++)se[e].push({kg:"",reps:""});});state.session=se;}
+    else{
+      var se={};
+      if(PLAN[day]){
+        PLAN[day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
+      }
+      state.session=se;
+    }
   }
-  state.expanded=PLAN[day].exercises[0];
+  // Ensure all exercises from current plan have entries
+  if(PLAN[day]){
+    PLAN[day].exercises.forEach(function(ex){
+      if(!state.session[ex]){
+        state.session[ex]=[];
+        for(var i=0;i<numSets;i++)state.session[ex].push({kg:"",reps:""});
+      }
+      // Adjust set count if plan changed
+      while(state.session[ex].length<numSets)state.session[ex].push({kg:"",reps:""});
+    });
+  }
+  state.expanded=PLAN[day]?PLAN[day].exercises[0]:null;
 }
 
 function saveSession(){
@@ -527,7 +887,11 @@ function doImport(mode){
       });
     }
   }
-  save();state.impData=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
+  // Also import plan if available
+  if(state.impPlan){
+    PLAN=state.impPlan;savePlan(PLAN);
+  }
+  save();state.impData=null;state.impPlan=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
   setTimeout(function(){state.impStatus=null;render();},3000);
 }
 
