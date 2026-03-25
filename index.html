@@ -68,11 +68,29 @@ button{font-family:inherit;cursor:pointer}
 .s-hdr{display:grid;grid-template-columns:36px 1fr 1fr;gap:8px;margin-bottom:2px}
 .s-hdr span{font-size:10px;color:#475569;text-align:center}
 .s-row{display:grid;grid-template-columns:36px 1fr 1fr;gap:8px;align-items:center}
+.s-cell{display:flex;gap:4px;align-items:center}
+.wp-trigger{width:32px;height:32px;border-radius:8px;background:#0F172A;border:1px solid #334155;color:#64748B;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wp-trigger:active{background:#334155;color:#F8FAFC}
 .s-num{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:700;font-size:14px}
 .s-inp{width:100%;padding:10px 8px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;font-size:16px;text-align:center;font-weight:600;outline:none;font-family:inherit}
 .s-inp:focus{border-color:#3B82F6}
 /* Save button */
 .save-btn{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 48px);max-width:440px;padding:16px;background:#3B82F6;border:none;border-radius:12px;color:#FFF;font-size:16px;font-weight:700;z-index:20;box-shadow:0 4px 24px rgba(59,130,246,0.4)}
+/* Wheel Picker */
+.wp-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.wp-box{width:100%;max-width:480px;background:#1E293B;border-radius:16px 16px 0 0;padding:0 0 env(safe-area-inset-bottom,20px);animation:wp-slide .25s ease-out}
+@keyframes wp-slide{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.wp-top{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #334155}
+.wp-title{font-size:15px;font-weight:700;color:#F8FAFC}
+.wp-done{background:none;border:none;color:#3B82F6;font-size:16px;font-weight:700;padding:4px 8px}
+.wp-cols{display:flex;justify-content:center;gap:0;padding:8px 20px 16px;position:relative}
+.wp-col{position:relative;width:120px;height:210px;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,transparent,black 30%,black 70%,transparent);mask-image:linear-gradient(to bottom,transparent,black 30%,black 70%,transparent)}
+.wp-col-inner{position:absolute;left:0;right:0;transition:transform 0.15s ease-out}
+.wp-col-inner.animating{transition:transform 0.4s cubic-bezier(0.22,1,0.36,1)}
+.wp-item{height:42px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#475569;user-select:none;-webkit-user-select:none}
+.wp-item.active{color:#F8FAFC;font-size:26px}
+.wp-sel{position:absolute;top:50%;left:8px;right:8px;height:42px;transform:translateY(-50%);background:rgba(59,130,246,0.12);border-radius:10px;border:1px solid rgba(59,130,246,0.25);pointer-events:none}
+.wp-unit{font-size:14px;color:#64748B;font-weight:600;display:flex;align-items:center;padding:0 4px}
 /* History */
 .h-hdr{display:flex;align-items:center;gap:12px;padding:16px 20px;background:#1E293B;position:sticky;top:0;z-index:10}
 .h-hdr h2{font-size:18px;font-weight:700;color:#F8FAFC}
@@ -236,7 +254,7 @@ var DEFAULT_PLAN = {
 };
 
 var PLAN_KEY="paulog-plan";
-var SK="paulog-data", BK="paulog-bk";
+var SK="paulog-data", BK="paulog-bk", DRAFT_KEY="paulog-draft", LASTEX_KEY="paulog-last-ex";
 var CC=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316"];
 var PALETTE=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316","#06B6D4","#84CC16","#D946EF","#F43F5E"];
 var MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
@@ -282,6 +300,25 @@ function save(){try{localStorage.setItem(SK,JSON.stringify(allData));}catch(e){}
 function getLB(){try{return localStorage.getItem(BK)||null;}catch(e){return null;}}
 function setLB(){try{localStorage.setItem(BK,today());}catch(e){}}
 function daysBack(){var l=getLB();if(!l)return 9999;return Math.floor((new Date()-new Date(l+"T00:00:00"))/864e5);}
+
+// Draft persistence (unsaved session data)
+function saveDraft(){
+  if(!state.day)return;
+  try{localStorage.setItem(DRAFT_KEY,JSON.stringify({day:state.day,date:state.date,session:state.session}));}catch(e){}
+}
+function loadDraft(day){
+  try{var r=localStorage.getItem(DRAFT_KEY);if(r){var d=JSON.parse(r);if(d&&d.day===day)return d;}}catch(e){}
+  return null;
+}
+function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);}catch(e){}}
+
+// Last expanded exercise per day
+function saveLastEx(day,ex){
+  try{var obj=JSON.parse(localStorage.getItem(LASTEX_KEY)||"{}");obj[day]=ex;localStorage.setItem(LASTEX_KEY,JSON.stringify(obj));}catch(e){}
+}
+function getLastEx(day){
+  try{var obj=JSON.parse(localStorage.getItem(LASTEX_KEY)||"{}");return obj[day]||null;}catch(e){return null;}
+}
 
 // Helpers
 function today(){return new Date().toISOString().split("T")[0];}
@@ -467,8 +504,8 @@ function renderTrack(){
       sets.forEach(function(set,i){
         var phK=prev&&prev[i]?prev[i].kg||'—':'—';var phR=prev&&prev[i]?prev[i].reps||'—':'—';
         h+='<div class="s-row"><span class="s-num" style="background:'+info.color+'">'+(i+1)+'</span>';
-        h+='<input type="number" inputmode="decimal" class="s-inp" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg">';
-        h+='<input type="number" inputmode="numeric" class="s-inp" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"></div>';
+        h+='<div class="s-cell"><input type="number" inputmode="decimal" class="s-inp" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg">⊙</button></div>';
+        h+='<div class="s-cell"><input type="number" inputmode="numeric" class="s-inp" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps">⊙</button></div></div>';
       });
       h+='</div></div>';
     }
@@ -693,9 +730,18 @@ function bindEvents(){
     if(!t)return;
     var a=t.getAttribute("data-action");
 
-    if(a==="go"){state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;render();}
+    if(a==="go"){
+      // Save draft if leaving track view with unsaved data
+      if(state.view==="track"&&state.day&&!state.editing){
+        var hasData=false;
+        for(var sk in state.session){(state.session[sk]||[]).forEach(function(s){if(s.kg||s.reps)hasData=true;});}
+        if(hasData)saveDraft();
+      }
+      state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;render();
+    }
     else if(a==="start"){initSession(t.getAttribute("data-day"),null,null);state.view="track";render();}
-    else if(a==="toggle-ex"){var ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;render();}
+    else if(a==="toggle-ex"){var ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;if(state.expanded&&state.day)saveLastEx(state.day,state.expanded);render();}
+    else if(a==="open-wp"){openWheelPicker(t.getAttribute("data-ex"),parseInt(t.getAttribute("data-si")),t.getAttribute("data-field"));}
     else if(a==="save"){saveSession();render();}
     else if(a==="edit"){
       var day=t.getAttribute("data-day"),date=t.getAttribute("data-date");
@@ -823,6 +869,8 @@ function bindEvents(){
     if(t.getAttribute("data-action")==="set-val"){
       var ex=t.getAttribute("data-ex"),si=parseInt(t.getAttribute("data-si")),field=t.getAttribute("data-field");
       if(state.session[ex]&&state.session[ex][si])state.session[ex][si][field]=t.value;
+      if(state.day)saveLastEx(state.day,ex);
+      saveDraft();
       updateVolDisplay(ex);
     }
     else if(t.getAttribute("data-action")==="set-date"){
@@ -936,15 +984,22 @@ function initSession(day,date,exData){
   var numSets=getDaySets(PLAN,day);
   if(exData){state.session=JSON.parse(JSON.stringify(exData));}
   else{
-    var arr=allData[day]||[];
-    var existing=arr.find(function(s){return s.date===state.date;});
-    if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
-    else{
-      var se={};
-      if(PLAN[day]){
-        PLAN[day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
+    // Check for unsaved draft first
+    var draft=loadDraft(day);
+    if(draft&&!date){
+      state.date=draft.date;
+      state.session=draft.session;
+    } else {
+      var arr=allData[day]||[];
+      var existing=arr.find(function(s){return s.date===state.date;});
+      if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
+      else{
+        var se={};
+        if(PLAN[day]){
+          PLAN[day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
+        }
+        state.session=se;
       }
-      state.session=se;
     }
   }
   // Ensure all exercises from current plan have entries
@@ -958,7 +1013,13 @@ function initSession(day,date,exData){
       while(state.session[ex].length<numSets)state.session[ex].push({kg:"",reps:""});
     });
   }
-  state.expanded=PLAN[day]?PLAN[day].exercises[0]:null;
+  // Expand last edited exercise, fallback to first
+  var lastEx=getLastEx(day);
+  if(lastEx&&PLAN[day]&&PLAN[day].exercises.indexOf(lastEx)>=0){
+    state.expanded=lastEx;
+  } else {
+    state.expanded=PLAN[day]?PLAN[day].exercises[0]:null;
+  }
 }
 
 function saveSession(){
@@ -967,7 +1028,7 @@ function saveSession(){
   for(var i=0;i<allData[state.day].length;i++){if(allData[state.day][i].date===state.date){idx=i;break;}}
   var entry={date:state.date,exercises:state.session};
   if(idx>=0)allData[state.day][idx]=entry;else allData[state.day].push(entry);
-  save();state.editing=null;state.view="history";
+  save();clearDraft();state.editing=null;state.view="history";
 }
 
 function doImport(mode){
@@ -983,6 +1044,135 @@ function doImport(mode){
   }
   save();state.impData=null;state.impPlan=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
   setTimeout(function(){state.impStatus=null;render();},3000);
+}
+
+// =========== WHEEL PICKER ===========
+var wpActive=null; // {ex, si, field, el}
+
+function buildWpValues(field,unit){
+  var vals=[];
+  if(field==="kg"){
+    if(unit==="sek"){for(var i=0;i<=300;i+=5)vals.push(i);}
+    else{for(var j=0;j<=200;j++){vals.push(j);if(j<200)vals.push(j+0.5);}}
+    // simplified: 0, 0.5, 1, 1.5 ... 200 for kg; 0,5,10...300 for sek
+    if(unit==="sek"){vals=[];for(var s=0;s<=300;s+=5)vals.push(s);}
+    else{vals=[];for(var k=0;k<=200;k+=2.5)vals.push(k);}
+  } else {
+    // reps: 0..100
+    for(var r=0;r<=100;r++)vals.push(r);
+  }
+  return vals;
+}
+
+function openWheelPicker(ex,si,field){
+  var unit=getExUnit(state.day,ex);
+  var vals=buildWpValues(field,unit);
+  var current=parseFloat((state.session[ex]&&state.session[ex][si]&&state.session[ex][si][field])||0)||0;
+  // Find closest index
+  var bestIdx=0,bestDist=Infinity;
+  for(var i=0;i<vals.length;i++){var d=Math.abs(vals[i]-current);if(d<bestDist){bestDist=d;bestIdx=i;}}
+
+  var unitLabel=field==="kg"?(unit==="sek"?"Sekunden":"kg"):"Wiederholungen";
+  var overlay=document.createElement("div");
+  overlay.className="wp-overlay";
+  overlay.innerHTML='<div class="wp-box"><div class="wp-top"><span class="wp-title">'+esc(ex)+' – Satz '+(si+1)+' – '+unitLabel+'</span><button class="wp-done">Fertig</button></div><div class="wp-cols"><div class="wp-col"><div class="wp-sel"></div><div class="wp-col-inner"></div></div></div></div>';
+
+  document.body.appendChild(overlay);
+
+  var col=overlay.querySelector(".wp-col");
+  var inner=overlay.querySelector(".wp-col-inner");
+  var ITEM_H=42, VISIBLE=5, CENTER=Math.floor(VISIBLE/2);
+
+  // Render items
+  var html="";
+  for(var v=0;v<vals.length;v++){
+    var label=vals[v]%1===0?vals[v].toString():vals[v].toFixed(1);
+    html+='<div class="wp-item" data-idx="'+v+'">'+label+'</div>';
+  }
+  inner.innerHTML=html;
+
+  var selectedIdx=bestIdx;
+  var yOffset=0;
+
+  function setPos(idx,animate){
+    selectedIdx=Math.max(0,Math.min(vals.length-1,Math.round(idx)));
+    yOffset=-selectedIdx*ITEM_H+CENTER*ITEM_H;
+    if(animate)inner.classList.add("animating");
+    else inner.classList.remove("animating");
+    inner.style.transform="translateY("+yOffset+"px)";
+    // Update active class
+    var items=inner.children;
+    for(var i=0;i<items.length;i++){
+      items[i].classList.toggle("active",i===selectedIdx);
+    }
+  }
+
+  function endAnim(){inner.classList.remove("animating");}
+  inner.addEventListener("transitionend",endAnim);
+
+  setPos(bestIdx,false);
+
+  // Touch handling
+  var startY=0,startOff=0,lastY=0,lastT=0,velocity=0,isDragging=false;
+
+  function onStart(e){
+    var ev=e.touches?e.touches[0]:e;
+    startY=ev.clientY;startOff=yOffset;lastY=startY;lastT=Date.now();velocity=0;isDragging=true;
+    inner.classList.remove("animating");
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!isDragging)return;
+    var ev=e.touches?e.touches[0]:e;
+    var dy=ev.clientY-startY;
+    var now=Date.now();
+    var dt=now-lastT;
+    if(dt>0)velocity=(ev.clientY-lastY)/dt;
+    lastY=ev.clientY;lastT=now;
+    yOffset=startOff+dy;
+    inner.style.transform="translateY("+yOffset+"px)";
+    e.preventDefault();
+  }
+  function onEnd(e){
+    if(!isDragging)return;
+    isDragging=false;
+    // Apply momentum
+    var momentum=velocity*120;
+    var targetY=yOffset+momentum;
+    var targetIdx=Math.round(-(targetY-CENTER*ITEM_H)/ITEM_H);
+    setPos(targetIdx,true);
+    e.preventDefault();
+  }
+
+  col.addEventListener("touchstart",onStart,{passive:false});
+  col.addEventListener("touchmove",onMove,{passive:false});
+  col.addEventListener("touchend",onEnd,{passive:false});
+  col.addEventListener("mousedown",onStart);
+  document.addEventListener("mousemove",onMove);
+  document.addEventListener("mouseup",function mup(e){onEnd(e);document.removeEventListener("mousemove",onMove);document.removeEventListener("mouseup",mup);});
+
+  // Click on item to select
+  inner.addEventListener("click",function(e){
+    var item=e.target.closest(".wp-item");
+    if(item){setPos(parseInt(item.getAttribute("data-idx")),true);}
+  });
+
+  // Done button
+  overlay.querySelector(".wp-done").onclick=function(){
+    var val=vals[selectedIdx];
+    if(state.session[ex]&&state.session[ex][si]){
+      state.session[ex][si][field]=val===0?"":String(val%1===0?val:val.toFixed(1));
+    }
+    if(state.day)saveLastEx(state.day,ex);
+    saveDraft();
+    document.body.removeChild(overlay);
+    render();
+  };
+
+  // Tap backdrop to close without saving
+  overlay.addEventListener("click",function(e){
+    if(e.target===overlay){document.body.removeChild(overlay);}
+  });
 }
 
 // Init
