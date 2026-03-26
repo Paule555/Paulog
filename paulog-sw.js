@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paulog-v18';
+const CACHE_NAME = 'paulog-v19';
 const ASSETS = [
   './',
   './index.html',
@@ -34,6 +34,18 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request));
     return;
   }
+  // Network-first for HTML (always get latest version, cache as fallback for offline)
+  if (e.request.mode === 'navigate' || url.endsWith('index.html') || url.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request).then(r => {
+        const clone = r.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        return r;
+      }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
+    );
+    return;
+  }
+  // Cache-first for static assets (icons, manifest)
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
   );
