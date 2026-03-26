@@ -1,10 +1,16 @@
-const CACHE_NAME = 'paulog-v17';
+const CACHE_NAME = 'paulog-v18';
 const ASSETS = [
   './',
   './index.html',
   './paulog-manifest.json',
   './paulog-icon-192.png',
   './paulog-icon-512.png'
+];
+
+// URLs that should never be cached (Supabase API + CDN)
+const NO_CACHE = [
+  'supabase.co',
+  'cdn.jsdelivr.net'
 ];
 
 self.addEventListener('install', e => {
@@ -22,6 +28,12 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const url = e.request.url;
+  // Never cache Supabase API calls or CDN scripts
+  if (NO_CACHE.some(h => url.includes(h))) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
   );

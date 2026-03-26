@@ -220,13 +220,58 @@ button{font-family:inherit;cursor:pointer}
 .ed-save{width:100%;padding:14px;background:#3B82F6;border:none;border-radius:10px;color:#FFF;font-size:15px;font-weight:700;margin-top:8px}
 .ed-cancel{width:100%;padding:12px;background:transparent;border:1px solid #334155;border-radius:10px;color:#94A3B8;font-size:14px;font-weight:600}
 .hidden{display:none}
+/* Auth */
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.auth-card{width:100%;max-width:360px;background:#1E293B;border-radius:16px;padding:32px 24px;text-align:center}
+.auth-card h1{font-size:32px;font-weight:800;letter-spacing:4px;color:#F8FAFC;margin-bottom:4px}
+.auth-card h1 span{color:#10B981}
+.auth-sub{font-size:13px;color:#64748B;margin-bottom:24px;letter-spacing:2px;text-transform:uppercase}
+.auth-field{margin-bottom:14px;text-align:left}
+.auth-field label{font-size:12px;color:#94A3B8;display:block;margin-bottom:4px}
+.auth-inp{width:100%;padding:12px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;font-size:15px;font-family:inherit}
+.auth-inp:focus{outline:none;border-color:#10B981}
+.auth-btn{width:100%;padding:14px;background:#10B981;border:none;border-radius:10px;color:#FFF;font-size:15px;font-weight:700;margin-top:8px}
+.auth-btn:disabled{opacity:.5}
+.auth-err{color:#F87171;font-size:13px;margin-top:10px;min-height:18px}
+.auth-msg{color:#10B981;font-size:13px;margin-top:10px;min-height:18px}
+.auth-toggle{color:#94A3B8;font-size:13px;margin-top:16px}
+.auth-toggle button{background:none;border:none;color:#10B981;font-weight:600;font-size:13px;text-decoration:underline}
+/* Loading */
+.load-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid #334155;border-top-color:#10B981;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:#64748B;font-size:14px}
+/* Migration */
+.mig-card{max-width:400px;margin:60px auto;background:#1E293B;border-radius:16px;padding:28px 24px;text-align:center}
+.mig-card h2{font-size:20px;font-weight:700;color:#F8FAFC;margin-bottom:8px}
+.mig-card p{color:#94A3B8;font-size:14px;margin-bottom:16px}
+.mig-stats{display:flex;justify-content:center;gap:24px;margin-bottom:20px}
+.mig-stats .stat{display:flex;flex-direction:column;align-items:center}
+.mig-stats .stat-n{font-size:22px;font-weight:700;color:#F8FAFC}
+.mig-stats .stat-l{font-size:11px;color:#64748B;text-transform:uppercase}
+.mig-btns{display:flex;gap:10px}
+.mig-yes{flex:1;padding:14px;background:#10B981;border:none;border-radius:10px;color:#FFF;font-size:15px;font-weight:700}
+.mig-no{flex:1;padding:14px;background:transparent;border:1px solid #334155;border-radius:10px;color:#94A3B8;font-size:14px;font-weight:600}
+/* User bar */
+.user-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;margin-bottom:4px}
+.user-bar .email{font-size:12px;color:#64748B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-bar .logout-btn{background:none;border:1px solid #334155;border-radius:6px;color:#94A3B8;font-size:12px;padding:4px 10px}
 </style>
 </head>
 <body>
 <div class="app" id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
 "use strict";
+
+// =========== SUPABASE CONFIG ===========
+var SUPABASE_URL='https://xfdvppgllwhvbxbrkzmo.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHZwcGdsbHdodmJ4YnJrem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTAxNzAsImV4cCI6MjA5MDA2NjE3MH0.X_7BeCisQAcwEn1cvv0ZskeJQD5WniKP1jILvFkDhhY';
+var sb, currentUser=null;
+if(typeof supabase!=='undefined'){
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+}
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
 var EXERCISE_GROUPS = [
@@ -262,11 +307,11 @@ var DN=["So","Mo","Di","Mi","Do","Fr","Sa"];
 
 // =========== PLAN MANAGEMENT ===========
 function loadPlan(){
-  try{var r=localStorage.getItem(PLAN_KEY);if(r){var p=JSON.parse(r);if(p&&typeof p==="object"&&Object.keys(p).length>0)return p;}}catch(e){}
-  return JSON.parse(JSON.stringify(DEFAULT_PLAN));
+  return JSON.parse(JSON.stringify(PLAN));
 }
 function savePlan(plan){
-  try{localStorage.setItem(PLAN_KEY,JSON.stringify(plan));}catch(e){}
+  PLAN=plan;
+  savePlanToDB(plan).catch(console.error);
 }
 function getPlanDayKeys(plan){
   return Object.keys(plan);
@@ -283,41 +328,129 @@ function findExUnit(exercise){
   return "kg";
 }
 
-var PLAN=loadPlan();
+var PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
 
 // State
 var state = {
-  view:"home", day:null, date:today(), session:{}, expanded:null,
+  view:"loading", day:null, date:today(), session:{}, expanded:null,
   editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0,
   // Settings state
-  editDay:null, editDayData:null, customExInput:""
+  editDay:null, editDayData:null, customExInput:"",
+  // Auth state
+  authView:"login", authError:null, authMsg:null, authLoading:false,
+  migrationData:null, migrationPlan:null
 };
 var allData = {};
+var userPrefs={};
+var cachedDraft=null;
+var draftTimer=null;
+var prefsTimer=null;
 
-// Storage
-function load(){try{var r=localStorage.getItem(SK);return r?JSON.parse(r):{};}catch(e){return {};}}
-function save(){try{localStorage.setItem(SK,JSON.stringify(allData));}catch(e){}}
-function getLB(){try{return localStorage.getItem(BK)||null;}catch(e){return null;}}
-function setLB(){try{localStorage.setItem(BK,today());}catch(e){}}
+// Storage (wrappers – sync reads from cache, async writes to Supabase)
+function load(){return allData;}
+function save(){/* replaced by targeted DB calls */}
+function getLB(){return userPrefs['backup-date']||null;}
+function setLB(){userPrefs['backup-date']=today();debounceSavePrefs();}
 function daysBack(){var l=getLB();if(!l)return 9999;return Math.floor((new Date()-new Date(l+"T00:00:00"))/864e5);}
 
-// Draft persistence (unsaved session data)
+// Draft persistence (cache + async DB)
 function saveDraft(){
   if(!state.day)return;
-  try{localStorage.setItem(DRAFT_KEY,JSON.stringify({day:state.day,date:state.date,session:state.session}));}catch(e){}
+  cachedDraft={day:state.day,date:state.date,session:state.session};
+  debounceSaveDraft();
 }
 function loadDraft(day){
-  try{var r=localStorage.getItem(DRAFT_KEY);if(r){var d=JSON.parse(r);if(d&&d.day===day)return d;}}catch(e){}
+  if(cachedDraft&&cachedDraft.day===day)return cachedDraft;
   return null;
 }
-function clearDraft(){try{localStorage.removeItem(DRAFT_KEY);}catch(e){}}
+function clearDraft(){cachedDraft=null;clearDraftFromDB().catch(console.error);}
 
 // Last expanded exercise per day
 function saveLastEx(day,ex){
-  try{var obj=JSON.parse(localStorage.getItem(LASTEX_KEY)||"{}");obj[day]=ex;localStorage.setItem(LASTEX_KEY,JSON.stringify(obj));}catch(e){}
+  if(!userPrefs['last-ex'])userPrefs['last-ex']={};
+  userPrefs['last-ex'][day]=ex;
+  debounceSavePrefs();
 }
 function getLastEx(day){
-  try{var obj=JSON.parse(localStorage.getItem(LASTEX_KEY)||"{}");return obj[day]||null;}catch(e){return null;}
+  if(userPrefs['last-ex']&&userPrefs['last-ex'][day])return userPrefs['last-ex'][day];
+  return null;
+}
+
+// =========== SUPABASE DB OPERATIONS ===========
+async function loadPlanFromDB(){
+  var{data,error}=await sb.from('plans').select('plan').eq('user_id',currentUser.id).single();
+  if(error||!data)return null;
+  return data.plan;
+}
+async function savePlanToDB(plan){
+  await sb.from('plans').upsert({user_id:currentUser.id,plan:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+}
+async function loadSessionsFromDB(){
+  var{data,error}=await sb.from('sessions').select('day,date,exercises').eq('user_id',currentUser.id);
+  if(error||!data)return{};
+  var result={};
+  for(var i=0;i<data.length;i++){
+    var r=data[i];
+    if(!result[r.day])result[r.day]=[];
+    result[r.day].push({date:r.date,exercises:r.exercises});
+  }
+  return result;
+}
+async function saveSessionToDB(day,date,exercises){
+  await sb.from('sessions').upsert({user_id:currentUser.id,day:day,date:date,exercises:exercises},{onConflict:'user_id,day,date'});
+}
+async function deleteSessionFromDB(day,date){
+  await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',day).eq('date',date);
+}
+async function replaceAllSessionsInDB(data){
+  await sb.from('sessions').delete().eq('user_id',currentUser.id);
+  var rows=[];
+  for(var day in data){
+    if(!data[day])continue;
+    for(var i=0;i<data[day].length;i++){
+      rows.push({user_id:currentUser.id,day:day,date:data[day][i].date,exercises:data[day][i].exercises});
+    }
+  }
+  if(rows.length>0)await sb.from('sessions').insert(rows);
+}
+async function upsertSessionsToDB(data){
+  var rows=[];
+  for(var day in data){
+    if(!data[day])continue;
+    for(var i=0;i<data[day].length;i++){
+      rows.push({user_id:currentUser.id,day:day,date:data[day][i].date,exercises:data[day][i].exercises});
+    }
+  }
+  if(rows.length>0)await sb.from('sessions').upsert(rows,{onConflict:'user_id,day,date'});
+}
+async function loadDraftFromDB(){
+  var{data,error}=await sb.from('drafts').select('day,date,session').eq('user_id',currentUser.id).single();
+  if(error||!data)return null;
+  return{day:data.day,date:data.date,session:data.session};
+}
+async function saveDraftToDB(draft){
+  await sb.from('drafts').upsert({user_id:currentUser.id,day:draft.day,date:draft.date,session:draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+}
+async function clearDraftFromDB(){
+  await sb.from('drafts').delete().eq('user_id',currentUser.id);
+}
+async function loadPrefsFromDB(){
+  var{data,error}=await sb.from('preferences').select('data').eq('user_id',currentUser.id).single();
+  if(error||!data)return{};
+  return data.data||{};
+}
+async function savePrefsToDB(){
+  await sb.from('preferences').upsert({user_id:currentUser.id,data:userPrefs,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+}
+
+// Debounce helpers
+function debounceSaveDraft(){
+  if(draftTimer)clearTimeout(draftTimer);
+  draftTimer=setTimeout(function(){if(cachedDraft)saveDraftToDB(cachedDraft).catch(console.error);},2000);
+}
+function debounceSavePrefs(){
+  if(prefsTimer)clearTimeout(prefsTimer);
+  prefsTimer=setTimeout(function(){savePrefsToDB().catch(console.error);},2000);
 }
 
 // Helpers
@@ -438,11 +571,53 @@ function drawChart(day,maxWeeks){
 }
 
 // =========== RENDER ===========
+function renderLoading(){
+  return '<div class="load-wrap"><div class="spinner"></div><div class="load-txt">Laden …</div></div>';
+}
+function renderAuth(){
+  var isLogin=state.authView==="login";
+  var title=isLogin?"Anmelden":"Registrieren";
+  var toggle=isLogin?'Noch kein Konto? <button data-action="auth-switch">Registrieren</button>':'Bereits registriert? <button data-action="auth-switch">Anmelden</button>';
+  var h='<div class="auth-wrap"><div class="auth-card">';
+  h+='<h1>Pau<span>log</span></h1><p class="auth-sub">Push / Pull / Legs Tracker</p>';
+  h+='<form id="auth-form">';
+  h+='<div class="auth-field"><label>E-Mail</label><input class="auth-inp" type="email" id="auth-email" required autocomplete="email"></div>';
+  h+='<div class="auth-field"><label>Passwort</label><input class="auth-inp" type="password" id="auth-pw" required minlength="6" autocomplete="current-password"></div>';
+  h+='<button class="auth-btn" type="submit"'+(state.authLoading?' disabled':'')+'>'+title+'</button>';
+  h+='</form>';
+  h+='<div class="auth-err">'+(state.authError||'')+'</div>';
+  h+='<div class="auth-msg">'+(state.authMsg||'')+'</div>';
+  h+='<div class="auth-toggle">'+toggle+'</div>';
+  h+='</div></div>';
+  return h;
+}
+function renderMigrate(){
+  var d=state.migrationData||{};
+  var sessCount=0;
+  for(var k in d){if(d[k])sessCount+=d[k].length;}
+  var dayCount=Object.keys(d).length;
+  var h='<div class="mig-card">';
+  h+='<h2>Lokale Daten gefunden</h2>';
+  h+='<p>Du hast Trainingsdaten auf diesem Gerät. Sollen sie in dein Konto übernommen werden?</p>';
+  h+='<div class="mig-stats">';
+  h+='<div class="stat"><span class="stat-n">'+sessCount+'</span><span class="stat-l">Sessions</span></div>';
+  h+='<div class="stat"><span class="stat-n">'+dayCount+'</span><span class="stat-l">Tage</span></div>';
+  h+='</div>';
+  h+='<div class="mig-btns">';
+  h+='<button class="mig-yes" data-action="migrate-yes">Ja, übernehmen</button>';
+  h+='<button class="mig-no" data-action="migrate-no">Nein, frisch starten</button>';
+  h+='</div></div>';
+  return h;
+}
+
 function render(){
   var el=document.getElementById("app");
   var v=state.view;
 
-  if(v==="home") el.innerHTML=renderHome();
+  if(v==="loading") el.innerHTML=renderLoading();
+  else if(v==="auth") el.innerHTML=renderAuth();
+  else if(v==="migrate") el.innerHTML=renderMigrate();
+  else if(v==="home") el.innerHTML=renderHome();
   else if(v==="track") el.innerHTML=renderTrack();
   else if(v==="history") el.innerHTML=renderHistory();
   else if(v==="dashboard") el.innerHTML=renderDash();
@@ -455,7 +630,9 @@ function render(){
 
 function renderHome(){
   var sug=sugDay(),ts=totalSess(),pbs=getPB(),pbCount=Object.keys(pbs).length;
+  var email=currentUser?currentUser.email:'';
   var h='<div class="hdr"><h1>Pau<span>log</span></h1><p>Push / Pull / Legs Tracker</p></div>';
+  h+='<div class="user-bar"><span class="email">'+esc(email)+'</span><button class="logout-btn" data-action="logout">Abmelden</button></div>';
   h+='<div class="stats"><div class="stat"><span class="stat-n">'+ts+'</span><span class="stat-l">Sessions</span></div><div class="stat-div"></div><div class="stat"><span class="stat-n">'+pbCount+'</span><span class="stat-l">Übungen</span></div></div>';
   h+='<div class="sec"><h2 class="sec-t">Training starten</h2>';
   var dayKeys=getPlanDayKeys(PLAN);
@@ -725,10 +902,23 @@ function renderEditDay(){
 // =========== EVENT HANDLING ===========
 function bindEvents(){
   var app=document.getElementById("app");
+  // Auth form submit
+  var authForm=document.getElementById("auth-form");
+  if(authForm){
+    authForm.onsubmit=function(e){e.preventDefault();handleAuthSubmit();};
+  }
   app.onclick=function(e){
     var t=e.target.closest("[data-action]");
     if(!t)return;
     var a=t.getAttribute("data-action");
+
+    if(a==="auth-switch"){
+      state.authView=state.authView==="login"?"register":"login";
+      state.authError=null;state.authMsg=null;render();return;
+    }
+    else if(a==="logout"){handleLogout();return;}
+    else if(a==="migrate-yes"){performMigration();return;}
+    else if(a==="migrate-no"){skipMigration();return;}
 
     if(a==="go"){
       // Save draft if leaving track view with unsaved data
@@ -753,7 +943,7 @@ function bindEvents(){
       var dy=t.getAttribute("data-day"),dt=t.getAttribute("data-date");
       allData[dy]=(allData[dy]||[]).filter(function(s){return s.date!==dt;});
       if(allData[dy].length===0)delete allData[dy];
-      save();state.delConfirm=null;render();
+      deleteSessionFromDB(dy,dt).catch(console.error);state.delConfirm=null;render();
     }
     else if(a==="del-cancel"){state.delConfirm=null;render();}
     else if(a==="export-data"){exportData();state.showRem=false;render();}
@@ -1028,7 +1218,8 @@ function saveSession(){
   for(var i=0;i<allData[state.day].length;i++){if(allData[state.day][i].date===state.date){idx=i;break;}}
   var entry={date:state.date,exercises:state.session};
   if(idx>=0)allData[state.day][idx]=entry;else allData[state.day].push(entry);
-  save();clearDraft();state.editing=null;state.view="history";
+  saveSessionToDB(state.day,state.date,state.session).catch(console.error);
+  clearDraft();state.editing=null;state.view="history";
 }
 
 function doImport(mode){
@@ -1042,7 +1233,9 @@ function doImport(mode){
       });
     }
   }
-  save();state.impData=null;state.impPlan=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
+  if(mode==="replace"){replaceAllSessionsInDB(allData).catch(console.error);}
+  else{upsertSessionsToDB(allData).catch(console.error);}
+  state.impData=null;state.impPlan=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
   setTimeout(function(){state.impStatus=null;render();},3000);
 }
 
@@ -1175,15 +1368,162 @@ function openWheelPicker(ex,si,field){
   });
 }
 
-// Init
-allData=load();
-// Migrate old keys
-var migrate={"Push (Mo)":"Push","Pull (Mi)":"Pull","Legs (Fr)":"Legs"};
-var didMigrate=false;
-for(var old in migrate){if(allData[old]){allData[migrate[old]]=(allData[migrate[old]]||[]).concat(allData[old]);delete allData[old];didMigrate=true;}}
-if(didMigrate)save();
-state.showRem=daysBack()>=14&&totalSess()>0;
-render();
+// =========== AUTH FUNCTIONS ===========
+async function handleAuthSubmit(){
+  var email=document.getElementById("auth-email").value.trim();
+  var pw=document.getElementById("auth-pw").value;
+  if(!email||!pw)return;
+  state.authLoading=true;state.authError=null;state.authMsg=null;render();
+  try{
+    var res;
+    if(state.authView==="login"){
+      res=await sb.auth.signInWithPassword({email:email,password:pw});
+    }else{
+      res=await sb.auth.signUp({email:email,password:pw});
+    }
+    if(res.error){state.authError=res.error.message;state.authLoading=false;render();return;}
+    if(state.authView==="register"&&res.data&&res.data.user&&!res.data.session){
+      state.authMsg="Registrierung erfolgreich! Du kannst dich jetzt anmelden.";
+      state.authView="login";state.authLoading=false;render();return;
+    }
+    currentUser=res.data.user;
+    state.authLoading=false;
+    await loadAppData();
+  }catch(e){
+    state.authError="Fehler: "+e.message;state.authLoading=false;render();
+  }
+}
+async function handleLogout(){
+  await sb.auth.signOut();
+  currentUser=null;allData={};PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+  userPrefs={};cachedDraft=null;
+  state.view="auth";state.authError=null;state.authMsg=null;render();
+}
+
+// =========== APP DATA LOADING ===========
+async function loadAppData(){
+  state.view="loading";render();
+  try{
+    var results=await Promise.all([loadPlanFromDB(),loadSessionsFromDB(),loadDraftFromDB(),loadPrefsFromDB()]);
+    var dbPlan=results[0];
+    if(dbPlan&&typeof dbPlan==="object"&&Object.keys(dbPlan).length>0)PLAN=dbPlan;
+    else PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+    allData=results[1]||{};
+    cachedDraft=results[2];
+    userPrefs=results[3]||{};
+    // Check for localStorage data to migrate
+    var migrated=false;
+    try{migrated=localStorage.getItem("paulog-migrated")==="true";}catch(e){}
+    if(!migrated){
+      var localData=null;
+      try{var r=localStorage.getItem("paulog-data");if(r)localData=JSON.parse(r);}catch(e){}
+      if(localData&&typeof localData==="object"&&Object.keys(localData).length>0){
+        // Migrate old keys
+        var migrateKeys={"Push (Mo)":"Push","Pull (Mi)":"Pull","Legs (Fr)":"Legs"};
+        for(var old in migrateKeys){if(localData[old]){localData[migrateKeys[old]]=(localData[migrateKeys[old]]||[]).concat(localData[old]);delete localData[old];}}
+        state.migrationData=localData;
+        // Check for custom plan
+        try{var lp=localStorage.getItem("paulog-plan");if(lp){state.migrationPlan=JSON.parse(lp);}}catch(e){}
+        state.view="migrate";render();return;
+      }
+      try{localStorage.setItem("paulog-migrated","true");}catch(e){}
+    }
+    state.showRem=daysBack()>=14&&totalSess()>0;
+    state.view="home";render();
+  }catch(e){
+    console.error("loadAppData error:",e);
+    state.view="home";render();
+  }
+}
+
+async function performMigration(){
+  state.view="loading";render();
+  try{
+    var localData=state.migrationData;
+    // Merge local sessions into DB data
+    for(var day in localData){
+      if(!allData[day])allData[day]=[];
+      for(var i=0;i<localData[day].length;i++){
+        var s=localData[day][i];
+        var exists=false;
+        for(var j=0;j<allData[day].length;j++){if(allData[day][j].date===s.date){allData[day][j]=s;exists=true;break;}}
+        if(!exists)allData[day].push(s);
+      }
+    }
+    await replaceAllSessionsInDB(allData);
+    // Upload plan if custom
+    if(state.migrationPlan&&typeof state.migrationPlan==="object"&&Object.keys(state.migrationPlan).length>0){
+      PLAN=state.migrationPlan;
+      await savePlanToDB(PLAN);
+    }
+    // Migrate prefs
+    try{
+      var lb=localStorage.getItem("paulog-bk");if(lb)userPrefs['backup-date']=lb;
+      var le=localStorage.getItem("paulog-last-ex");if(le)userPrefs['last-ex']=JSON.parse(le);
+      if(lb||le)await savePrefsToDB();
+    }catch(e){}
+    // Clean up localStorage
+    try{
+      localStorage.removeItem("paulog-data");
+      localStorage.removeItem("paulog-plan");
+      localStorage.removeItem("paulog-bk");
+      localStorage.removeItem("paulog-draft");
+      localStorage.removeItem("paulog-last-ex");
+      localStorage.setItem("paulog-migrated","true");
+    }catch(e){}
+    state.migrationData=null;state.migrationPlan=null;
+    state.showRem=daysBack()>=14&&totalSess()>0;
+    state.view="home";render();
+  }catch(e){
+    console.error("Migration error:",e);
+    state.view="home";render();
+  }
+}
+
+function skipMigration(){
+  try{
+    localStorage.removeItem("paulog-data");
+    localStorage.removeItem("paulog-plan");
+    localStorage.removeItem("paulog-bk");
+    localStorage.removeItem("paulog-draft");
+    localStorage.removeItem("paulog-last-ex");
+    localStorage.setItem("paulog-migrated","true");
+  }catch(e){}
+  state.migrationData=null;state.migrationPlan=null;
+  state.showRem=daysBack()>=14&&totalSess()>0;
+  state.view="home";render();
+}
+
+// =========== INIT ===========
+render(); // shows loading screen
+if(!sb){
+  document.getElementById("app").innerHTML='<div class="load-wrap"><div class="load-txt" style="color:#F87171">Supabase konnte nicht geladen werden. Bitte prüfe deine Internetverbindung und lade neu.</div></div>';
+}else{
+  (async function(){
+    try{
+      var{data}=await sb.auth.getSession();
+      if(data&&data.session&&data.session.user){
+        currentUser=data.session.user;
+        await loadAppData();
+      }else{
+        state.view="auth";render();
+      }
+    }catch(e){
+      console.error("Init error:",e);
+      state.view="auth";render();
+    }
+    // Listen for auth changes
+    sb.auth.onAuthStateChange(function(event,session){
+      if(event==="SIGNED_OUT"){
+        currentUser=null;allData={};PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+        userPrefs={};cachedDraft=null;
+        state.view="auth";render();
+      }else if(event==="TOKEN_REFRESHED"&&session){
+        currentUser=session.user;
+      }
+    });
+  })();
+}
 
 })();
 </script>
