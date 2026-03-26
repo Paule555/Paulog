@@ -375,14 +375,14 @@ function getLastEx(day){
 
 // =========== SUPABASE DB OPERATIONS ===========
 async function loadPlanFromDB(){
-  var{data,error}=await sb.from('plans').select('*').eq('user_id',currentUser.id).single();
-  alert('LOAD Plan: '+(error?'FEHLER: '+error.message+' ('+error.code+')':'OK, spalten: '+JSON.stringify(Object.keys(data||{}))));
-  if(error||!data)return null;
-  return data.plan||data.data||null;
+  var{data,error}=await sb.from('plans').select('plan_data').eq('user_id',currentUser.id).maybeSingle();
+  if(error){console.error('loadPlan error:',error);return null;}
+  if(!data)return null;
+  return data.plan_data;
 }
 async function savePlanToDB(plan){
-  var{data,error}=await sb.from('plans').upsert({user_id:currentUser.id,plan:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select();
-  alert('SAVE Plan: '+(error?'FEHLER: '+error.message:'OK, rows: '+(data?data.length:'null')));
+  var{error}=await sb.from('plans').upsert({user_id:currentUser.id,plan_data:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error)console.error('savePlan error:',error);
 }
 async function loadSessionsFromDB(){
   var{data,error}=await sb.from('sessions').select('day,date,exercises').eq('user_id',currentUser.id);
