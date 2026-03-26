@@ -256,6 +256,19 @@ button{font-family:inherit;cursor:pointer}
 .user-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;margin-bottom:4px}
 .user-bar .email{font-size:12px;color:#64748B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .user-bar .logout-btn{background:none;border:1px solid #334155;border-radius:6px;color:#94A3B8;font-size:12px;padding:4px 10px}
+/* Admin */
+.admin-btn{border-color:#F59E0B!important;color:#F59E0B!important}
+.adm-sec{padding:16px 20px}
+.adm-user{background:#1E293B;border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;border:2px solid transparent}
+.adm-user:active{background:#334155}
+.adm-sel{border-color:#3B82F6}
+.adm-email{font-size:14px;font-weight:700;color:#F8FAFC}
+.adm-meta{font-size:12px;color:#64748B;margin-top:4px}
+.adm-plan-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.adm-preview{background:#0F172A;border-radius:10px;padding:14px;margin-top:8px}
+.adm-preview-label{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.adm-plan-day{background:#1E293B;border-radius:8px;padding:10px;margin-bottom:6px;font-size:13px;color:#E2E8F0}
+.adm-exlist{font-size:11px;color:#94A3B8}
 </style>
 </head>
 <body>
@@ -269,6 +282,7 @@ button{font-family:inherit;cursor:pointer}
 var SUPABASE_URL='https://xfdvppgllwhvbxbrkzmo.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHZwcGdsbHdodmJ4YnJrem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTAxNzAsImV4cCI6MjA5MDA2NjE3MH0.X_7BeCisQAcwEn1cvv0ZskeJQD5WniKP1jILvFkDhhY';
 var sb=null, currentUser=null;
+function isAdmin(){return currentUser&&currentUser.app_metadata&&currentUser.app_metadata.is_admin===true;}
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
 var EXERCISE_GROUPS = [
@@ -335,7 +349,9 @@ var state = {
   editDay:null, editDayData:null, customExInput:"",
   // Auth state
   authView:"login", authError:null, authMsg:null, authLoading:false,
-  migrationData:null, migrationPlan:null
+  migrationData:null, migrationPlan:null,
+  // Admin state
+  adminUsers:null, adminLoading:false, adminSelectedUser:null, adminPlanJSON:""
 };
 var allData = {};
 var userPrefs={};
@@ -625,6 +641,7 @@ function render(){
   else if(v==="dashboard") el.innerHTML=renderDash();
   else if(v==="backup") el.innerHTML=renderBackup();
   else if(v==="settings") el.innerHTML=renderSettings();
+  else if(v==="admin"&&isAdmin()) el.innerHTML=renderAdmin();
   else if(v==="editday") el.innerHTML=renderEditDay();
 
   bindEvents();
@@ -648,7 +665,9 @@ function renderHome(){
   h+='<div class="bbtn"><button class="sec-btn" data-action="go" data-view="history">📋 Sessions verwalten</button>';
   h+='<button class="sec-btn" data-action="go" data-view="dashboard">📊 Dashboard</button>';
   h+='<button class="sec-btn" data-action="go" data-view="settings">⚙️ Einstellungen / Plan</button>';
-  h+='<button class="sec-btn" data-action="go" data-view="backup">💾 Backup & Restore</button></div>';
+  h+='<button class="sec-btn" data-action="go" data-view="backup">💾 Backup & Restore</button>';
+  if(isAdmin())h+='<button class="sec-btn admin-btn" data-action="go" data-view="admin">🔑 Admin-Panel</button>';
+  h+='</div>';
   if(state.showRem&&ts>0){
     var lb=getLB();
     h+='<div class="rem"><div class="rt"><span>⚠️</span><span>'+(lb?'Letztes Backup: '+fmtDate(lb):'Noch kein Backup!')+'</span></div>';
@@ -825,6 +844,76 @@ function renderSettings(){
   return h;
 }
 
+// =========== ADMIN VIEW ===========
+async function loadAdminUsers(){
+  state.adminLoading=true;render();
+  var{data,error}=await sb.rpc('admin_get_users');
+  if(error){alert('Fehler: '+error.message);state.adminLoading=false;render();return;}
+  state.adminUsers=data;state.adminLoading=false;render();
+}
+
+async function adminSetPlan(userId,planData){
+  var{error}=await sb.rpc('admin_set_plan',{target_user_id:userId,new_plan:planData});
+  if(error){alert('Fehler: '+error.message);return false;}
+  return true;
+}
+
+function renderAdmin(){
+  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>🔑 Admin-Panel</h2></div>';
+
+  if(state.adminLoading){
+    h+='<div class="load-wrap" style="min-height:200px"><div class="spinner"></div></div>';
+    return h;
+  }
+
+  if(!state.adminUsers){
+    h+='<div style="padding:20px;text-align:center"><button class="auth-btn" data-action="admin-load" style="max-width:300px;margin:0 auto">Nutzer laden</button></div>';
+    return h;
+  }
+
+  // User list
+  h+='<div class="adm-sec"><h3 class="sec-t">Registrierte Nutzer ('+state.adminUsers.length+')</h3>';
+  for(var i=0;i<state.adminUsers.length;i++){
+    var u=state.adminUsers[i];
+    var d=new Date(u.created_at);
+    var dateStr=d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();
+    var isSel=state.adminSelectedUser&&state.adminSelectedUser===u.id;
+    h+='<div class="adm-user'+(isSel?' adm-sel':'')+'" data-action="admin-select" data-uid="'+u.id+'">';
+    h+='<div class="adm-email">'+esc(u.email)+'</div>';
+    h+='<div class="adm-meta">Registriert: '+dateStr+' · Sessions: '+u.session_count+'</div>';
+    h+='</div>';
+  }
+  h+='</div>';
+
+  // Plan upload for selected user
+  if(state.adminSelectedUser){
+    var selUser=null;
+    for(var j=0;j<state.adminUsers.length;j++){if(state.adminUsers[j].id===state.adminSelectedUser)selUser=state.adminUsers[j];}
+    h+='<div class="adm-sec"><h3 class="sec-t">Plan zuweisen für '+esc(selUser?selUser.email:'')+'</h3>';
+    h+='<div class="adm-plan-opts">';
+    h+='<button class="sec-btn" data-action="admin-copy-plan">Meinen aktuellen Plan kopieren</button>';
+    h+='<label class="sec-btn" style="text-align:center;cursor:pointer">JSON-Datei importieren<input type="file" accept=".json" id="admin-plan-file" style="display:none"></label>';
+    h+='</div>';
+    if(state.adminPlanJSON){
+      h+='<div class="adm-preview"><div class="adm-preview-label">Plan-Vorschau:</div>';
+      try{
+        var pp=JSON.parse(state.adminPlanJSON);
+        var keys=Object.keys(pp);
+        for(var k=0;k<keys.length;k++){
+          var dk=keys[k],di=pp[dk];
+          h+='<div class="adm-plan-day"><strong>'+esc(dk)+'</strong> — '+esc(di.muscles||'')+'<br><span class="adm-exlist">'+((di.exercises||[]).map(esc).join(', '))+'</span></div>';
+        }
+      }catch(e){h+='<div style="color:#F87171">Ungültiges JSON</div>';}
+      h+='<button class="auth-btn" data-action="admin-send-plan" style="margin-top:12px">Plan zuweisen</button>';
+      h+='<button class="sec-btn" data-action="admin-cancel-plan" style="margin-top:8px">Abbrechen</button>';
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+
+  return h;
+}
+
 // =========== EDIT DAY VIEW ===========
 function renderEditDay(){
   var d=state.editDayData;
@@ -909,6 +998,16 @@ function bindEvents(){
   if(authForm){
     authForm.onsubmit=function(e){e.preventDefault();handleAuthSubmit();};
   }
+  // Admin file input
+  var adminFile=document.getElementById("admin-plan-file");
+  if(adminFile){
+    adminFile.onchange=function(e){
+      var f=e.target.files[0];if(!f)return;
+      var reader=new FileReader();
+      reader.onload=function(ev){state.adminPlanJSON=ev.target.result;render();};
+      reader.readAsText(f);
+    };
+  }
   app.onclick=function(e){
     var t=e.target.closest("[data-action]");
     if(!t)return;
@@ -961,6 +1060,27 @@ function bindEvents(){
       setTimeout(function(){state.impStatus=null;render();},3000);
     }
     else if(a==="imp-cancel"){state.impStatus=null;state.impData=null;state.impPlan=null;render();}
+
+    // ===== ADMIN ACTIONS =====
+    else if(a==="admin-load"){loadAdminUsers();}
+    else if(a==="admin-select"){
+      var uid=t.getAttribute("data-uid");
+      state.adminSelectedUser=state.adminSelectedUser===uid?null:uid;
+      state.adminPlanJSON="";render();
+    }
+    else if(a==="admin-copy-plan"){
+      state.adminPlanJSON=JSON.stringify(PLAN);render();
+    }
+    else if(a==="admin-send-plan"){
+      if(!state.adminSelectedUser||!state.adminPlanJSON)return;
+      try{
+        var planObj=JSON.parse(state.adminPlanJSON);
+        adminSetPlan(state.adminSelectedUser,planObj).then(function(ok){
+          if(ok){alert('Plan erfolgreich zugewiesen!');state.adminPlanJSON="";render();}
+        });
+      }catch(e){alert('Ungültiges JSON');}
+    }
+    else if(a==="admin-cancel-plan"){state.adminPlanJSON="";render();}
 
     // ===== SETTINGS ACTIONS =====
     else if(a==="edit-day"){
