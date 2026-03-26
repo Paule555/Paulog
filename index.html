@@ -260,7 +260,7 @@ button{font-family:inherit;cursor:pointer}
 </head>
 <body>
 <div class="app" id="app"><div class="load-wrap"><div class="spinner"></div><div class="load-txt">Laden …</div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script async id="sb-script" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
 "use strict";
@@ -268,10 +268,7 @@ button{font-family:inherit;cursor:pointer}
 // =========== SUPABASE CONFIG ===========
 var SUPABASE_URL='https://xfdvppgllwhvbxbrkzmo.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHZwcGdsbHdodmJ4YnJrem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTAxNzAsImV4cCI6MjA5MDA2NjE3MH0.X_7BeCisQAcwEn1cvv0ZskeJQD5WniKP1jILvFkDhhY';
-var sb, currentUser=null;
-if(typeof supabase!=='undefined'){
-  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-}
+var sb=null, currentUser=null;
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
 var EXERCISE_GROUPS = [
@@ -1495,10 +1492,11 @@ function skipMigration(){
 }
 
 // =========== INIT ===========
-render(); // shows loading screen
-if(!sb){
-  document.getElementById("app").innerHTML='<div class="load-wrap"><div class="load-txt" style="color:#F87171">Supabase konnte nicht geladen werden. Bitte prüfe deine Internetverbindung und lade neu.</div></div>';
-}else{
+render(); // shows loading screen immediately
+
+function startApp(){
+  if(sb)return;
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   (async function(){
     try{
       var{data}=await sb.auth.getSession();
@@ -1512,7 +1510,6 @@ if(!sb){
       console.error("Init error:",e);
       state.view="auth";render();
     }
-    // Listen for auth changes
     sb.auth.onAuthStateChange(function(event,session){
       if(event==="SIGNED_OUT"){
         currentUser=null;allData={};PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
@@ -1523,6 +1520,19 @@ if(!sb){
       }
     });
   })();
+}
+
+// Supabase CDN loads async – start when ready
+if(typeof supabase!=='undefined'){
+  startApp();
+}else{
+  var sbEl=document.getElementById('sb-script');
+  if(sbEl){
+    sbEl.addEventListener('load',startApp);
+    sbEl.addEventListener('error',function(){
+      document.getElementById("app").innerHTML='<div class="load-wrap"><div class="load-txt" style="color:#F87171">Supabase konnte nicht geladen werden. Bitte prüfe deine Internetverbindung und lade neu.</div></div>';
+    });
+  }
 }
 
 })();
