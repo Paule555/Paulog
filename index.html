@@ -380,7 +380,8 @@ async function loadPlanFromDB(){
   return data.plan;
 }
 async function savePlanToDB(plan){
-  await sb.from('plans').upsert({user_id:currentUser.id,plan:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  var{error}=await sb.from('plans').upsert({user_id:currentUser.id,plan:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error)console.error('savePlanToDB error:',error);
 }
 async function loadSessionsFromDB(){
   var{data,error}=await sb.from('sessions').select('day,date,exercises').eq('user_id',currentUser.id);
