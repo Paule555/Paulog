@@ -1004,7 +1004,15 @@ function bindEvents(){
     adminFile.onchange=function(e){
       var f=e.target.files[0];if(!f)return;
       var reader=new FileReader();
-      reader.onload=function(ev){state.adminPlanJSON=ev.target.result;render();};
+      reader.onload=function(ev){
+        try{
+          var raw=JSON.parse(ev.target.result);
+          // Unwrap paulog export format: {app,type,plan:{...}}
+          if(raw.app==="paulog"&&raw.plan){raw=raw.plan;}
+          state.adminPlanJSON=JSON.stringify(raw);
+        }catch(ex){state.adminPlanJSON=ev.target.result;}
+        render();
+      };
       reader.readAsText(f);
     };
   }
