@@ -423,23 +423,26 @@ async function upsertSessionsToDB(data){
   if(rows.length>0)await sb.from('sessions').upsert(rows,{onConflict:'user_id,day,date'});
 }
 async function loadDraftFromDB(){
-  var{data,error}=await sb.from('drafts').select('day,date,session').eq('user_id',currentUser.id).single();
+  var{data,error}=await sb.from('drafts').select('day,date,session_data').eq('user_id',currentUser.id).maybeSingle();
   if(error||!data)return null;
-  return{day:data.day,date:data.date,session:data.session};
+  return{day:data.day,date:data.date,session:data.session_data};
 }
 async function saveDraftToDB(draft){
-  await sb.from('drafts').upsert({user_id:currentUser.id,day:draft.day,date:draft.date,session:draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  await sb.from('drafts').upsert({user_id:currentUser.id,day:draft.day,date:draft.date,session_data:draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
 }
 async function clearDraftFromDB(){
   await sb.from('drafts').delete().eq('user_id',currentUser.id);
 }
 async function loadPrefsFromDB(){
-  var{data,error}=await sb.from('preferences').select('data').eq('user_id',currentUser.id).single();
+  var{data,error}=await sb.from('user_prefs').select('last_backup,last_exercise').eq('user_id',currentUser.id).maybeSingle();
   if(error||!data)return{};
-  return data.data||{};
+  var prefs={};
+  if(data.last_backup)prefs['backup-date']=data.last_backup;
+  if(data.last_exercise)prefs['last-ex']=data.last_exercise;
+  return prefs;
 }
 async function savePrefsToDB(){
-  await sb.from('preferences').upsert({user_id:currentUser.id,data:userPrefs,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:userPrefs['backup-date']||null,last_exercise:userPrefs['last-ex']||null},{onConflict:'user_id'});
 }
 
 // Debounce helpers
