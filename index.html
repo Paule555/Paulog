@@ -375,10 +375,10 @@ function getLastEx(day){
 
 // =========== SUPABASE DB OPERATIONS ===========
 async function loadPlanFromDB(){
-  var{data,error}=await sb.from('plans').select('plan').eq('user_id',currentUser.id).single();
-  alert('LOAD Plan: '+(error?'FEHLER: '+error.message+' ('+error.code+')':'OK, data: '+(data?JSON.stringify(data).substring(0,100):'null')));
+  var{data,error}=await sb.from('plans').select('*').eq('user_id',currentUser.id).single();
+  alert('LOAD Plan: '+(error?'FEHLER: '+error.message+' ('+error.code+')':'OK, spalten: '+JSON.stringify(Object.keys(data||{}))));
   if(error||!data)return null;
-  return data.plan;
+  return data.plan||data.data||null;
 }
 async function savePlanToDB(plan){
   var{data,error}=await sb.from('plans').upsert({user_id:currentUser.id,plan:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select();
