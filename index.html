@@ -376,13 +376,13 @@ function getLastEx(day){
 // =========== SUPABASE DB OPERATIONS ===========
 async function loadPlanFromDB(){
   var{data,error}=await sb.from('plans').select('plan').eq('user_id',currentUser.id).single();
-  if(error)alert('Plan laden fehlgeschlagen: '+error.message+' (code: '+error.code+')');
+  alert('LOAD Plan: '+(error?'FEHLER: '+error.message+' ('+error.code+')':'OK, data: '+(data?JSON.stringify(data).substring(0,100):'null')));
   if(error||!data)return null;
   return data.plan;
 }
 async function savePlanToDB(plan){
-  var{error}=await sb.from('plans').upsert({user_id:currentUser.id,plan:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-  if(error)alert('Plan speichern fehlgeschlagen: '+error.message);
+  var{data,error}=await sb.from('plans').upsert({user_id:currentUser.id,plan:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select();
+  alert('SAVE Plan: '+(error?'FEHLER: '+error.message:'OK, rows: '+(data?data.length:'null')));
 }
 async function loadSessionsFromDB(){
   var{data,error}=await sb.from('sessions').select('day,date,exercises').eq('user_id',currentUser.id);
