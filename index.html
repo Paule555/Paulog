@@ -857,6 +857,26 @@ async function adminSetPlan(userId,planData){
   if(error){alert('Fehler: '+error.message);return false;}
   return true;
 }
+async function adminGetUserSessions(userId){
+  var{data,error}=await sb.rpc('admin_get_user_sessions',{target_user_id:userId});
+  if(error){alert('Fehler: '+error.message);return null;}
+  return data;
+}
+async function adminGetUserPlan(userId){
+  var{data,error}=await sb.rpc('admin_get_user_plan',{target_user_id:userId});
+  if(error){alert('Fehler: '+error.message);return null;}
+  return data;
+}
+async function adminImportUserSessions(userId,sessionsData){
+  var{error}=await sb.rpc('admin_import_user_sessions',{target_user_id:userId,sessions_data:sessionsData});
+  if(error){alert('Fehler: '+error.message);return false;}
+  return true;
+}
+function adminDownloadJSON(filename,data){
+  var b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);
+}
 
 function renderAdmin(){
   var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>🔑 Admin-Panel</h2></div>';
@@ -909,6 +929,14 @@ function renderAdmin(){
       h+='</div>';
     }
     h+='</div>';
+
+    // Export & Import
+    h+='<div class="adm-sec"><h3 class="sec-t">Daten exportieren / importieren</h3>';
+    h+='<div class="adm-plan-opts">';
+    h+='<button class="sec-btn" data-action="admin-export-plan">📋 Plan exportieren</button>';
+    h+='<button class="sec-btn" data-action="admin-export-sessions">📊 Fortschritt exportieren</button>';
+    h+='<label class="sec-btn" style="text-align:center;cursor:pointer">📥 Fortschritt importieren<input type="file" accept=".json" id="admin-sessions-file" style="display:none"></label>';
+    h+='</div></div>';
   }
 
   return h;
@@ -998,7 +1026,7 @@ function bindEvents(){
   if(authForm){
     authForm.onsubmit=function(e){e.preventDefault();handleAuthSubmit();};
   }
-  // Admin file input
+  // Admin file inputs
   var adminFile=document.getElementById("admin-plan-file");
   if(adminFile){
     adminFile.onchange=function(e){
@@ -1007,11 +1035,31 @@ function bindEvents(){
       reader.onload=function(ev){
         try{
           var raw=JSON.parse(ev.target.result);
-          // Unwrap paulog export format: {app,type,plan:{...}}
           if(raw.app==="paulog"&&raw.plan){raw=raw.plan;}
           state.adminPlanJSON=JSON.stringify(raw);
         }catch(ex){state.adminPlanJSON=ev.target.result;}
         render();
+      };
+      reader.readAsText(f);
+    };
+  }
+  var sessFile=document.getElementById("admin-sessions-file");
+  if(sessFile){
+    sessFile.onchange=function(e){
+      var f=e.target.files[0];if(!f)return;
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        try{
+          var raw=JSON.parse(ev.target.result);
+          // Unwrap paulog export format: {app,type,data:{...}}
+          if(raw.app==="paulog"&&raw.data){raw=raw.data;}
+          var sessCount=0;
+          for(var k in raw){if(raw[k])sessCount+=raw[k].length;}
+          if(!confirm('Fortschritt importieren: '+sessCount+' Sessions in '+Object.keys(raw).length+' Tagen?\n\nBestehende Sessions mit gleichem Datum werden überschrieben.')){return;}
+          adminImportUserSessions(state.adminSelectedUser,raw).then(function(ok){
+            if(ok){alert('Fortschritt erfolgreich importiert!');loadAdminUsers();}
+          });
+        }catch(ex){alert('Ungültige JSON-Datei');}
       };
       reader.readAsText(f);
     };
@@ -1089,6 +1137,24 @@ function bindEvents(){
       }catch(e){alert('Ungültiges JSON');}
     }
     else if(a==="admin-cancel-plan"){state.adminPlanJSON="";render();}
+    else if(a==="admin-export-plan"){
+      if(!state.adminSelectedUser)return;
+      var su=null;for(var ai=0;ai<state.adminUsers.length;ai++){if(state.adminUsers[ai].id===state.adminSelectedUser)su=state.adminUsers[ai];}
+      adminGetUserPlan(state.adminSelectedUser).then(function(p){
+        if(!p){alert('Kein Plan vorhanden');return;}
+        var name=su?su.email.split('@')[0]:'user';
+        adminDownloadJSON('paulog-plan-'+name+'-'+today()+'.json',{app:"paulog",type:"plan",version:2,exported:new Date().toISOString(),plan:p});
+      });
+    }
+    else if(a==="admin-export-sessions"){
+      if(!state.adminSelectedUser)return;
+      var su2=null;for(var ai2=0;ai2<state.adminUsers.length;ai2++){if(state.adminUsers[ai2].id===state.adminSelectedUser)su2=state.adminUsers[ai2];}
+      adminGetUserSessions(state.adminSelectedUser).then(function(s){
+        if(!s||Object.keys(s).length===0){alert('Keine Sessions vorhanden');return;}
+        var name2=su2?su2.email.split('@')[0]:'user';
+        adminDownloadJSON('paulog-daten-'+name2+'-'+today()+'.json',{app:"paulog",type:"data",version:2,exported:new Date().toISOString(),data:s});
+      });
+    }
 
     // ===== SETTINGS ACTIONS =====
     else if(a==="edit-day"){
