@@ -264,7 +264,8 @@ button{font-family:inherit;cursor:pointer}
 .adm-sel{border-color:#3B82F6}
 .adm-email{font-size:14px;font-weight:700;color:#F8FAFC}
 .adm-meta{font-size:12px;color:#64748B;margin-top:4px}
-.adm-plan-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.adm-plan-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.adm-plan-opts .full{grid-column:1/-1}
 .adm-preview{background:#0F172A;border-radius:10px;padding:14px;margin-top:8px}
 .adm-preview-label{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
 .adm-plan-day{background:#1E293B;border-radius:8px;padding:10px;margin-bottom:6px;font-size:13px;color:#E2E8F0}
@@ -597,7 +598,7 @@ function renderAuth(){
   var title=isLogin?"Anmelden":"Registrieren";
   var toggle=isLogin?'Noch kein Konto? <button data-action="auth-switch">Registrieren</button>':'Bereits registriert? <button data-action="auth-switch">Anmelden</button>';
   var h='<div class="auth-wrap"><div class="auth-card">';
-  h+='<h1>Pau<span>log</span></h1><p class="auth-sub">Push / Pull / Legs Tracker</p>';
+  h+='<h1>Pau<span>log</span></h1><p class="auth-sub">Trainingstracker</p>';
   h+='<form id="auth-form">';
   h+='<div class="auth-field"><label>E-Mail</label><input class="auth-inp" type="email" id="auth-email" required autocomplete="email"></div>';
   h+='<div class="auth-field"><label>Passwort</label><input class="auth-inp" type="password" id="auth-pw" required minlength="6" autocomplete="current-password"></div>';
@@ -650,7 +651,7 @@ function render(){
 function renderHome(){
   var sug=sugDay(),ts=totalSess(),pbs=getPB(),pbCount=Object.keys(pbs).length;
   var email=currentUser?currentUser.email:'';
-  var h='<div class="hdr"><h1>Pau<span>log</span></h1><p>Push / Pull / Legs Tracker</p></div>';
+  var h='<div class="hdr"><h1>Pau<span>log</span></h1><p>Trainingstracker</p></div>';
   h+='<div class="user-bar"><span class="email">'+esc(email)+'</span><button class="logout-btn" data-action="logout">Abmelden</button></div>';
   h+='<div class="stats"><div class="stat"><span class="stat-n">'+ts+'</span><span class="stat-l">Sessions</span></div><div class="stat-div"></div><div class="stat"><span class="stat-n">'+pbCount+'</span><span class="stat-l">Übungen</span></div></div>';
   h+='<div class="sec"><h2 class="sec-t">Training starten</h2>';
@@ -909,10 +910,13 @@ function renderAdmin(){
   if(state.adminSelectedUser){
     var selUser=null;
     for(var j=0;j<state.adminUsers.length;j++){if(state.adminUsers[j].id===state.adminSelectedUser)selUser=state.adminUsers[j];}
-    h+='<div class="adm-sec"><h3 class="sec-t">Plan zuweisen für '+esc(selUser?selUser.email:'')+'</h3>';
+    h+='<div class="adm-sec"><h3 class="sec-t">'+esc(selUser?selUser.email:'')+'</h3>';
     h+='<div class="adm-plan-opts">';
-    h+='<button class="sec-btn" data-action="admin-copy-plan">Meinen aktuellen Plan kopieren</button>';
-    h+='<label class="sec-btn" style="text-align:center;cursor:pointer">JSON-Datei importieren<input type="file" accept=".json" id="admin-plan-file" style="display:none"></label>';
+    h+='<button class="sec-btn" data-action="admin-copy-plan">📋 Plan kopieren</button>';
+    h+='<label class="sec-btn" style="text-align:center;cursor:pointer">📂 Plan importieren<input type="file" accept=".json" id="admin-plan-file" style="display:none"></label>';
+    h+='<button class="sec-btn" data-action="admin-export-plan">⬆️ Plan exportieren</button>';
+    h+='<button class="sec-btn" data-action="admin-export-sessions">📊 Fortschritt exportieren</button>';
+    h+='<label class="sec-btn full" style="text-align:center;cursor:pointer">📥 Fortschritt importieren<input type="file" accept=".json" id="admin-sessions-file" style="display:none"></label>';
     h+='</div>';
     if(state.adminPlanJSON){
       h+='<div class="adm-preview"><div class="adm-preview-label">Plan-Vorschau:</div>';
@@ -924,19 +928,11 @@ function renderAdmin(){
           h+='<div class="adm-plan-day"><strong>'+esc(dk)+'</strong> — '+esc(di.muscles||'')+'<br><span class="adm-exlist">'+((di.exercises||[]).map(esc).join(', '))+'</span></div>';
         }
       }catch(e){h+='<div style="color:#F87171">Ungültiges JSON</div>';}
-      h+='<button class="auth-btn" data-action="admin-send-plan" style="margin-top:12px">Plan zuweisen</button>';
-      h+='<button class="sec-btn" data-action="admin-cancel-plan" style="margin-top:8px">Abbrechen</button>';
+      h+='<button class="auth-btn full" data-action="admin-send-plan" style="margin-top:12px">Plan zuweisen</button>';
+      h+='<button class="sec-btn full" data-action="admin-cancel-plan" style="margin-top:8px">Abbrechen</button>';
       h+='</div>';
     }
     h+='</div>';
-
-    // Export & Import
-    h+='<div class="adm-sec"><h3 class="sec-t">Daten exportieren / importieren</h3>';
-    h+='<div class="adm-plan-opts">';
-    h+='<button class="sec-btn" data-action="admin-export-plan">📋 Plan exportieren</button>';
-    h+='<button class="sec-btn" data-action="admin-export-sessions">📊 Fortschritt exportieren</button>';
-    h+='<label class="sec-btn" style="text-align:center;cursor:pointer">📥 Fortschritt importieren<input type="file" accept=".json" id="admin-sessions-file" style="display:none"></label>';
-    h+='</div></div>';
   }
 
   return h;
