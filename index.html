@@ -349,19 +349,26 @@ function enqueue(op){
   });
 }
 
-function dequeueAll(){
+function peekQueue(){
   return openIDB().then(function(db){
     if(!db)return[];
     return new Promise(function(resolve){
-      var tx=db.transaction('queue','readwrite');
-      var store=tx.objectStore('queue');
-      var req=store.getAll();
-      req.onsuccess=function(){
-        var items=req.result||[];
-        store.clear();
-        tx.oncomplete=function(){resolve(items);};
-      };
+      var tx=db.transaction('queue','readonly');
+      var req=tx.objectStore('queue').getAll();
+      req.onsuccess=function(){resolve(req.result||[]);};
       req.onerror=function(){resolve([]);};
+    });
+  });
+}
+
+function removeFromQueue(id){
+  return openIDB().then(function(db){
+    if(!db)return;
+    return new Promise(function(resolve){
+      var tx=db.transaction('queue','readwrite');
+      tx.objectStore('queue').delete(id);
+      tx.oncomplete=function(){resolve();};
+      tx.onerror=function(){resolve();};
     });
   });
 }
@@ -383,32 +390,39 @@ function loadLocal(){
   });
 }
 
-// Process offline queue when back online
+// Process offline queue when back online (with lock)
+var flushing=false;
 async function flushQueue(){
-  if(!sb||!currentUser||!isOnline)return;
-  var ops=await dequeueAll();
-  if(ops.length===0)return;
-  for(var i=0;i<ops.length;i++){
-    var op=ops[i];
-    try{
-      if(op.type==='saveSession')await sb.from('sessions').upsert({user_id:currentUser.id,day:op.day,date:op.date,exercises:op.exercises},{onConflict:'user_id,day,date'});
-      else if(op.type==='deleteSession')await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',op.day).eq('date',op.date);
-      else if(op.type==='savePlan')await sb.from('plans').upsert({user_id:currentUser.id,plan_data:op.plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      else if(op.type==='saveDraft')await sb.from('drafts').upsert({user_id:currentUser.id,day:op.draft.day,date:op.draft.date,session_data:op.draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      else if(op.type==='clearDraft')await sb.from('drafts').delete().eq('user_id',currentUser.id);
-      else if(op.type==='savePrefs')await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:op.prefs['backup-date']||null,last_exercise:op.prefs['last-ex']||null},{onConflict:'user_id'});
-      else if(op.type==='replaceAllSessions'){
-        await sb.from('sessions').delete().eq('user_id',currentUser.id);
-        var rows=[];for(var d in op.data){if(!op.data[d])continue;for(var j=0;j<op.data[d].length;j++)rows.push({user_id:currentUser.id,day:d,date:op.data[d][j].date,exercises:op.data[d][j].exercises});}
-        if(rows.length>0)await sb.from('sessions').insert(rows);
-      }
-      else if(op.type==='upsertSessions'){
-        var urows=[];for(var ud in op.data){if(!op.data[ud])continue;for(var uj=0;uj<op.data[ud].length;uj++)urows.push({user_id:currentUser.id,day:ud,date:op.data[ud][uj].date,exercises:op.data[ud][uj].exercises});}
-        if(urows.length>0)await sb.from('sessions').upsert(urows,{onConflict:'user_id,day,date'});
-      }
-    }catch(e){console.error('Queue flush error:',e);}
-  }
-  showToast("Offline-Daten synchronisiert");
+  if(flushing||!sb||!currentUser||!isOnline)return;
+  flushing=true;
+  try{
+    var ops=await peekQueue();
+    if(ops.length===0){flushing=false;return;}
+    var synced=0;
+    for(var i=0;i<ops.length;i++){
+      var op=ops[i];
+      try{
+        if(op.type==='saveSession')await sb.from('sessions').upsert({user_id:currentUser.id,day:op.day,date:op.date,exercises:op.exercises},{onConflict:'user_id,day,date'});
+        else if(op.type==='deleteSession')await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',op.day).eq('date',op.date);
+        else if(op.type==='savePlan')await sb.from('plans').upsert({user_id:currentUser.id,plan_data:op.plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+        else if(op.type==='saveDraft')await sb.from('drafts').upsert({user_id:currentUser.id,day:op.draft.day,date:op.draft.date,session_data:op.draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+        else if(op.type==='clearDraft')await sb.from('drafts').delete().eq('user_id',currentUser.id);
+        else if(op.type==='savePrefs')await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:op.prefs['backup-date']||null,last_exercise:op.prefs['last-ex']||null},{onConflict:'user_id'});
+        else if(op.type==='replaceAllSessions'){
+          await sb.from('sessions').delete().eq('user_id',currentUser.id);
+          var rows=[];for(var d in op.data){if(!op.data[d])continue;for(var j=0;j<op.data[d].length;j++)rows.push({user_id:currentUser.id,day:d,date:op.data[d][j].date,exercises:op.data[d][j].exercises});}
+          if(rows.length>0)await sb.from('sessions').insert(rows);
+        }
+        else if(op.type==='upsertSessions'){
+          var urows=[];for(var ud in op.data){if(!op.data[ud])continue;for(var uj=0;uj<op.data[ud].length;uj++)urows.push({user_id:currentUser.id,day:ud,date:op.data[ud][uj].date,exercises:op.data[ud][uj].exercises});}
+          if(urows.length>0)await sb.from('sessions').upsert(urows,{onConflict:'user_id,day,date'});
+        }
+        await removeFromQueue(op.id);
+        synced++;
+      }catch(e){console.error('Queue flush error:',e);break;}
+    }
+    if(synced>0)showToast("Offline-Daten synchronisiert ("+synced+")");
+  }finally{flushing=false;}
 }
 
 window.addEventListener('online',function(){isOnline=true;render();flushQueue();});
@@ -709,7 +723,9 @@ function getKW(dateStr){
 var chartCache={};
 function invalidateChartCache(){chartCache={};}
 function drawChart(day,maxWeeks){
-  var cKey=day+"|"+maxWeeks+"|"+(allData[day]||[]).length;
+  var dd=allData[day]||[];
+  var cHash=dd.length;for(var ci=0;ci<dd.length;ci++){cHash=(cHash*31+(dd[ci].date||'').length)&0x7fffffff;var ex=dd[ci].exercises;if(ex)for(var ek in ex)for(var ei=0;ei<ex[ek].length;ei++){cHash=(cHash*31+(Number(ex[ek][ei].kg)||0)*100+(Number(ex[ek][ei].reps)||0))&0x7fffffff;}}
+  var cKey=day+"|"+maxWeeks+"|"+cHash;
   if(chartCache[cKey])return chartCache[cKey];
   var info=PLAN[day];
   if(!info)return'<p class="no-data">Tag nicht im aktuellen Plan</p>';
@@ -1434,7 +1450,7 @@ function bindEvents(){
       if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
       else{
         var se={};var numSets=getDaySets(PLAN,state.day);
-        PLAN[state.day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
+        if(PLAN[state.day]){PLAN[state.day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});}
         state.session=se;
       }
       render();
@@ -1587,11 +1603,25 @@ function initSession(day,date,exData){
   }
 }
 
+function sanitizeSession(session){
+  var clean={};
+  for(var ex in session){
+    clean[ex]=[];
+    for(var i=0;i<session[ex].length;i++){
+      var kg=parseFloat(session[ex][i].kg)||0;
+      var reps=parseFloat(session[ex][i].reps)||0;
+      clean[ex].push({kg:kg<0?"":String(kg),reps:reps<0?"":String(Math.round(reps))});
+    }
+  }
+  return clean;
+}
+
 var savingSession=false;
 function saveSession(){
   if(savingSession)return;
   savingSession=true;
   invalidatePrevCache();invalidateChartCache();
+  state.session=sanitizeSession(state.session);
   if(!allData[state.day])allData[state.day]=[];
   var idx=-1;
   for(var i=0;i<allData[state.day].length;i++){if(allData[state.day][i].date===state.date){idx=i;break;}}
