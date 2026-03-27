@@ -669,11 +669,6 @@ function renderHome(){
   h+='<button class="sec-btn" data-action="go" data-view="backup">💾 Backup & Restore</button>';
   if(isAdmin())h+='<button class="sec-btn admin-btn" data-action="go" data-view="admin">🔑 Admin-Panel</button>';
   h+='</div>';
-  if(state.showRem&&ts>0){
-    var lb=getLB();
-    h+='<div class="rem"><div class="rt"><span>⚠️</span><span>'+(lb?'Letztes Backup: '+fmtDate(lb):'Noch kein Backup!')+'</span></div>';
-    h+='<div class="ra"><button class="rb" data-action="backup-now">Jetzt sichern</button><button class="rd" data-action="dismiss-rem">Später</button></div></div>';
-  }
   return h;
 }
 
