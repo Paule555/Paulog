@@ -225,6 +225,8 @@ button{font-family:inherit;cursor:pointer}
 .toast-ok{background:#065F46;color:#6EE7B7;border:1px solid #10B981}
 .toast-err{background:#7F1D1D;color:#FCA5A5;border:1px solid #EF4444}
 @keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+/* Offline banner */
+.offline-bar{background:#78350F;color:#FDE68A;text-align:center;padding:6px 12px;font-size:12px;font-weight:600;letter-spacing:0.5px}
 /* Auth */
 .auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
 .auth-card{width:100%;max-width:360px;background:#1E293B;border-radius:16px;padding:32px 24px;text-align:center}
@@ -289,6 +291,128 @@ var SUPABASE_URL='https://xfdvppgllwhvbxbrkzmo.supabase.co';
 var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHZwcGdsbHdodmJ4YnJrem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTAxNzAsImV4cCI6MjA5MDA2NjE3MH0.X_7BeCisQAcwEn1cvv0ZskeJQD5WniKP1jILvFkDhhY';
 var sb=null, currentUser=null;
 function isAdmin(){return currentUser&&currentUser.app_metadata&&currentUser.app_metadata.is_admin===true;}
+var isOnline=navigator.onLine;
+
+// =========== INDEXEDDB LOCAL CACHE ===========
+var idb=null;
+var IDB_NAME='paulog-offline';
+var IDB_VERSION=1;
+
+function openIDB(){
+  return new Promise(function(resolve,reject){
+    if(idb){resolve(idb);return;}
+    var req=indexedDB.open(IDB_NAME,IDB_VERSION);
+    req.onupgradeneeded=function(e){
+      var db=e.target.result;
+      if(!db.objectStoreNames.contains('kv'))db.createObjectStore('kv');
+      if(!db.objectStoreNames.contains('queue'))db.createObjectStore('queue',{keyPath:'id',autoIncrement:true});
+    };
+    req.onsuccess=function(e){idb=e.target.result;resolve(idb);};
+    req.onerror=function(){resolve(null);};
+  });
+}
+
+function idbPut(key,val){
+  return openIDB().then(function(db){
+    if(!db)return;
+    return new Promise(function(resolve){
+      var tx=db.transaction('kv','readwrite');
+      tx.objectStore('kv').put(val,key);
+      tx.oncomplete=function(){resolve();};
+      tx.onerror=function(){resolve();};
+    });
+  });
+}
+
+function idbGet(key){
+  return openIDB().then(function(db){
+    if(!db)return null;
+    return new Promise(function(resolve){
+      var tx=db.transaction('kv','readonly');
+      var req=tx.objectStore('kv').get(key);
+      req.onsuccess=function(){resolve(req.result===undefined?null:req.result);};
+      req.onerror=function(){resolve(null);};
+    });
+  });
+}
+
+// Offline queue: stores pending write operations
+function enqueue(op){
+  return openIDB().then(function(db){
+    if(!db)return;
+    return new Promise(function(resolve){
+      var tx=db.transaction('queue','readwrite');
+      tx.objectStore('queue').add(op);
+      tx.oncomplete=function(){resolve();};
+      tx.onerror=function(){resolve();};
+    });
+  });
+}
+
+function dequeueAll(){
+  return openIDB().then(function(db){
+    if(!db)return[];
+    return new Promise(function(resolve){
+      var tx=db.transaction('queue','readwrite');
+      var store=tx.objectStore('queue');
+      var req=store.getAll();
+      req.onsuccess=function(){
+        var items=req.result||[];
+        store.clear();
+        tx.oncomplete=function(){resolve(items);};
+      };
+      req.onerror=function(){resolve([]);};
+    });
+  });
+}
+
+// Save all app data to local cache
+function saveLocal(){
+  return Promise.all([
+    idbPut('plan',PLAN),
+    idbPut('sessions',allData),
+    idbPut('draft',cachedDraft),
+    idbPut('prefs',userPrefs)
+  ]);
+}
+
+// Load all app data from local cache
+function loadLocal(){
+  return Promise.all([idbGet('plan'),idbGet('sessions'),idbGet('draft'),idbGet('prefs')]).then(function(r){
+    return{plan:r[0],sessions:r[1],draft:r[2],prefs:r[3]};
+  });
+}
+
+// Process offline queue when back online
+async function flushQueue(){
+  if(!sb||!currentUser||!isOnline)return;
+  var ops=await dequeueAll();
+  if(ops.length===0)return;
+  for(var i=0;i<ops.length;i++){
+    var op=ops[i];
+    try{
+      if(op.type==='saveSession')await sb.from('sessions').upsert({user_id:currentUser.id,day:op.day,date:op.date,exercises:op.exercises},{onConflict:'user_id,day,date'});
+      else if(op.type==='deleteSession')await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',op.day).eq('date',op.date);
+      else if(op.type==='savePlan')await sb.from('plans').upsert({user_id:currentUser.id,plan_data:op.plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+      else if(op.type==='saveDraft')await sb.from('drafts').upsert({user_id:currentUser.id,day:op.draft.day,date:op.draft.date,session_data:op.draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+      else if(op.type==='clearDraft')await sb.from('drafts').delete().eq('user_id',currentUser.id);
+      else if(op.type==='savePrefs')await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:op.prefs['backup-date']||null,last_exercise:op.prefs['last-ex']||null},{onConflict:'user_id'});
+      else if(op.type==='replaceAllSessions'){
+        await sb.from('sessions').delete().eq('user_id',currentUser.id);
+        var rows=[];for(var d in op.data){if(!op.data[d])continue;for(var j=0;j<op.data[d].length;j++)rows.push({user_id:currentUser.id,day:d,date:op.data[d][j].date,exercises:op.data[d][j].exercises});}
+        if(rows.length>0)await sb.from('sessions').insert(rows);
+      }
+      else if(op.type==='upsertSessions'){
+        var urows=[];for(var ud in op.data){if(!op.data[ud])continue;for(var uj=0;uj<op.data[ud].length;uj++)urows.push({user_id:currentUser.id,day:ud,date:op.data[ud][uj].date,exercises:op.data[ud][uj].exercises});}
+        if(urows.length>0)await sb.from('sessions').upsert(urows,{onConflict:'user_id,day,date'});
+      }
+    }catch(e){console.error('Queue flush error:',e);}
+  }
+  showToast("Offline-Daten synchronisiert");
+}
+
+window.addEventListener('online',function(){isOnline=true;render();flushQueue();});
+window.addEventListener('offline',function(){isOnline=false;render();});
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
 var EXERCISE_GROUPS = [
@@ -403,6 +527,8 @@ async function loadPlanFromDB(){
   return data.plan_data;
 }
 async function savePlanToDB(plan){
+  idbPut('plan',plan);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'savePlan',plan:plan});return;}
   var{error}=await sb.from('plans').upsert({user_id:currentUser.id,plan_data:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
   if(error)console.error('savePlan error:',error);
 }
@@ -418,12 +544,18 @@ async function loadSessionsFromDB(){
   return result;
 }
 async function saveSessionToDB(day,date,exercises){
+  idbPut('sessions',allData);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'saveSession',day:day,date:date,exercises:exercises});return;}
   await sb.from('sessions').upsert({user_id:currentUser.id,day:day,date:date,exercises:exercises},{onConflict:'user_id,day,date'});
 }
 async function deleteSessionFromDB(day,date){
+  idbPut('sessions',allData);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'deleteSession',day:day,date:date});return;}
   await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',day).eq('date',date);
 }
 async function replaceAllSessionsInDB(data){
+  idbPut('sessions',data);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'replaceAllSessions',data:JSON.parse(JSON.stringify(data))});return;}
   await sb.from('sessions').delete().eq('user_id',currentUser.id);
   var rows=[];
   for(var day in data){
@@ -435,6 +567,8 @@ async function replaceAllSessionsInDB(data){
   if(rows.length>0)await sb.from('sessions').insert(rows);
 }
 async function upsertSessionsToDB(data){
+  idbPut('sessions',allData);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'upsertSessions',data:JSON.parse(JSON.stringify(data))});return;}
   var rows=[];
   for(var day in data){
     if(!data[day])continue;
@@ -450,9 +584,13 @@ async function loadDraftFromDB(){
   return{day:data.day,date:data.date,session:data.session_data};
 }
 async function saveDraftToDB(draft){
+  idbPut('draft',draft);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'saveDraft',draft:JSON.parse(JSON.stringify(draft))});return;}
   await sb.from('drafts').upsert({user_id:currentUser.id,day:draft.day,date:draft.date,session_data:draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
 }
 async function clearDraftFromDB(){
+  idbPut('draft',null);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'clearDraft'});return;}
   await sb.from('drafts').delete().eq('user_id',currentUser.id);
 }
 async function loadPrefsFromDB(){
@@ -464,6 +602,8 @@ async function loadPrefsFromDB(){
   return prefs;
 }
 async function savePrefsToDB(){
+  idbPut('prefs',userPrefs);
+  if(!isOnline||!sb||!currentUser){await enqueue({type:'savePrefs',prefs:JSON.parse(JSON.stringify(userPrefs))});return;}
   await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:userPrefs['backup-date']||null,last_exercise:userPrefs['last-ex']||null},{onConflict:'user_id'});
 }
 
@@ -659,18 +799,19 @@ function renderMigrate(){
 function render(){
   var el=document.getElementById("app");
   var v=state.view;
+  var offlineBar=!isOnline?'<div class="offline-bar">Offline – Daten werden lokal gespeichert</div>':'';
 
   if(v==="loading") el.innerHTML=renderLoading();
-  else if(v==="auth") el.innerHTML=renderAuth();
+  else if(v==="auth") el.innerHTML=offlineBar+renderAuth();
   else if(v==="migrate") el.innerHTML=renderMigrate();
-  else if(v==="home") el.innerHTML=renderHome();
-  else if(v==="track") el.innerHTML=renderTrack();
-  else if(v==="history") el.innerHTML=renderHistory();
-  else if(v==="dashboard") el.innerHTML=renderDash();
-  else if(v==="backup") el.innerHTML=renderBackup();
-  else if(v==="settings") el.innerHTML=renderSettings();
-  else if(v==="admin"&&isAdmin()) el.innerHTML=renderAdmin();
-  else if(v==="editday") el.innerHTML=renderEditDay();
+  else if(v==="home") el.innerHTML=offlineBar+renderHome();
+  else if(v==="track") el.innerHTML=offlineBar+renderTrack();
+  else if(v==="history") el.innerHTML=offlineBar+renderHistory();
+  else if(v==="dashboard") el.innerHTML=offlineBar+renderDash();
+  else if(v==="backup") el.innerHTML=offlineBar+renderBackup();
+  else if(v==="settings") el.innerHTML=offlineBar+renderSettings();
+  else if(v==="admin"&&isAdmin()) el.innerHTML=offlineBar+renderAdmin();
+  else if(v==="editday") el.innerHTML=offlineBar+renderEditDay();
 
   bindEvents();
 }
@@ -1649,13 +1790,35 @@ async function handleLogout(){
 async function loadAppData(){
   state.view="loading";render();
   try{
-    var results=await Promise.all([loadPlanFromDB(),loadSessionsFromDB(),loadDraftFromDB(),loadPrefsFromDB()]);
-    var dbPlan=results[0];
-    if(dbPlan&&typeof dbPlan==="object"&&Object.keys(dbPlan).length>0)PLAN=dbPlan;
-    else PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
-    allData=results[1]||{};invalidatePrevCache();invalidateChartCache();
-    cachedDraft=results[2];
-    userPrefs=results[3]||{};
+    // Load from local cache first (instant)
+    var local=await loadLocal();
+    var hasLocal=local.plan||local.sessions;
+    if(hasLocal){
+      if(local.plan&&typeof local.plan==="object"&&Object.keys(local.plan).length>0)PLAN=local.plan;
+      else PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+      allData=local.sessions||{};
+      cachedDraft=local.draft||null;
+      userPrefs=local.prefs||{};
+      invalidatePrevCache();invalidateChartCache();
+    }
+    // Try to sync from Supabase (may fail offline)
+    if(isOnline&&sb&&currentUser){
+      try{
+        var results=await Promise.all([loadPlanFromDB(),loadSessionsFromDB(),loadDraftFromDB(),loadPrefsFromDB()]);
+        var dbPlan=results[0];
+        if(dbPlan&&typeof dbPlan==="object"&&Object.keys(dbPlan).length>0)PLAN=dbPlan;
+        else if(!hasLocal)PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+        allData=results[1]||{};invalidatePrevCache();invalidateChartCache();
+        cachedDraft=results[2];
+        userPrefs=results[3]||{};
+        await saveLocal();
+      }catch(e){
+        console.error("DB sync error:",e);
+        if(!hasLocal){PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));allData={};}
+      }
+    } else if(!hasLocal){
+      PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));allData={};
+    }
     // Check for localStorage data to migrate
     var migrated=false;
     try{migrated=localStorage.getItem("paulog-migrated")==="true";}catch(e){}
@@ -1663,11 +1826,9 @@ async function loadAppData(){
       var localData=null;
       try{var r=localStorage.getItem("paulog-data");if(r)localData=JSON.parse(r);}catch(e){}
       if(localData&&typeof localData==="object"&&Object.keys(localData).length>0){
-        // Migrate old keys
         var migrateKeys={"Push (Mo)":"Push","Pull (Mi)":"Pull","Legs (Fr)":"Legs"};
         for(var old in migrateKeys){if(localData[old]){localData[migrateKeys[old]]=(localData[migrateKeys[old]]||[]).concat(localData[old]);delete localData[old];}}
         state.migrationData=localData;
-        // Check for custom plan
         try{var lp=localStorage.getItem("paulog-plan");if(lp){state.migrationPlan=JSON.parse(lp);}}catch(e){}
         state.view="migrate";render();return;
       }
@@ -1752,11 +1913,12 @@ function startApp(){
         currentUser=data.session.user;
         await loadAppData();
       }else{
-        state.view="auth";render();
+        // No session but maybe we have local data (offline revisit)
+        await startOffline();
       }
     }catch(e){
       console.error("Init error:",e);
-      state.view="auth";render();
+      await startOffline();
     }
     sb.auth.onAuthStateChange(function(event,session){
       if(event==="SIGNED_OUT"){
@@ -1770,6 +1932,21 @@ function startApp(){
   })();
 }
 
+async function startOffline(){
+  var local=await loadLocal();
+  if(local.plan||local.sessions){
+    if(local.plan&&typeof local.plan==="object"&&Object.keys(local.plan).length>0)PLAN=local.plan;
+    else PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+    allData=local.sessions||{};
+    cachedDraft=local.draft||null;
+    userPrefs=local.prefs||{};
+    invalidatePrevCache();invalidateChartCache();
+    state.view="home";render();
+  }else{
+    state.view="auth";render();
+  }
+}
+
 // Supabase CDN loads async – start when ready
 if(typeof supabase!=='undefined'){
   startApp();
@@ -1778,7 +1955,8 @@ if(typeof supabase!=='undefined'){
   if(sbEl){
     sbEl.addEventListener('load',startApp);
     sbEl.addEventListener('error',function(){
-      document.getElementById("app").innerHTML='<div class="load-wrap"><div class="load-txt" style="color:#F87171">Supabase konnte nicht geladen werden. Bitte prüfe deine Internetverbindung und lade neu.</div></div>';
+      // SDK failed to load (offline, first visit had SDK cached) — try local data
+      (async function(){await startOffline();})();
     });
   }
 }
