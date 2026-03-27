@@ -508,7 +508,17 @@ function getPrev(day,exercise){
     var ex=sorted[i].exercises&&sorted[i].exercises[exercise];
     if(ex&&ex.some(function(s){return s.kg||s.reps;}))return ex;
   }
-  return null;
+  // Fallback: andere Tage nach letzter Session mit dieser Übung durchsuchen
+  var all=[];
+  for(var d in allData){
+    if(d===day)continue;
+    (allData[d]||[]).forEach(function(se){
+      var exd=se.exercises&&se.exercises[exercise];
+      if(exd&&exd.some(function(s){return s.kg||s.reps;}))all.push({date:se.date,ex:exd});
+    });
+  }
+  all.sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
+  return all.length?all[0].ex:null;
 }
 
 function getAllSess(){
