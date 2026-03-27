@@ -912,10 +912,12 @@ function renderAdmin(){
     for(var j=0;j<state.adminUsers.length;j++){if(state.adminUsers[j].id===state.adminSelectedUser)selUser=state.adminUsers[j];}
     h+='<div class="adm-sec"><h3 class="sec-t">'+esc(selUser?selUser.email:'')+'</h3>';
     h+='<div class="adm-plan-opts">';
-    h+='<label class="sec-btn full" style="text-align:center;cursor:pointer">📂 Plan importieren<input type="file" accept=".json" id="admin-plan-file" style="display:none"></label>';
     h+='<button class="sec-btn" data-action="admin-export-plan">⬆️ Plan exportieren</button>';
+    h+='<label class="sec-btn" style="text-align:center;cursor:pointer">📂 Plan importieren<input type="file" accept=".json" id="admin-plan-file" style="display:none"></label>';
+    h+='</div>';
+    h+='<div class="adm-plan-opts">';
     h+='<button class="sec-btn" data-action="admin-export-sessions">📊 Fortschritt exportieren</button>';
-    h+='<label class="sec-btn full" style="text-align:center;cursor:pointer">📥 Fortschritt importieren<input type="file" accept=".json" id="admin-sessions-file" style="display:none"></label>';
+    h+='<label class="sec-btn" style="text-align:center;cursor:pointer">📥 Fortschritt importieren<input type="file" accept=".json" id="admin-sessions-file" style="display:none"></label>';
     h+='</div>';
     if(state.adminPlanJSON){
       h+='<div class="adm-preview"><div class="adm-preview-label">Plan-Vorschau:</div>';
