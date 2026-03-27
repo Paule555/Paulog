@@ -1446,6 +1446,7 @@ function openWheelPicker(ex,si,field){
   var unit=getExUnit(state.day,ex);
   var vals=buildWpValues(field,unit);
   var current=parseFloat((state.session[ex]&&state.session[ex][si]&&state.session[ex][si][field])||0)||0;
+  if(current===0){var prevS=getPrev(state.day,ex);if(prevS&&prevS[si]&&prevS[si][field])current=parseFloat(prevS[si][field])||0;}
   // Find closest index
   var bestIdx=0,bestDist=Infinity;
   for(var i=0;i<vals.length;i++){var d=Math.abs(vals[i]-current);if(d<bestDist){bestDist=d;bestIdx=i;}}
