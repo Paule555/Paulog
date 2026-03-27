@@ -220,6 +220,11 @@ button{font-family:inherit;cursor:pointer}
 .ed-save{width:100%;padding:14px;background:#3B82F6;border:none;border-radius:10px;color:#FFF;font-size:15px;font-weight:700;margin-top:8px}
 .ed-cancel{width:100%;padding:12px;background:transparent;border:1px solid #334155;border-radius:10px;color:#94A3B8;font-size:14px;font-weight:600}
 .hidden{display:none}
+/* Toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);max-width:360px;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:200;animation:toast-in .3s ease-out;pointer-events:none}
+.toast-ok{background:#065F46;color:#6EE7B7;border:1px solid #10B981}
+.toast-err{background:#7F1D1D;color:#FCA5A5;border:1px solid #EF4444}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 /* Auth */
 .auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
 .auth-card{width:100%;max-width:360px;background:#1E293B;border-radius:16px;padding:32px 24px;text-align:center}
@@ -323,7 +328,7 @@ function loadPlan(){
 }
 function savePlan(plan){
   PLAN=plan;
-  savePlanToDB(plan).catch(console.error);
+  savePlanToDB(plan).catch(function(){showToast("Plan konnte nicht gespeichert werden",true);});
 }
 function getPlanDayKeys(plan){
   return Object.keys(plan);
@@ -345,7 +350,7 @@ var PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
 // State
 var state = {
   view:"loading", day:null, date:today(), session:{}, expanded:null,
-  editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0,
+  editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0, historyLimit:20,
   // Settings state
   editDay:null, editDayData:null, customExInput:"",
   // Auth state
@@ -492,6 +497,7 @@ function sugDay(){
   return best;
 }
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function showToast(msg,isError){var el=document.createElement("div");el.className="toast "+(isError?"toast-err":"toast-ok");el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.remove();},3000);}
 function totalSess(){var t=0;for(var k in allData)t+=allData[k].length;return t;}
 
 function getPB(){
@@ -500,15 +506,18 @@ function getPB(){
   return pbs;
 }
 
+var prevCache={};
+function invalidatePrevCache(){prevCache={};}
 function getPrev(day,exercise){
+  var cacheKey=day+"|"+exercise+"|"+state.date;
+  if(prevCache[cacheKey]!==undefined)return prevCache[cacheKey];
   var dd=allData[day]||[];
   var sorted=dd.slice().sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
   for(var i=0;i<sorted.length;i++){
     if(sorted[i].date===state.date)continue;
     var ex=sorted[i].exercises&&sorted[i].exercises[exercise];
-    if(ex&&ex.some(function(s){return s.kg||s.reps;}))return ex;
+    if(ex&&ex.some(function(s){return s.kg||s.reps;})){prevCache[cacheKey]=ex;return ex;}
   }
-  // Fallback: andere Tage nach letzter Session mit dieser Übung durchsuchen
   var all=[];
   for(var d in allData){
     if(d===day)continue;
@@ -518,7 +527,9 @@ function getPrev(day,exercise){
     });
   }
   all.sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
-  return all.length?all[0].ex:null;
+  var result=all.length?all[0].ex:null;
+  prevCache[cacheKey]=result;
+  return result;
 }
 
 function getAllSess(){
@@ -531,18 +542,19 @@ function getAllSess(){
   return ss.sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
 }
 
+function downloadJSON(filename,data){
+  var b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);
+}
+
 function exportData(){
-  var p={app:"paulog",type:"data",version:2,exported:new Date().toISOString(),data:allData};
-  var b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
-  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="paulog-daten-"+today()+".json";
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);setLB();
+  downloadJSON("paulog-daten-"+today()+".json",{app:"paulog",type:"data",version:2,exported:new Date().toISOString(),data:allData});
+  setLB();
 }
 
 function exportPlan(){
-  var p={app:"paulog",type:"plan",version:2,exported:new Date().toISOString(),plan:PLAN};
-  var b=new Blob([JSON.stringify(p,null,2)],{type:"application/json"});
-  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="paulog-plan-"+today()+".json";
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  downloadJSON("paulog-plan-"+today()+".json",{app:"paulog",type:"plan",version:2,exported:new Date().toISOString(),plan:PLAN});
 }
 
 function getKW(dateStr){
@@ -554,7 +566,11 @@ function getKW(dateStr){
 }
 
 // Chart
+var chartCache={};
+function invalidateChartCache(){chartCache={};}
 function drawChart(day,maxWeeks){
+  var cKey=day+"|"+maxWeeks+"|"+(allData[day]||[]).length;
+  if(chartCache[cKey])return chartCache[cKey];
   var info=PLAN[day];
   if(!info)return'<p class="no-data">Tag nicht im aktuellen Plan</p>';
   var sessions=(allData[day]||[]).slice().sort(function(a,b){return a.date>b.date?1:-1;});
@@ -596,6 +612,7 @@ function drawChart(day,maxWeeks){
   svg+='<div class="c-legend">';
   info.exercises.forEach(function(ex,i){svg+='<span><span class="dot" style="background:'+CC[i%CC.length]+'"></span>'+esc(ex)+'</span>';});
   svg+='</div>';
+  chartCache[cKey]=svg;
   return svg;
 }
 
@@ -722,7 +739,9 @@ function renderTrack(){
 
 function renderHistory(){
   var sess=getAllSess(),grp={};
-  sess.forEach(function(s){var m=s.date.slice(0,7);if(!grp[m])grp[m]=[];grp[m].push(s);});
+  var limit=state.historyLimit;
+  var visible=sess.slice(0,limit);
+  visible.forEach(function(s){var m=s.date.slice(0,7);if(!grp[m])grp[m]=[];grp[m].push(s);});
   var h='<div class="h-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>📋 Alle Sessions</h2><span class="h-cnt">'+sess.length+' gesamt</span></div>';
   if(sess.length===0){h+='<div class="empty"><p class="ico">🏋️</p><p class="txt">Noch keine Sessions</p><p class="sub">Starte dein erstes Training!</p></div>';return h;}
   for(var mo in grp){
@@ -741,6 +760,9 @@ function renderHistory(){
       else{h+='<div class="acts"><button class="act-edit" data-action="edit" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">✏️ Bearbeiten</button><button class="act-del" data-action="del-ask" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">🗑 Löschen</button></div>';}
       h+='</div></div>';
     });
+  }
+  if(sess.length>limit){
+    h+='<div style="padding:16px 20px"><button class="sec-btn" data-action="load-more">Weitere Sessions laden ('+(sess.length-limit)+' verbleibend)</button></div>';
   }
   return h;
 }
@@ -812,6 +834,10 @@ function renderBackup(){
     h+='<button class="dc-no" data-action="imp-cancel">Abbrechen</button></div>';
   }
 
+  // === CACHE RESET ===
+  h+='<div class="b-card"><h3>🔄 App-Cache leeren</h3><p>Erzwingt das Laden der neuesten App-Version. Deine Daten bleiben erhalten.</p>';
+  h+='<button class="b-xbtn" style="background:#EF4444;box-shadow:none" data-action="clear-cache">Cache leeren & neu laden</button></div>';
+
   // Status messages
   if(state.impStatus==="success")h+='<div class="b-suc">✅ Import erfolgreich!</div>';
   if(state.impStatus==="error")h+='<div class="b-err">❌ Ungültige Datei</div>';
@@ -877,11 +903,6 @@ async function adminImportUserSessions(userId,sessionsData){
   var{error}=await sb.rpc('admin_import_user_sessions',{target_user_id:userId,sessions_data:sessionsData});
   if(error){alert('Fehler: '+error.message);return false;}
   return true;
-}
-function adminDownloadJSON(filename,data){
-  var b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download=filename;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);
 }
 
 function renderAdmin(){
@@ -1086,7 +1107,7 @@ function bindEvents(){
         for(var sk in state.session){(state.session[sk]||[]).forEach(function(s){if(s.kg||s.reps)hasData=true;});}
         if(hasData)saveDraft();
       }
-      state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;render();
+      state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;state.historyLimit=20;render();
     }
     else if(a==="start"){initSession(t.getAttribute("data-day"),null,null);state.view="track";render();}
     else if(a==="toggle-ex"){var ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;if(state.expanded&&state.day)saveLastEx(state.day,state.expanded);render();}
@@ -1100,16 +1121,24 @@ function bindEvents(){
     else if(a==="del-ask"){state.delConfirm={day:t.getAttribute("data-day"),date:t.getAttribute("data-date")};render();}
     else if(a==="del-confirm"){
       var dy=t.getAttribute("data-day"),dt=t.getAttribute("data-date");
-      allData[dy]=(allData[dy]||[]).filter(function(s){return s.date!==dt;});
+      allData[dy]=(allData[dy]||[]).filter(function(s){return s.date!==dt;});invalidatePrevCache();invalidateChartCache();
       if(allData[dy].length===0)delete allData[dy];
-      deleteSessionFromDB(dy,dt).catch(console.error);state.delConfirm=null;render();
+      deleteSessionFromDB(dy,dt).catch(function(){showToast("Löschen fehlgeschlagen",true);});state.delConfirm=null;render();
     }
     else if(a==="del-cancel"){state.delConfirm=null;render();}
     else if(a==="export-data"){exportData();state.showRem=false;render();}
     else if(a==="export-plan"){exportPlan();render();}
     else if(a==="set-weeks"){state.dashWeeks=parseInt(t.getAttribute("data-weeks"))||0;render();}
+    else if(a==="load-more"){state.historyLimit+=20;render();}
     else if(a==="backup-now"){exportData();state.showRem=false;render();}
     else if(a==="dismiss-rem"){state.showRem=false;render();}
+    else if(a==="clear-cache"){
+      if(!confirm("App-Cache leeren und Seite neu laden?"))return;
+      Promise.all([
+        caches.keys().then(function(keys){return Promise.all(keys.map(function(k){return caches.delete(k);}));}),
+        navigator.serviceWorker?navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(r){return r.unregister();}));}):Promise.resolve()
+      ]).then(function(){window.location.reload(true);}).catch(function(){window.location.reload(true);});
+    }
     else if(a==="imp-merge"){doImport("merge");}
     else if(a==="imp-replace"){doImport("replace");}
     else if(a==="imp-plan-confirm"){
@@ -1142,7 +1171,7 @@ function bindEvents(){
       adminGetUserPlan(state.adminSelectedUser).then(function(p){
         if(!p){alert('Kein Plan vorhanden');return;}
         var name=su?su.email.split('@')[0]:'user';
-        adminDownloadJSON('paulog-plan-'+name+'-'+today()+'.json',{app:"paulog",type:"plan",version:2,exported:new Date().toISOString(),plan:p});
+        downloadJSON('paulog-plan-'+name+'-'+today()+'.json',{app:"paulog",type:"plan",version:2,exported:new Date().toISOString(),plan:p});
       });
     }
     else if(a==="admin-export-sessions"){
@@ -1151,7 +1180,7 @@ function bindEvents(){
       adminGetUserSessions(state.adminSelectedUser).then(function(s){
         if(!s||Object.keys(s).length===0){alert('Keine Sessions vorhanden');return;}
         var name2=su2?su2.email.split('@')[0]:'user';
-        adminDownloadJSON('paulog-daten-'+name2+'-'+today()+'.json',{app:"paulog",type:"data",version:2,exported:new Date().toISOString(),data:s});
+        downloadJSON('paulog-daten-'+name2+'-'+today()+'.json',{app:"paulog",type:"data",version:2,exported:new Date().toISOString(),data:s});
       });
     }
 
@@ -1256,7 +1285,6 @@ function bindEvents(){
       if(state.session[ex]&&state.session[ex][si])state.session[ex][si][field]=t.value;
       if(state.day)saveLastEx(state.day,ex);
       saveDraft();
-      updateVolDisplay(ex);
     }
     else if(t.getAttribute("data-action")==="set-date"){
       state.date=t.value;
@@ -1283,9 +1311,17 @@ function bindEvents(){
       try{
         var p=JSON.parse(ev.target.result);
         var d=p.data||p;
-        if(typeof d!=="object")throw 0;
-        // Detect if it's a plan-only file
+        if(typeof d!=="object"||Array.isArray(d))throw 0;
         if(p.type==="plan"){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);return;}
+        // Validate structure: each key must be an array of {date, exercises}
+        for(var dk in d){
+          if(!Array.isArray(d[dk]))throw 0;
+          for(var di=0;di<d[dk].length;di++){
+            var entry=d[dk][di];
+            if(!entry||typeof entry.date!=="string"||!entry.date.match(/^\d{4}-\d{2}-\d{2}$/))throw 0;
+            if(entry.exercises&&typeof entry.exercises!=="object")throw 0;
+          }
+        }
         state.impData=d;state.impStatus="confirm-data";render();
       }
       catch(err){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);}
@@ -1311,7 +1347,6 @@ function bindEvents(){
   };
 }
 
-function updateVolDisplay(ex){}
 
 function movePlanDay(day,dir){
   var keys=getPlanDayKeys(PLAN);
@@ -1325,7 +1360,9 @@ function movePlanDay(day,dir){
   PLAN=newPlan;savePlan(PLAN);render();
 }
 
+var savingDay=false;
 function saveDayEdits(){
+  if(savingDay)return;
   var d=state.editDayData;
   // Read current values from inputs
   var nameInput=document.getElementById("ed-name");
@@ -1341,6 +1378,7 @@ function saveDayEdits(){
   var oldName=state.editDay;
   // If renaming, check for conflicts
   if(d.name!==oldName&&PLAN[d.name]){alert('Ein Tag mit dem Namen "'+d.name+'" existiert bereits.');return;}
+  savingDay=true;
 
   // Build new plan preserving order
   var newPlan={};
@@ -1361,6 +1399,7 @@ function saveDayEdits(){
 
   PLAN=newPlan;savePlan(PLAN);
   state.editDay=null;state.editDayData=null;state.customExInput="";
+  savingDay=false;
   state.view="settings";render();
 }
 
@@ -1407,17 +1446,22 @@ function initSession(day,date,exData){
   }
 }
 
+var savingSession=false;
 function saveSession(){
+  if(savingSession)return;
+  savingSession=true;
+  invalidatePrevCache();invalidateChartCache();
   if(!allData[state.day])allData[state.day]=[];
   var idx=-1;
   for(var i=0;i<allData[state.day].length;i++){if(allData[state.day][i].date===state.date){idx=i;break;}}
   var entry={date:state.date,exercises:state.session};
   if(idx>=0)allData[state.day][idx]=entry;else allData[state.day].push(entry);
-  saveSessionToDB(state.day,state.date,state.session).catch(console.error);
-  clearDraft();state.editing=null;state.view="history";
+  saveSessionToDB(state.day,state.date,state.session).then(function(){showToast("Session gespeichert");}).catch(function(){showToast("Session konnte nicht gespeichert werden",true);});
+  clearDraft();state.editing=null;savingSession=false;state.view="history";
 }
 
 function doImport(mode){
+  invalidatePrevCache();invalidateChartCache();
   if(mode==="replace"){allData=state.impData;}
   else{
     for(var day in state.impData){
@@ -1428,8 +1472,8 @@ function doImport(mode){
       });
     }
   }
-  if(mode==="replace"){replaceAllSessionsInDB(allData).catch(console.error);}
-  else{upsertSessionsToDB(allData).catch(console.error);}
+  if(mode==="replace"){replaceAllSessionsInDB(allData).catch(function(){showToast("Import fehlgeschlagen",true);});}
+  else{upsertSessionsToDB(allData).catch(function(){showToast("Import fehlgeschlagen",true);});}
   state.impData=null;state.impPlan=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
   setTimeout(function(){state.impStatus=null;render();},3000);
 }
@@ -1440,13 +1484,9 @@ var wpActive=null; // {ex, si, field, el}
 function buildWpValues(field,unit){
   var vals=[];
   if(field==="kg"){
-    if(unit==="sek"){for(var i=0;i<=300;i+=5)vals.push(i);}
-    else{for(var j=0;j<=200;j++){vals.push(j);if(j<200)vals.push(j+0.5);}}
-    // simplified: 0, 0.5, 1, 1.5 ... 200 for kg; 0,5,10...300 for sek
-    if(unit==="sek"){vals=[];for(var s=0;s<=300;s+=5)vals.push(s);}
-    else{vals=[];for(var k=0;k<=200;k+=2.5)vals.push(k);}
+    if(unit==="sek"){for(var s=0;s<=300;s+=5)vals.push(s);}
+    else{for(var k=0;k<=200;k+=2.5)vals.push(k);}
   } else {
-    // reps: 0..100
     for(var r=0;r<=100;r++)vals.push(r);
   }
   return vals;
@@ -1537,8 +1577,17 @@ function openWheelPicker(ex,si,field){
   col.addEventListener("touchmove",onMove,{passive:false});
   col.addEventListener("touchend",onEnd,{passive:false});
   col.addEventListener("mousedown",onStart);
-  document.addEventListener("mousemove",onMove);
-  document.addEventListener("mouseup",function mup(e){onEnd(e);document.removeEventListener("mousemove",onMove);document.removeEventListener("mouseup",mup);});
+
+  function onDocMove(e){onMove(e);}
+  function onDocUp(e){onEnd(e);removeDocListeners();}
+  function addDocListeners(){document.addEventListener("mousemove",onDocMove);document.addEventListener("mouseup",onDocUp);}
+  function removeDocListeners(){document.removeEventListener("mousemove",onDocMove);document.removeEventListener("mouseup",onDocUp);}
+  col.addEventListener("mousedown",function(){addDocListeners();});
+
+  function closeOverlay(){
+    removeDocListeners();
+    if(overlay.parentNode)overlay.parentNode.removeChild(overlay);
+  }
 
   // Click on item to select
   inner.addEventListener("click",function(e){
@@ -1554,13 +1603,13 @@ function openWheelPicker(ex,si,field){
     }
     if(state.day)saveLastEx(state.day,ex);
     saveDraft();
-    document.body.removeChild(overlay);
+    closeOverlay();
     render();
   };
 
   // Tap backdrop to close without saving
   overlay.addEventListener("click",function(e){
-    if(e.target===overlay){document.body.removeChild(overlay);}
+    if(e.target===overlay){closeOverlay();}
   });
 }
 
@@ -1604,7 +1653,7 @@ async function loadAppData(){
     var dbPlan=results[0];
     if(dbPlan&&typeof dbPlan==="object"&&Object.keys(dbPlan).length>0)PLAN=dbPlan;
     else PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
-    allData=results[1]||{};
+    allData=results[1]||{};invalidatePrevCache();invalidateChartCache();
     cachedDraft=results[2];
     userPrefs=results[3]||{};
     // Check for localStorage data to migrate
