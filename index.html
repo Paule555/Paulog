@@ -286,7 +286,7 @@ button{font-family:inherit;cursor:pointer}
 </head>
 <body>
 <div class="app" id="app" role="main"><div class="load-wrap"><div class="spinner"></div><div class="load-txt">Laden …</div></div></div>
-<script async id="sb-script" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -432,7 +432,11 @@ async function flushQueue(){
   }finally{flushing=false;}
 }
 
-window.addEventListener('online',()=>{isOnline=true;render();flushQueue();});
+window.addEventListener('online',()=>{
+  isOnline=true;render();flushQueue();
+  // Try to refresh session when back online
+  if(sb&&currentUser){sb.auth.getSession().catch(()=>{});}
+});
 window.addEventListener('offline',()=>{isOnline=false;render();});
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
@@ -1924,10 +1928,13 @@ async function loadAppData(){
       userPrefs=local.prefs||{};
       invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
     }
-    // Try to sync from Supabase (may fail offline)
+    // Try to sync from Supabase (may fail offline or on slow networks)
     if(isOnline&&sb&&currentUser){
       try{
-        let results=await Promise.all([loadPlanFromDB(),loadSessionsFromDB(),loadDraftFromDB(),loadPrefsFromDB()]);
+        let results=await Promise.race([
+          Promise.all([loadPlanFromDB(),loadSessionsFromDB(),loadDraftFromDB(),loadPrefsFromDB()]),
+          new Promise((_,reject)=>setTimeout(()=>reject(new Error("Sync timeout")),5000))
+        ]);
         let dbPlan=results[0];
         if(dbPlan&&typeof dbPlan==="object"&&Object.keys(dbPlan).length>0)PLAN=dbPlan;
         else if(!hasLocal)PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
@@ -2031,12 +2038,18 @@ function startApp(){
   sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   (async ()=>{
     try{
-      let{data}=await sb.auth.getSession();
+      // Race getSession against a timeout — offline token refresh can hang
+      let sessionResult=await Promise.race([
+        sb.auth.getSession(),
+        new Promise((resolve)=>setTimeout(()=>resolve({data:{session:null},timedOut:true}),3000))
+      ]);
+      let{data}=sessionResult;
       if(data&&data.session&&data.session.user){
         currentUser=data.session.user;
         await loadAppData();
       }else{
-        // No session but maybe we have local data (offline revisit)
+        // No session or timed out — try local data
+        if(sessionResult.timedOut)console.warn("getSession timed out, starting offline");
         await startOffline();
       }
     }catch(e){
@@ -2045,6 +2058,8 @@ function startApp(){
     }
     sb.auth.onAuthStateChange((event,session)=>{
       if(event==="SIGNED_OUT"){
+        // Ignore sign-out when offline (likely a failed token refresh, not a real logout)
+        if(!isOnline){console.warn("Ignoring SIGNED_OUT while offline");return;}
         currentUser=null;allData={};PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
         userPrefs={};cachedDraft=null;
         state.view="auth";render();
@@ -2070,18 +2085,12 @@ async function startOffline(){
   }
 }
 
-// Supabase CDN loads async – start when ready
+// Supabase SDK is bundled locally — always available
 if(typeof supabase!=='undefined'){
   startApp();
 }else{
-  let sbEl=document.getElementById('sb-script');
-  if(sbEl){
-    sbEl.addEventListener('load',startApp);
-    sbEl.addEventListener('error',()=>{
-      // SDK failed to load (offline, first visit had SDK cached) — try local data
-      (async ()=>{await startOffline();})();
-    });
-  }
+  // Fallback: if SDK somehow failed to load, use local data
+  (async ()=>{await startOffline();})();
 }
 
 })();

@@ -1,7 +1,8 @@
-const CACHE_NAME = 'paulog-v21';
+const CACHE_NAME = 'paulog-v22';
 const ASSETS = [
   './',
   './index.html',
+  './supabase.min.js',
   './paulog-manifest.json',
   './paulog-icon-192.png',
   './paulog-icon-512.png'
@@ -10,11 +11,6 @@ const ASSETS = [
 // Supabase API calls should never be cached
 const NO_CACHE = [
   'supabase.co'
-];
-
-// CDN scripts: network-first with cache fallback (needed for offline)
-const CACHE_CDN = [
-  'cdn.jsdelivr.net'
 ];
 
 self.addEventListener('install', e => {
@@ -45,17 +41,6 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
     return;
   }
-  // CDN scripts: network-first, cache fallback for offline
-  if (CACHE_CDN.some(h => url.includes(h))) {
-    e.respondWith(
-      fetch(e.request).then(r => {
-        const clone = r.clone();
-        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-        return r;
-      }).catch(() => caches.match(e.request))
-    );
-    return;
-  }
   // Network-first for HTML (always get latest version, cache as fallback for offline)
   if (e.request.mode === 'navigate' || url.endsWith('index.html') || url.endsWith('/')) {
     e.respondWith(
@@ -67,8 +52,15 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // Cache-first for static assets (icons, manifest)
+  // Cache-first for static assets (JS, icons, manifest)
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
+    caches.match(e.request).then(r => {
+      if (r) return r;
+      return fetch(e.request).then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        return resp;
+      }).catch(() => caches.match('./index.html'));
+    })
   );
 });
