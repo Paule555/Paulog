@@ -296,6 +296,7 @@ const SUPABASE_URL='https://xfdvppgllwhvbxbrkzmo.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHZwcGdsbHdodmJ4YnJrem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTAxNzAsImV4cCI6MjA5MDA2NjE3MH0.X_7BeCisQAcwEn1cvv0ZskeJQD5WniKP1jILvFkDhhY';
 let sb=null, currentUser=null;
 const isAdmin=()=>currentUser&&currentUser.app_metadata&&currentUser.app_metadata.is_admin===true;
+const today=()=>new Date().toISOString().split("T")[0];
 let isOnline=navigator.onLine;
 
 // =========== INDEXEDDB LOCAL CACHE ===========
@@ -665,7 +666,6 @@ function debounceSavePrefs(){
 }
 
 // Helpers
-const today=()=>new Date().toISOString().split("T")[0];
 function fmtDate(ds){const d=new Date(ds+"T00:00:00");return DN[d.getDay()]+", "+p2(d.getDate())+"."+p2(d.getMonth()+1)+"."+d.getFullYear();}
 const p2=(n)=>n<10?"0"+n:""+n;
 function vol(sets){let s=0;for(let i=0;i<sets.length;i++)s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);return s;}
