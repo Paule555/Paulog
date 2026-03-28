@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paulog-v20';
+const CACHE_NAME = 'paulog-v21';
 const ASSETS = [
   './',
   './index.html',
@@ -19,7 +19,14 @@ const CACHE_CDN = [
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
+  // Don't skipWaiting automatically — wait for user to confirm update
+});
+
+// Listen for SKIP_WAITING message from client
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', e => {

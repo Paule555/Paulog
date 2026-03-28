@@ -225,8 +225,13 @@ button{font-family:inherit;cursor:pointer}
 .toast-ok{background:#065F46;color:#6EE7B7;border:1px solid #10B981}
 .toast-err{background:#7F1D1D;color:#FCA5A5;border:1px solid #EF4444}
 @keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast-undo{background:#1E293B;color:#E2E8F0;border:1px solid #334155;pointer-events:auto;cursor:default;display:flex;align-items:center;gap:12px}
+.toast-undo .undo-btn{background:#3B82F6;color:#FFF;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
 /* Offline banner */
 .offline-bar{background:#78350F;color:#FDE68A;text-align:center;padding:6px 12px;font-size:12px;font-weight:600;letter-spacing:0.5px}
+/* Update banner */
+.update-bar{background:#1E3A5F;color:#93C5FD;text-align:center;padding:10px 12px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer}
+.update-bar:hover{background:#1E40AF}
 /* Auth */
 .auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
 .auth-card{width:100%;max-width:360px;background:#1E293B;border-radius:16px;padding:32px 24px;text-align:center}
@@ -280,95 +285,95 @@ button{font-family:inherit;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="app" id="app"><div class="load-wrap"><div class="spinner"></div><div class="load-txt">Laden …</div></div></div>
+<div class="app" id="app" role="main"><div class="load-wrap"><div class="spinner"></div><div class="load-txt">Laden …</div></div></div>
 <script async id="sb-script" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
 "use strict";
 
 // =========== SUPABASE CONFIG ===========
-var SUPABASE_URL='https://xfdvppgllwhvbxbrkzmo.supabase.co';
-var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHZwcGdsbHdodmJ4YnJrem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTAxNzAsImV4cCI6MjA5MDA2NjE3MH0.X_7BeCisQAcwEn1cvv0ZskeJQD5WniKP1jILvFkDhhY';
-var sb=null, currentUser=null;
-function isAdmin(){return currentUser&&currentUser.app_metadata&&currentUser.app_metadata.is_admin===true;}
-var isOnline=navigator.onLine;
+const SUPABASE_URL='https://xfdvppgllwhvbxbrkzmo.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmZHZwcGdsbHdodmJ4YnJrem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTAxNzAsImV4cCI6MjA5MDA2NjE3MH0.X_7BeCisQAcwEn1cvv0ZskeJQD5WniKP1jILvFkDhhY';
+let sb=null, currentUser=null;
+const isAdmin=()=>currentUser&&currentUser.app_metadata&&currentUser.app_metadata.is_admin===true;
+let isOnline=navigator.onLine;
 
 // =========== INDEXEDDB LOCAL CACHE ===========
-var idb=null;
-var IDB_NAME='paulog-offline';
-var IDB_VERSION=1;
+let idb=null;
+const IDB_NAME='paulog-offline';
+const IDB_VERSION=1;
 
 function openIDB(){
-  return new Promise(function(resolve,reject){
+  return new Promise((resolve)=>{
     if(idb){resolve(idb);return;}
-    var req=indexedDB.open(IDB_NAME,IDB_VERSION);
-    req.onupgradeneeded=function(e){
-      var db=e.target.result;
+    const req=indexedDB.open(IDB_NAME,IDB_VERSION);
+    req.onupgradeneeded=(e)=>{
+      const db=e.target.result;
       if(!db.objectStoreNames.contains('kv'))db.createObjectStore('kv');
       if(!db.objectStoreNames.contains('queue'))db.createObjectStore('queue',{keyPath:'id',autoIncrement:true});
     };
-    req.onsuccess=function(e){idb=e.target.result;resolve(idb);};
-    req.onerror=function(){resolve(null);};
+    req.onsuccess=(e)=>{idb=e.target.result;resolve(idb);};
+    req.onerror=()=>resolve(null);
   });
 }
 
 function idbPut(key,val){
-  return openIDB().then(function(db){
+  return openIDB().then(db=>{
     if(!db)return;
-    return new Promise(function(resolve){
-      var tx=db.transaction('kv','readwrite');
+    return new Promise(resolve=>{
+      const tx=db.transaction('kv','readwrite');
       tx.objectStore('kv').put(val,key);
-      tx.oncomplete=function(){resolve();};
-      tx.onerror=function(){resolve();};
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>resolve();
     });
   });
 }
 
 function idbGet(key){
-  return openIDB().then(function(db){
+  return openIDB().then(db=>{
     if(!db)return null;
-    return new Promise(function(resolve){
-      var tx=db.transaction('kv','readonly');
-      var req=tx.objectStore('kv').get(key);
-      req.onsuccess=function(){resolve(req.result===undefined?null:req.result);};
-      req.onerror=function(){resolve(null);};
+    return new Promise(resolve=>{
+      const tx=db.transaction('kv','readonly');
+      const req=tx.objectStore('kv').get(key);
+      req.onsuccess=()=>resolve(req.result===undefined?null:req.result);
+      req.onerror=()=>resolve(null);
     });
   });
 }
 
 // Offline queue: stores pending write operations
 function enqueue(op){
-  return openIDB().then(function(db){
+  return openIDB().then(db=>{
     if(!db)return;
-    return new Promise(function(resolve){
-      var tx=db.transaction('queue','readwrite');
+    return new Promise(resolve=>{
+      const tx=db.transaction('queue','readwrite');
       tx.objectStore('queue').add(op);
-      tx.oncomplete=function(){resolve();};
-      tx.onerror=function(){resolve();};
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>resolve();
     });
   });
 }
 
 function peekQueue(){
-  return openIDB().then(function(db){
+  return openIDB().then(db=>{
     if(!db)return[];
-    return new Promise(function(resolve){
-      var tx=db.transaction('queue','readonly');
-      var req=tx.objectStore('queue').getAll();
-      req.onsuccess=function(){resolve(req.result||[]);};
-      req.onerror=function(){resolve([]);};
+    return new Promise(resolve=>{
+      const tx=db.transaction('queue','readonly');
+      const req=tx.objectStore('queue').getAll();
+      req.onsuccess=()=>resolve(req.result||[]);
+      req.onerror=()=>resolve([]);
     });
   });
 }
 
 function removeFromQueue(id){
-  return openIDB().then(function(db){
+  return openIDB().then(db=>{
     if(!db)return;
-    return new Promise(function(resolve){
-      var tx=db.transaction('queue','readwrite');
+    return new Promise(resolve=>{
+      const tx=db.transaction('queue','readwrite');
       tx.objectStore('queue').delete(id);
-      tx.oncomplete=function(){resolve();};
-      tx.onerror=function(){resolve();};
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>resolve();
     });
   });
 }
@@ -385,22 +390,22 @@ function saveLocal(){
 
 // Load all app data from local cache
 function loadLocal(){
-  return Promise.all([idbGet('plan'),idbGet('sessions'),idbGet('draft'),idbGet('prefs')]).then(function(r){
+  return Promise.all([idbGet('plan'),idbGet('sessions'),idbGet('draft'),idbGet('prefs')]).then((r)=>{
     return{plan:r[0],sessions:r[1],draft:r[2],prefs:r[3]};
   });
 }
 
 // Process offline queue when back online (with lock)
-var flushing=false;
+let flushing=false;
 async function flushQueue(){
   if(flushing||!sb||!currentUser||!isOnline)return;
   flushing=true;
   try{
-    var ops=await peekQueue();
+    let ops=await peekQueue();
     if(ops.length===0){flushing=false;return;}
-    var synced=0;
-    for(var i=0;i<ops.length;i++){
-      var op=ops[i];
+    let synced=0;
+    for(let i=0;i<ops.length;i++){
+      let op=ops[i];
       try{
         if(op.type==='saveSession')await sb.from('sessions').upsert({user_id:currentUser.id,day:op.day,date:op.date,exercises:op.exercises},{onConflict:'user_id,day,date'});
         else if(op.type==='deleteSession')await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',op.day).eq('date',op.date);
@@ -409,27 +414,29 @@ async function flushQueue(){
         else if(op.type==='clearDraft')await sb.from('drafts').delete().eq('user_id',currentUser.id);
         else if(op.type==='savePrefs')await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:op.prefs['backup-date']||null,last_exercise:op.prefs['last-ex']||null},{onConflict:'user_id'});
         else if(op.type==='replaceAllSessions'){
-          await sb.from('sessions').delete().eq('user_id',currentUser.id);
-          var rows=[];for(var d in op.data){if(!op.data[d])continue;for(var j=0;j<op.data[d].length;j++)rows.push({user_id:currentUser.id,day:d,date:op.data[d][j].date,exercises:op.data[d][j].exercises});}
-          if(rows.length>0)await sb.from('sessions').insert(rows);
+          let rows=[];let newKeys={};
+          for(let d in op.data){if(!op.data[d])continue;for(let j=0;j<op.data[d].length;j++){rows.push({user_id:currentUser.id,day:d,date:op.data[d][j].date,exercises:op.data[d][j].exercises});newKeys[d+'|'+op.data[d][j].date]=true;}}
+          if(rows.length>0)await sb.from('sessions').upsert(rows,{onConflict:'user_id,day,date'});
+          let exRes=await sb.from('sessions').select('day,date').eq('user_id',currentUser.id);
+          if(exRes.data){let toDel=exRes.data.filter((r)=>{return !newKeys[r.day+'|'+r.date];});for(let di=0;di<toDel.length;di++){await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',toDel[di].day).eq('date',toDel[di].date);}}
         }
         else if(op.type==='upsertSessions'){
-          var urows=[];for(var ud in op.data){if(!op.data[ud])continue;for(var uj=0;uj<op.data[ud].length;uj++)urows.push({user_id:currentUser.id,day:ud,date:op.data[ud][uj].date,exercises:op.data[ud][uj].exercises});}
+          let urows=[];for(let ud in op.data){if(!op.data[ud])continue;for(let uj=0;uj<op.data[ud].length;uj++)urows.push({user_id:currentUser.id,day:ud,date:op.data[ud][uj].date,exercises:op.data[ud][uj].exercises});}
           if(urows.length>0)await sb.from('sessions').upsert(urows,{onConflict:'user_id,day,date'});
         }
         await removeFromQueue(op.id);
         synced++;
-      }catch(e){console.error('Queue flush error:',e);break;}
+      }catch(e){console.error('Queue flush error:',e);showToast("Sync-Fehler: "+ops.length+" Einträge ausstehend",true);break;}
     }
     if(synced>0)showToast("Offline-Daten synchronisiert ("+synced+")");
   }finally{flushing=false;}
 }
 
-window.addEventListener('online',function(){isOnline=true;render();flushQueue();});
-window.addEventListener('offline',function(){isOnline=false;render();});
+window.addEventListener('online',()=>{isOnline=true;render();flushQueue();});
+window.addEventListener('offline',()=>{isOnline=false;render();});
 
 // =========== EXERCISE CATALOG (grouped by muscle, alphabetically sorted) ===========
-var EXERCISE_GROUPS = [
+const EXERCISE_GROUPS = [
   {group:"Brust",exercises:["Bankdrücken LH","Bankdrücken KH","Brustpresse","Butterfly","Kabel Flys","Schrägbankdrücken LH","Schrägbankdrücken KH"]},
   {group:"Schultern",exercises:["Arnold Press","Face Pulls","Frontdrücken","Reverse Fly","Schulterdrücken LH","Schulterdrücken KH","Seitheben KH","Seitheben Kabel","Shrugs LH","Shrugs KH"]},
   {group:"Trizeps",exercises:["French Press LH","French Press KH","Trizeps Kickbacks","Trizeps Pushdown","Trizeps über Kopf LH","Trizeps über Kopf KH"]},
@@ -441,52 +448,58 @@ var EXERCISE_GROUPS = [
   {group:"Calisthenics",exercises:["Archer Push-Ups","Back Lever Holds","Diamond Push-Ups","Dips","Dragon Flag","Front Lever Holds","Handstand Push-Ups","Klimmzüge","L-Sit","Liegestütze","Muscle Ups","Negative Muscle Ups","Pike Push-Ups","Pistol Squats","Planche Lean","Ring Dips","Ring Rows","Skin the Cat","Toes to Bar"]}
 ];
 // Exercises that default to "sek" (seconds) when added
-var DEFAULT_SEK={"Plank":1,"L-Sit":1,"Front Lever Holds":1,"Back Lever Holds":1,"Planche Lean":1,"Dragon Flag":1,"Crosstrainer":1,"Fahrrad":1,"Joggen":1,"Laufband":1,"Rudergerät":1,"Schwimmen":1,"Seilspringen":1,"Spinning":1,"Stepper":1,"Treppensteiger":1};
+const DEFAULT_SEK={"Plank":1,"L-Sit":1,"Front Lever Holds":1,"Back Lever Holds":1,"Planche Lean":1,"Dragon Flag":1,"Crosstrainer":1,"Fahrrad":1,"Joggen":1,"Laufband":1,"Rudergerät":1,"Schwimmen":1,"Seilspringen":1,"Spinning":1,"Stepper":1,"Treppensteiger":1};
 // Flat list for lookups
-var EXERCISE_CATALOG=[];
-EXERCISE_GROUPS.forEach(function(g){g.exercises.forEach(function(e){EXERCISE_CATALOG.push(e);});});
+const EXERCISE_CATALOG=[];
+EXERCISE_GROUPS.forEach((g)=>{g.exercises.forEach((e)=>{EXERCISE_CATALOG.push(e);});});
+
+// Dynamic catalog: collect custom exercises from sessions + plan
+function getFullExerciseGroups(){
+  let catalogSet={};
+  EXERCISE_CATALOG.forEach((e)=>{catalogSet[e]=true;});
+  let custom=[];
+  // From sessions
+  for(let day in allData){(allData[day]||[]).forEach((s)=>{for(let ex in s.exercises||{}){if(!catalogSet[ex]&&custom.indexOf(ex)===-1)custom.push(ex);}});}
+  // From plan
+  for(let d in PLAN){(PLAN[d].exercises||[]).forEach((ex)=>{if(!catalogSet[ex]&&custom.indexOf(ex)===-1)custom.push(ex);});}
+  custom.sort();
+  if(custom.length===0)return EXERCISE_GROUPS;
+  return EXERCISE_GROUPS.concat([{group:"Eigene Übungen",exercises:custom}]);
+}
 
 // =========== DEFAULT PLAN ===========
-var DEFAULT_PLAN = {
+const DEFAULT_PLAN = {
   "Push":{muscles:"Brust / Schultern / Trizeps",color:"#3B82F6",sets:4,units:{},exercises:["Bankdrücken LH","Schrägbankdrücken KH","Schulterdrücken KH","Seitheben Kabel","Trizeps über Kopf"]},
   "Pull":{muscles:"Rücken / Bizeps / hintere Schulter",color:"#10B981",sets:4,units:{},exercises:["Latzug","T-Bar Row","Rudern","Reverse Fly","Bizepscurls"]},
   "Legs":{muscles:"Beine / Core",color:"#F59E0B",sets:4,units:{"Plank":"sek"},exercises:["Rumänisches Kreuzheben","Beinstrecker","Beinbeuger","Ausfallschritte KH","Wadenheben","Plank"]}
 };
 
-var PLAN_KEY="paulog-plan";
-var SK="paulog-data", BK="paulog-bk", DRAFT_KEY="paulog-draft", LASTEX_KEY="paulog-last-ex";
-var CC=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316"];
-var PALETTE=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316","#06B6D4","#84CC16","#D946EF","#F43F5E"];
-var MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-var DN=["So","Mo","Di","Mi","Do","Fr","Sa"];
+const CC=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316"];
+const PALETTE=["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#14B8A6","#F97316","#06B6D4","#84CC16","#D946EF","#F43F5E"];
+const MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const DN=["So","Mo","Di","Mi","Do","Fr","Sa"];
 
 // =========== PLAN MANAGEMENT ===========
-function loadPlan(){
-  return JSON.parse(JSON.stringify(PLAN));
-}
+const loadPlan=()=>JSON.parse(JSON.stringify(PLAN));
 function savePlan(plan){
   PLAN=plan;
-  savePlanToDB(plan).catch(function(){showToast("Plan konnte nicht gespeichert werden",true);});
+  savePlanToDB(plan).catch(()=>showToast("Plan konnte nicht gespeichert werden",true));
 }
-function getPlanDayKeys(plan){
-  return Object.keys(plan);
-}
-function getDaySets(plan,day){
-  return(plan[day]&&plan[day].sets)||4;
-}
+const getPlanDayKeys=(plan)=>Object.keys(plan);
+const getDaySets=(plan,day)=>(plan[day]&&plan[day].sets)||4;
 function getExUnit(day,exercise){
   if(PLAN[day]&&PLAN[day].units&&PLAN[day].units[exercise])return PLAN[day].units[exercise];
   return "kg";
 }
 function findExUnit(exercise){
-  for(var d in PLAN){if(PLAN[d].units&&PLAN[d].units[exercise])return PLAN[d].units[exercise];}
+  for(const d in PLAN){if(PLAN[d].units&&PLAN[d].units[exercise])return PLAN[d].units[exercise];}
   return "kg";
 }
 
-var PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
+let PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
 
 // State
-var state = {
+const state = {
   view:"loading", day:null, date:today(), session:{}, expanded:null,
   editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0, historyLimit:20,
   // Settings state
@@ -497,18 +510,16 @@ var state = {
   // Admin state
   adminUsers:null, adminLoading:false, adminSelectedUser:null, adminPlanJSON:""
 };
-var allData = {};
-var userPrefs={};
-var cachedDraft=null;
-var draftTimer=null;
-var prefsTimer=null;
+let allData = {};
+let userPrefs={};
+let cachedDraft=null;
+let draftTimer=null;
+let prefsTimer=null;
 
 // Storage (wrappers – sync reads from cache, async writes to Supabase)
-function load(){return allData;}
-function save(){/* replaced by targeted DB calls */}
-function getLB(){return userPrefs['backup-date']||null;}
+const getLB=()=>userPrefs['backup-date']||null;
 function setLB(){userPrefs['backup-date']=today();debounceSavePrefs();}
-function daysBack(){var l=getLB();if(!l)return 9999;return Math.floor((new Date()-new Date(l+"T00:00:00"))/864e5);}
+function daysBack(){const l=getLB();if(!l)return 9999;return Math.floor((new Date()-new Date(l+"T00:00:00"))/864e5);}
 
 // Draft persistence (cache + async DB)
 function saveDraft(){
@@ -535,23 +546,24 @@ function getLastEx(day){
 
 // =========== SUPABASE DB OPERATIONS ===========
 async function loadPlanFromDB(){
-  var{data,error}=await sb.from('plans').select('plan_data').eq('user_id',currentUser.id).maybeSingle();
-  if(error){console.error('loadPlan error:',error);return null;}
+  let{data,error}=await sb.from('plans').select('plan_data').eq('user_id',currentUser.id).maybeSingle();
+  if(error){console.error('loadPlan error:',error);showToast("Plan konnte nicht geladen werden",true);return null;}
   if(!data)return null;
   return data.plan_data;
 }
 async function savePlanToDB(plan){
   idbPut('plan',plan);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'savePlan',plan:plan});return;}
-  var{error}=await sb.from('plans').upsert({user_id:currentUser.id,plan_data:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-  if(error)console.error('savePlan error:',error);
+  let{error}=await sb.from('plans').upsert({user_id:currentUser.id,plan_data:plan,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error){console.error('savePlan error:',error);showToast("Plan-Sync fehlgeschlagen",true);}
 }
 async function loadSessionsFromDB(){
-  var{data,error}=await sb.from('sessions').select('day,date,exercises').eq('user_id',currentUser.id);
-  if(error||!data)return{};
-  var result={};
-  for(var i=0;i<data.length;i++){
-    var r=data[i];
+  let{data,error}=await sb.from('sessions').select('day,date,exercises').eq('user_id',currentUser.id);
+  if(error){console.error('loadSessions error:',error);showToast("Sessions konnten nicht geladen werden",true);return{};}
+  if(!data)return{};
+  let result={};
+  for(let i=0;i<data.length;i++){
+    let r=data[i];
     if(!result[r.day])result[r.day]=[];
     result[r.day].push({date:r.date,exercises:r.exercises});
   }
@@ -560,57 +572,73 @@ async function loadSessionsFromDB(){
 async function saveSessionToDB(day,date,exercises){
   idbPut('sessions',allData);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'saveSession',day:day,date:date,exercises:exercises});return;}
-  await sb.from('sessions').upsert({user_id:currentUser.id,day:day,date:date,exercises:exercises},{onConflict:'user_id,day,date'});
+  let{error}=await sb.from('sessions').upsert({user_id:currentUser.id,day:day,date:date,exercises:exercises},{onConflict:'user_id,day,date'});
+  if(error){console.error('saveSession error:',error);throw error;}
 }
 async function deleteSessionFromDB(day,date){
   idbPut('sessions',allData);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'deleteSession',day:day,date:date});return;}
-  await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',day).eq('date',date);
+  let{error}=await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',day).eq('date',date);
+  if(error){console.error('deleteSession error:',error);throw error;}
 }
 async function replaceAllSessionsInDB(data){
   idbPut('sessions',data);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'replaceAllSessions',data:JSON.parse(JSON.stringify(data))});return;}
-  await sb.from('sessions').delete().eq('user_id',currentUser.id);
-  var rows=[];
-  for(var day in data){
+  // Build new rows first, then upsert all + delete stale ones (crash-safe)
+  let rows=[];
+  let newKeys={};
+  for(let day in data){
     if(!data[day])continue;
-    for(var i=0;i<data[day].length;i++){
+    for(let i=0;i<data[day].length;i++){
       rows.push({user_id:currentUser.id,day:day,date:data[day][i].date,exercises:data[day][i].exercises});
+      newKeys[day+'|'+data[day][i].date]=true;
     }
   }
-  if(rows.length>0)await sb.from('sessions').insert(rows);
+  // Upsert new data first (data is safe even if next step fails)
+  if(rows.length>0)await sb.from('sessions').upsert(rows,{onConflict:'user_id,day,date'});
+  // Then remove sessions that are no longer in the dataset
+  let{data:existing}=await sb.from('sessions').select('day,date').eq('user_id',currentUser.id);
+  if(existing){
+    let toDelete=existing.filter((r)=>{return !newKeys[r.day+'|'+r.date];});
+    for(let d=0;d<toDelete.length;d++){
+      await sb.from('sessions').delete().eq('user_id',currentUser.id).eq('day',toDelete[d].day).eq('date',toDelete[d].date);
+    }
+  }
 }
 async function upsertSessionsToDB(data){
   idbPut('sessions',allData);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'upsertSessions',data:JSON.parse(JSON.stringify(data))});return;}
-  var rows=[];
-  for(var day in data){
+  let rows=[];
+  for(let day in data){
     if(!data[day])continue;
-    for(var i=0;i<data[day].length;i++){
+    for(let i=0;i<data[day].length;i++){
       rows.push({user_id:currentUser.id,day:day,date:data[day][i].date,exercises:data[day][i].exercises});
     }
   }
-  if(rows.length>0)await sb.from('sessions').upsert(rows,{onConflict:'user_id,day,date'});
+  if(rows.length>0){let{error}=await sb.from('sessions').upsert(rows,{onConflict:'user_id,day,date'});if(error)throw error;}
 }
 async function loadDraftFromDB(){
-  var{data,error}=await sb.from('drafts').select('day,date,session_data').eq('user_id',currentUser.id).maybeSingle();
+  let{data,error}=await sb.from('drafts').select('day,date,session_data').eq('user_id',currentUser.id).maybeSingle();
   if(error||!data)return null;
   return{day:data.day,date:data.date,session:data.session_data};
 }
 async function saveDraftToDB(draft){
   idbPut('draft',draft);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'saveDraft',draft:JSON.parse(JSON.stringify(draft))});return;}
-  await sb.from('drafts').upsert({user_id:currentUser.id,day:draft.day,date:draft.date,session_data:draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  let{error}=await sb.from('drafts').upsert({user_id:currentUser.id,day:draft.day,date:draft.date,session_data:draft.session,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error)console.error('saveDraft error:',error);
 }
 async function clearDraftFromDB(){
   idbPut('draft',null);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'clearDraft'});return;}
-  await sb.from('drafts').delete().eq('user_id',currentUser.id);
+  let{error}=await sb.from('drafts').delete().eq('user_id',currentUser.id);
+  if(error)console.error('clearDraft error:',error);
 }
 async function loadPrefsFromDB(){
-  var{data,error}=await sb.from('user_prefs').select('last_backup,last_exercise').eq('user_id',currentUser.id).maybeSingle();
-  if(error||!data)return{};
-  var prefs={};
+  let{data,error}=await sb.from('user_prefs').select('last_backup,last_exercise').eq('user_id',currentUser.id).maybeSingle();
+  if(error){console.error('loadPrefs error:',error);return{};}
+  if(!data)return{};
+  let prefs={};
   if(data.last_backup)prefs['backup-date']=data.last_backup;
   if(data.last_exercise)prefs['last-ex']=data.last_exercise;
   return prefs;
@@ -618,87 +646,94 @@ async function loadPrefsFromDB(){
 async function savePrefsToDB(){
   idbPut('prefs',userPrefs);
   if(!isOnline||!sb||!currentUser){await enqueue({type:'savePrefs',prefs:JSON.parse(JSON.stringify(userPrefs))});return;}
-  await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:userPrefs['backup-date']||null,last_exercise:userPrefs['last-ex']||null},{onConflict:'user_id'});
+  let{error}=await sb.from('user_prefs').upsert({user_id:currentUser.id,last_backup:userPrefs['backup-date']||null,last_exercise:userPrefs['last-ex']||null},{onConflict:'user_id'});
+  if(error)console.error('savePrefs error:',error);
 }
 
 // Debounce helpers
 function debounceSaveDraft(){
   if(draftTimer)clearTimeout(draftTimer);
-  draftTimer=setTimeout(function(){if(cachedDraft)saveDraftToDB(cachedDraft).catch(console.error);},2000);
+  draftTimer=setTimeout(()=>{if(cachedDraft)saveDraftToDB(cachedDraft).catch(console.error);},2000);
 }
 function debounceSavePrefs(){
   if(prefsTimer)clearTimeout(prefsTimer);
-  prefsTimer=setTimeout(function(){savePrefsToDB().catch(console.error);},2000);
+  prefsTimer=setTimeout(()=>{savePrefsToDB().catch(console.error);},2000);
 }
 
 // Helpers
-function today(){return new Date().toISOString().split("T")[0];}
-function fmtDate(ds){var d=new Date(ds+"T00:00:00");return DN[d.getDay()]+", "+p2(d.getDate())+"."+p2(d.getMonth()+1)+"."+d.getFullYear();}
-function p2(n){return n<10?"0"+n:""+n;}
-function vol(sets){var s=0;for(var i=0;i<sets.length;i++)s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);return s;}
+const today=()=>new Date().toISOString().split("T")[0];
+function fmtDate(ds){const d=new Date(ds+"T00:00:00");return DN[d.getDay()]+", "+p2(d.getDate())+"."+p2(d.getMonth()+1)+"."+d.getFullYear();}
+const p2=(n)=>n<10?"0"+n:""+n;
+function vol(sets){let s=0;for(let i=0;i<sets.length;i++)s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);return s;}
 function sugDay(){
-  var keys=getPlanDayKeys(PLAN);
+  let keys=getPlanDayKeys(PLAN);
   if(keys.length===0)return null;
   // Find which day has the oldest (or no) last session
-  var best=null,bestDate="9999";
-  for(var i=0;i<keys.length;i++){
-    var day=keys[i],arr=allData[day]||[];
+  let best=null,bestDate="9999";
+  for(let i=0;i<keys.length;i++){
+    let day=keys[i],arr=allData[day]||[];
     if(arr.length===0)return day;
-    var last="";
-    for(var j=0;j<arr.length;j++){if(arr[j].date>last)last=arr[j].date;}
+    let last="";
+    for(let j=0;j<arr.length;j++){if(arr[j].date>last)last=arr[j].date;}
     if(last<bestDate){bestDate=last;best=day;}
   }
   return best;
 }
-function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-function showToast(msg,isError){var el=document.createElement("div");el.className="toast "+(isError?"toast-err":"toast-ok");el.textContent=msg;document.body.appendChild(el);setTimeout(function(){el.remove();},3000);}
-function totalSess(){var t=0;for(var k in allData)t+=allData[k].length;return t;}
+const esc=(s)=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function showToast(msg,isError){let el=document.createElement("div");el.className="toast "+(isError?"toast-err":"toast-ok");el.setAttribute("role","status");el.setAttribute("aria-live","polite");el.textContent=msg;document.body.appendChild(el);setTimeout(()=>{el.remove();},3000);}
+let totalSessCache=null;
+function invalidateTotalSessCache(){totalSessCache=null;}
+function totalSess(){if(totalSessCache!==null)return totalSessCache;let t=0;for(let k in allData)t+=allData[k].length;totalSessCache=t;return t;}
 
+let pbCache=null;
+function invalidatePBCache(){pbCache=null;}
 function getPB(){
-  var pbs={};
-  for(var k in allData){allData[k].forEach(function(s){for(var ex in s.exercises||{}){var mx=0;s.exercises[ex].forEach(function(st){var v=Number(st.kg)||0;if(v>mx)mx=v;});if(mx>0){if(!pbs[ex]||mx>pbs[ex].kg){pbs[ex]={kg:mx,date:s.date};}else if(mx===pbs[ex].kg&&s.date<pbs[ex].date){pbs[ex].date=s.date;}}}});}
+  if(pbCache)return pbCache;
+  let pbs={};
+  for(let k in allData){allData[k].forEach((s)=>{for(let ex in s.exercises||{}){let mx=0;s.exercises[ex].forEach((st)=>{let v=Number(st.kg)||0;if(v>mx)mx=v;});if(mx>0){if(!pbs[ex]||mx>pbs[ex].kg){pbs[ex]={kg:mx,date:s.date};}else if(mx===pbs[ex].kg&&s.date<pbs[ex].date){pbs[ex].date=s.date;}}}});}
+  pbCache=pbs;
   return pbs;
 }
 
-var prevCache={};
+let prevCache={};
 function invalidatePrevCache(){prevCache={};}
 function getPrev(day,exercise){
-  var cacheKey=day+"|"+exercise+"|"+state.date;
+  let cacheKey=day+"|"+exercise+"|"+state.date;
   if(prevCache[cacheKey]!==undefined)return prevCache[cacheKey];
-  var dd=allData[day]||[];
-  var sorted=dd.slice().sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
-  for(var i=0;i<sorted.length;i++){
+  let dd=allData[day]||[];
+  let sorted=dd.slice().sort((a,b)=>{return b.date>a.date?1:b.date<a.date?-1:0;});
+  for(let i=0;i<sorted.length;i++){
     if(sorted[i].date===state.date)continue;
-    var ex=sorted[i].exercises&&sorted[i].exercises[exercise];
-    if(ex&&ex.some(function(s){return s.kg||s.reps;})){prevCache[cacheKey]=ex;return ex;}
+    let ex=sorted[i].exercises&&sorted[i].exercises[exercise];
+    if(ex&&ex.some((s)=>{return s.kg||s.reps;})){prevCache[cacheKey]=ex;return ex;}
   }
-  var all=[];
-  for(var d in allData){
+  let all=[];
+  for(let d in allData){
     if(d===day)continue;
-    (allData[d]||[]).forEach(function(se){
-      var exd=se.exercises&&se.exercises[exercise];
-      if(exd&&exd.some(function(s){return s.kg||s.reps;}))all.push({date:se.date,ex:exd});
+    (allData[d]||[]).forEach((se)=>{
+      let exd=se.exercises&&se.exercises[exercise];
+      if(exd&&exd.some((s)=>{return s.kg||s.reps;}))all.push({date:se.date,ex:exd});
     });
   }
-  all.sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
-  var result=all.length?all[0].ex:null;
+  all.sort((a,b)=>{return b.date>a.date?1:b.date<a.date?-1:0;});
+  let result=all.length?all[0].ex:null;
   prevCache[cacheKey]=result;
   return result;
 }
 
 function getAllSess(){
-  var ss=[];
-  for(var day in allData)(allData[day]||[]).forEach(function(se){
-    var tv=0,ec=0;
-    for(var ex in se.exercises||{}){tv+=vol(se.exercises[ex]);if(se.exercises[ex].some(function(s){return s.kg||s.reps;}))ec++;}
+  let ss=[];
+  for(let day in allData)(allData[day]||[]).forEach((se)=>{
+    let tv=0,ec=0;
+    for(let ex in se.exercises||{}){tv+=vol(se.exercises[ex]);if(se.exercises[ex].some((s)=>{return s.kg||s.reps;}))ec++;}
     ss.push({day:day,date:se.date,totalVol:tv,exerciseCount:ec,exercises:se.exercises});
   });
-  return ss.sort(function(a,b){return b.date>a.date?1:b.date<a.date?-1:0;});
+  return ss.sort((a,b)=>{return b.date>a.date?1:b.date<a.date?-1:0;});
 }
 
 function downloadJSON(filename,data){
-  var b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download=filename;
+  let b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  let u=URL.createObjectURL(b);let a=document.createElement("a");a.href=u;a.download=filename;
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);
 }
 
@@ -712,61 +747,61 @@ function exportPlan(){
 }
 
 function getKW(dateStr){
-  var d=new Date(dateStr+"T00:00:00");
+  let d=new Date(dateStr+"T00:00:00");
   d.setHours(0,0,0,0);
   d.setDate(d.getDate()+3-(d.getDay()+6)%7);
-  var w1=new Date(d.getFullYear(),0,4);
+  let w1=new Date(d.getFullYear(),0,4);
   return Math.round(((d-w1)/864e5-3+(w1.getDay()+6)%7)/7)+1;
 }
 
 // Chart
-var chartCache={};
+let chartCache={};
 function invalidateChartCache(){chartCache={};}
 function drawChart(day,maxWeeks){
-  var dd=allData[day]||[];
-  var cHash=dd.length;for(var ci=0;ci<dd.length;ci++){cHash=(cHash*31+(dd[ci].date||'').length)&0x7fffffff;var ex=dd[ci].exercises;if(ex)for(var ek in ex)for(var ei=0;ei<ex[ek].length;ei++){cHash=(cHash*31+(Number(ex[ek][ei].kg)||0)*100+(Number(ex[ek][ei].reps)||0))&0x7fffffff;}}
-  var cKey=day+"|"+maxWeeks+"|"+cHash;
+  let dd=allData[day]||[];
+  let cHash=dd.length;for(let ci=0;ci<dd.length;ci++){cHash=(cHash*31+(dd[ci].date||'').length)&0x7fffffff;let ex=dd[ci].exercises;if(ex)for(let ek in ex)for(let ei=0;ei<ex[ek].length;ei++){cHash=(cHash*31+(Number(ex[ek][ei].kg)||0)*100+(Number(ex[ek][ei].reps)||0))&0x7fffffff;}}
+  let cKey=day+"|"+maxWeeks+"|"+cHash;
   if(chartCache[cKey])return chartCache[cKey];
-  var info=PLAN[day];
+  let info=PLAN[day];
   if(!info)return'<p class="no-data">Tag nicht im aktuellen Plan</p>';
-  var sessions=(allData[day]||[]).slice().sort(function(a,b){return a.date>b.date?1:-1;});
+  let sessions=(allData[day]||[]).slice().sort((a,b)=>{return a.date>b.date?1:-1;});
   if(sessions.length===0)return'<p class="no-data">Noch keine Daten</p>';
   if(maxWeeks>0){
-    var cutoff=new Date();cutoff.setDate(cutoff.getDate()-maxWeeks*7);
-    var cutStr=cutoff.toISOString().split("T")[0];
-    sessions=sessions.filter(function(s){return s.date>=cutStr;});
+    let cutoff=new Date();cutoff.setDate(cutoff.getDate()-maxWeeks*7);
+    let cutStr=cutoff.toISOString().split("T")[0];
+    sessions=sessions.filter((s)=>{return s.date>=cutStr;});
     if(sessions.length===0)return'<p class="no-data">Keine Daten im gewählten Zeitraum</p>';
   }
-  var kwMap={};
-  sessions.forEach(function(s){
-    var kw="KW"+getKW(s.date);
+  let kwMap={};
+  sessions.forEach((s)=>{
+    let kw="KW"+getKW(s.date);
     if(!kwMap[kw])kwMap[kw]={};
-    info.exercises.forEach(function(ex){
-      var v=s.exercises&&s.exercises[ex]?vol(s.exercises[ex]):0;
+    info.exercises.forEach((ex)=>{
+      let v=s.exercises&&s.exercises[ex]?vol(s.exercises[ex]):0;
       if(v>0){if(!kwMap[kw][ex]||v>kwMap[kw][ex])kwMap[kw][ex]=v;}
     });
   });
-  var kwKeys=Object.keys(kwMap);
-  var data=kwKeys.map(function(kw){var pt={name:kw};info.exercises.forEach(function(ex){pt[ex]=kwMap[kw][ex]||0;});return pt;});
-  var W=340,H=200,pl=45,pt2=20,pr=10,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
-  var allV=[];data.forEach(function(p){info.exercises.forEach(function(ex){if(p[ex])allV.push(p[ex]);});});
-  var maxV=Math.max.apply(null,allV)||1;
+  let kwKeys=Object.keys(kwMap);
+  let data=kwKeys.map((kw)=>{let pt={name:kw};info.exercises.forEach((ex)=>{pt[ex]=kwMap[kw][ex]||0;});return pt;});
+  let W=340,H=200,pl=45,pt2=20,pr=10,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
+  let allV=[];data.forEach((p)=>{info.exercises.forEach((ex)=>{if(p[ex])allV.push(p[ex]);});});
+  let maxV=Math.max.apply(null,allV)||1;
   function x(i){return pl+(data.length===1?cw/2:(i/(data.length-1))*cw);}
   function y(v){return pt2+ch-(v/maxV)*ch;}
 
-  var svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="max-width:'+W+'px">';
-  for(var g=0;g<=4;g++){var gv2=g/4*maxV,gy=y(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+Math.round(gv2)+'</text>';}
-  data.forEach(function(p,i){svg+='<text x="'+x(i)+'" y="'+(H-5)+'" fill="#64748B" font-size="9" text-anchor="middle">'+p.name+'</text>';});
-  info.exercises.forEach(function(ex,ei){
-    var pts=[];data.forEach(function(p,i){if(p[ex])pts.push({x:x(i),y:y(p[ex])});});
+  let svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="max-width:'+W+'px">';
+  for(let g=0;g<=4;g++){let gv2=g/4*maxV,gy=y(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+Math.round(gv2)+'</text>';}
+  data.forEach((p,i)=>{svg+='<text x="'+x(i)+'" y="'+(H-5)+'" fill="#64748B" font-size="9" text-anchor="middle">'+p.name+'</text>';});
+  info.exercises.forEach((ex,ei)=>{
+    let pts=[];data.forEach((p,i)=>{if(p[ex])pts.push({x:x(i),y:y(p[ex])});});
     if(pts.length<1)return;
-    var d=pts.map(function(p,i){return(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
+    let d=pts.map((p,i)=>{return(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
     svg+='<path d="'+d+'" fill="none" stroke="'+CC[ei%CC.length]+'" stroke-width="2" stroke-linejoin="round"/>';
-    pts.forEach(function(p){svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="'+CC[ei%CC.length]+'"/>';});
+    pts.forEach((p)=>{svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="'+CC[ei%CC.length]+'"/>';});
   });
   svg+='</svg>';
   svg+='<div class="c-legend">';
-  info.exercises.forEach(function(ex,i){svg+='<span><span class="dot" style="background:'+CC[i%CC.length]+'"></span>'+esc(ex)+'</span>';});
+  info.exercises.forEach((ex,i)=>{svg+='<span><span class="dot" style="background:'+CC[i%CC.length]+'"></span>'+esc(ex)+'</span>';});
   svg+='</div>';
   chartCache[cKey]=svg;
   return svg;
@@ -777,28 +812,28 @@ function renderLoading(){
   return '<div class="load-wrap"><div class="spinner"></div><div class="load-txt">Laden …</div></div>';
 }
 function renderAuth(){
-  var isLogin=state.authView==="login";
-  var title=isLogin?"Anmelden":"Registrieren";
-  var toggle=isLogin?'Noch kein Konto? <button data-action="auth-switch">Registrieren</button>':'Bereits registriert? <button data-action="auth-switch">Anmelden</button>';
-  var h='<div class="auth-wrap"><div class="auth-card">';
+  let isLogin=state.authView==="login";
+  let title=isLogin?"Anmelden":"Registrieren";
+  let toggle=isLogin?'Noch kein Konto? <button data-action="auth-switch">Registrieren</button>':'Bereits registriert? <button data-action="auth-switch">Anmelden</button>';
+  let h='<div class="auth-wrap"><div class="auth-card">';
   h+='<h1>Pau<span>log</span></h1><p class="auth-sub">Trainingstracker</p>';
   h+='<form id="auth-form">';
-  h+='<div class="auth-field"><label>E-Mail</label><input class="auth-inp" type="email" id="auth-email" required autocomplete="email"></div>';
-  h+='<div class="auth-field"><label>Passwort</label><input class="auth-inp" type="password" id="auth-pw" required minlength="6" autocomplete="current-password"></div>';
+  h+='<div class="auth-field"><label for="auth-email">E-Mail</label><input class="auth-inp" type="email" id="auth-email" required autocomplete="email"></div>';
+  h+='<div class="auth-field"><label for="auth-pw">Passwort</label><input class="auth-inp" type="password" id="auth-pw" required minlength="6" autocomplete="current-password"></div>';
   h+='<button class="auth-btn" type="submit"'+(state.authLoading?' disabled':'')+'>'+title+'</button>';
   h+='</form>';
-  h+='<div class="auth-err">'+(state.authError||'')+'</div>';
-  h+='<div class="auth-msg">'+(state.authMsg||'')+'</div>';
+  h+='<div class="auth-err">'+esc(state.authError||'')+'</div>';
+  h+='<div class="auth-msg">'+esc(state.authMsg||'')+'</div>';
   h+='<div class="auth-toggle">'+toggle+'</div>';
   h+='</div></div>';
   return h;
 }
 function renderMigrate(){
-  var d=state.migrationData||{};
-  var sessCount=0;
-  for(var k in d){if(d[k])sessCount+=d[k].length;}
-  var dayCount=Object.keys(d).length;
-  var h='<div class="mig-card">';
+  let d=state.migrationData||{};
+  let sessCount=0;
+  for(let k in d){if(d[k])sessCount+=d[k].length;}
+  let dayCount=Object.keys(d).length;
+  let h='<div class="mig-card">';
   h+='<h2>Lokale Daten gefunden</h2>';
   h+='<p>Du hast Trainingsdaten auf diesem Gerät. Sollen sie in dein Konto übernommen werden?</p>';
   h+='<div class="mig-stats">';
@@ -812,10 +847,21 @@ function renderMigrate(){
   return h;
 }
 
+let lastView=null;
 function render(){
-  var el=document.getElementById("app");
-  var v=state.view;
-  var offlineBar=!isOnline?'<div class="offline-bar">Offline – Daten werden lokal gespeichert</div>':'';
+  let el=document.getElementById("app");
+  let v=state.view;
+  let offlineBar=!isOnline?'<div class="offline-bar" role="alert">Offline – Daten werden lokal gespeichert</div>':'';
+
+  // Save scroll and focus state before re-render
+  let scrollY=window.scrollY;
+  let activeEl=document.activeElement;
+  let focusId=activeEl?activeEl.id:'';
+  let focusAction=activeEl?activeEl.getAttribute('data-action'):'';
+  let focusEx=activeEl?activeEl.getAttribute('data-ex'):'';
+  let focusSi=activeEl?activeEl.getAttribute('data-si'):'';
+  let focusField=activeEl?activeEl.getAttribute('data-field'):'';
+  let focusSelStart=activeEl&&activeEl.selectionStart!==undefined?activeEl.selectionStart:null;
 
   if(v==="loading") el.innerHTML=renderLoading();
   else if(v==="auth") el.innerHTML=offlineBar+renderAuth();
@@ -830,18 +876,38 @@ function render(){
   else if(v==="editday") el.innerHTML=offlineBar+renderEditDay();
 
   bindEvents();
+
+  // Restore focus after re-render
+  let viewChanged=lastView!==v;
+  lastView=v;
+  let restored=false;
+  if(!viewChanged&&(focusId||focusAction)){
+    let newFocus=null;
+    if(focusId)newFocus=document.getElementById(focusId);
+    if(!newFocus&&focusAction==='set-val'&&focusEx&&focusSi&&focusField){
+      newFocus=el.querySelector('[data-action="set-val"][data-ex="'+focusEx+'"][data-si="'+focusSi+'"][data-field="'+focusField+'"]');
+    }
+    if(newFocus){newFocus.focus({preventScroll:true});if(focusSelStart!==null){try{newFocus.setSelectionRange(focusSelStart,focusSelStart);}catch(e){}}restored=true;}
+  }
+  // Restore scroll position within same view
+  if(!viewChanged)window.scrollTo(0,scrollY);
+  // Focus management on view change: focus first heading
+  if(viewChanged&&!restored){
+    let focusTarget=el.querySelector('h1,h2,[autofocus]');
+    if(focusTarget){focusTarget.setAttribute('tabindex','-1');focusTarget.focus({preventScroll:true});}
+  }
 }
 
 function renderHome(){
-  var sug=sugDay(),ts=totalSess(),pbs=getPB(),pbCount=Object.keys(pbs).length;
-  var email=currentUser?currentUser.email:'';
-  var h='<div class="hdr"><h1>Pau<span>log</span></h1><p>Trainingstracker</p></div>';
+  let sug=sugDay(),ts=totalSess(),pbs=getPB(),pbCount=Object.keys(pbs).length;
+  let email=currentUser?currentUser.email:'';
+  let h='<div class="hdr"><h1>Pau<span>log</span></h1><p>Trainingstracker</p></div>';
   h+='<div class="user-bar"><span class="email">'+esc(email)+'</span><button class="logout-btn" data-action="logout">Abmelden</button></div>';
   h+='<div class="stats"><div class="stat"><span class="stat-n">'+ts+'</span><span class="stat-l">Sessions</span></div><div class="stat-div"></div><div class="stat"><span class="stat-n">'+pbCount+'</span><span class="stat-l">Übungen</span></div></div>';
   h+='<div class="sec"><h2 class="sec-t">Training starten</h2>';
-  var dayKeys=getPlanDayKeys(PLAN);
-  for(var di=0;di<dayKeys.length;di++){
-    var day=dayKeys[di],info=PLAN[day],isSug=sug===day;
+  let dayKeys=getPlanDayKeys(PLAN);
+  for(let di=0;di<dayKeys.length;di++){
+    let day=dayKeys[di],info=PLAN[day],isSug=sug===day;
     h+='<button class="day-btn'+(isSug?' sug':'')+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
     h+='<div><div class="name">'+esc(day)+'</div><div class="musc">'+esc(info.muscles)+'</div></div>';
     h+='<div class="arr" style="color:'+info.color+'">→</div></button>';
@@ -857,33 +923,33 @@ function renderHome(){
 }
 
 function renderTrack(){
-  var info=PLAN[state.day],isEd=!!state.editing;
+  let info=PLAN[state.day],isEd=!!state.editing;
   if(!info){state.view="home";return renderHome();}
-  var numSets=getDaySets(PLAN,state.day);
-  var h='<div class="t-hdr" style="border-bottom:3px solid '+info.color+'">';
-  h+='<button class="back" data-action="go" data-view="'+(isEd?'history':'home')+'">←</button>';
+  let numSets=getDaySets(PLAN,state.day);
+  let h='<div class="t-hdr" style="border-bottom:3px solid '+info.color+'">';
+  h+='<button class="back" data-action="go" data-view="'+(isEd?'history':'home')+'" aria-label="Zurück">←</button>';
   h+='<div><h2>'+(isEd?'Session bearbeiten':esc(state.day))+'</h2><p class="sub">'+esc(info.muscles)+'</p></div>';
   h+='<input type="date" class="din" value="'+state.date+'" data-action="set-date"></div>';
   h+='<div class="e-list">';
-  info.exercises.forEach(function(ex){
-    var isX=state.expanded===ex,prev=getPrev(state.day,ex);
-    var sets=state.session[ex]||[];
-    var unit=getExUnit(state.day,ex);
-    var unitLabel=unit==="sek"?"sek.":"kg";
-    var cv=vol(sets),pv=prev?vol(prev):0,hd=cv>0&&pv>0,delta=hd?Math.round(((cv-pv)/pv)*100):0;
-    h+='<div class="e-card"><button class="e-hdr" style="border-left:3px solid '+info.color+'" data-action="toggle-ex" data-ex="'+esc(ex)+'">';
+  info.exercises.forEach((ex)=>{
+    let isX=state.expanded===ex,prev=getPrev(state.day,ex);
+    let sets=state.session[ex]||[];
+    let unit=getExUnit(state.day,ex);
+    let unitLabel=unit==="sek"?"sek.":"kg";
+    let cv=vol(sets),pv=prev?vol(prev):0,hd=cv>0&&pv>0,delta=hd?Math.round(((cv-pv)/pv)*100):0;
+    h+='<div class="e-card"><button class="e-hdr" style="border-left:3px solid '+info.color+'" data-action="toggle-ex" data-ex="'+esc(ex)+'" aria-expanded="'+isX+'" aria-label="'+esc(ex)+(isX?' zuklappen':' aufklappen')+'">';
     h+='<div><span class="e-name">'+esc(ex)+'</span>';
     if(cv>0){h+='<div class="e-vol">'+cv.toLocaleString()+' '+unitLabel;if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
     h+='</div><span class="e-icon">'+(isX?'▲':'▼')+'</span></button>';
     if(isX){
       h+='<div class="e-body">';
-      if(prev){h+='<div class="prev"><span class="prev-l">Letzte Session:</span><div class="prev-s">';prev.forEach(function(s){if(s.kg||s.reps)h+='<span>'+esc(s.kg)+unitLabel+'×'+esc(s.reps)+'</span>';});h+='</div></div>';}
+      if(prev){h+='<div class="prev"><span class="prev-l">Letzte Session:</span><div class="prev-s">';prev.forEach((s)=>{if(s.kg||s.reps)h+='<span>'+esc(s.kg)+unitLabel+'×'+esc(s.reps)+'</span>';});h+='</div></div>';}
       h+='<div class="s-grid"><div class="s-hdr"><span></span><span>'+unitLabel+'</span><span>Wdh</span></div>';
-      sets.forEach(function(set,i){
-        var phK=prev&&prev[i]?prev[i].kg||'—':'—';var phR=prev&&prev[i]?prev[i].reps||'—':'—';
+      sets.forEach((set,i)=>{
+        let phK=prev&&prev[i]?prev[i].kg||'—':'—';let phR=prev&&prev[i]?prev[i].reps||'—':'—';
         h+='<div class="s-row"><span class="s-num" style="background:'+info.color+'">'+(i+1)+'</span>';
-        h+='<div class="s-cell"><input type="number" inputmode="decimal" class="s-inp" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg">⊙</button></div>';
-        h+='<div class="s-cell"><input type="number" inputmode="numeric" class="s-inp" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps">⊙</button></div></div>';
+        h+='<div class="s-cell"><input type="number" inputmode="decimal" class="s-inp" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg" aria-label="Gewicht wählen">⊙</button></div>';
+        h+='<div class="s-cell"><input type="number" inputmode="numeric" class="s-inp" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps" aria-label="Wiederholungen wählen">⊙</button></div></div>';
       });
       h+='</div></div>';
     }
@@ -895,23 +961,23 @@ function renderTrack(){
 }
 
 function renderHistory(){
-  var sess=getAllSess(),grp={};
-  var limit=state.historyLimit;
-  var visible=sess.slice(0,limit);
-  visible.forEach(function(s){var m=s.date.slice(0,7);if(!grp[m])grp[m]=[];grp[m].push(s);});
-  var h='<div class="h-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>📋 Alle Sessions</h2><span class="h-cnt">'+sess.length+' gesamt</span></div>';
+  let sess=getAllSess(),grp={};
+  let limit=state.historyLimit;
+  let visible=sess.slice(0,limit);
+  visible.forEach((s)=>{let m=s.date.slice(0,7);if(!grp[m])grp[m]=[];grp[m].push(s);});
+  let h='<div class="h-hdr"><button class="back" data-action="go" data-view="home" aria-label="Zurück">←</button><h2>📋 Alle Sessions</h2><span class="h-cnt">'+sess.length+' gesamt</span></div>';
   if(sess.length===0){h+='<div class="empty"><p class="ico">🏋️</p><p class="txt">Noch keine Sessions</p><p class="sub">Starte dein erstes Training!</p></div>';return h;}
-  for(var mo in grp){
-    var pts=mo.split("-");
+  for(let mo in grp){
+    let pts=mo.split("-");
     h+='<div class="mo-hdr"><span class="name">'+MN[parseInt(pts[1])-1]+' '+pts[0]+'</span><span class="cnt">'+grp[mo].length+' Sessions</span></div>';
-    grp[mo].forEach(function(s){
-      var inf=PLAN[s.day],color=inf?inf.color:'#64748B';
-      var isDel=state.delConfirm&&state.delConfirm.day===s.day&&state.delConfirm.date===s.date;
+    grp[mo].forEach((s)=>{
+      let inf=PLAN[s.day],color=inf?inf.color:'#64748B';
+      let isDel=state.delConfirm&&state.delConfirm.day===s.day&&state.delConfirm.date===s.date;
       h+='<div class="s-card"><div class="bar" style="background:'+color+'"></div><div class="cont">';
       h+='<div class="top"><div><div class="day">'+esc(s.day)+'</div><div class="date">'+fmtDate(s.date)+'</div></div>';
       h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' kg</span><span class="exc">'+s.exerciseCount+' Übungen</span></div></div>';
       h+='<div class="exs">';
-      for(var ex in s.exercises||{}){var v=vol(s.exercises[ex]);if(v===0)continue;var mk=0;s.exercises[ex].forEach(function(st){var kk=Number(st.kg)||0;if(kk>mk)mk=kk;});var eu=getExUnit(s.day,ex);var eul=eu==="sek"?"sek.":"kg";h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+eul+' · '+v.toLocaleString()+' '+eul+'</span></div>';}
+      for(let ex in s.exercises||{}){let v=vol(s.exercises[ex]);if(v===0)continue;let mk=0;s.exercises[ex].forEach((st)=>{let kk=Number(st.kg)||0;if(kk>mk)mk=kk;});let eu=getExUnit(s.day,ex);let eul=eu==="sek"?"sek.":"kg";h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+eul+' · '+v.toLocaleString()+' '+eul+'</span></div>';}
       h+='</div>';
       if(isDel){h+='<div class="dc-bar"><span class="dc-txt">Wirklich löschen?</span><button class="dc-yes" data-action="del-confirm" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">Ja</button><button class="dc-no" data-action="del-cancel">Nein</button></div>';}
       else{h+='<div class="acts"><button class="act-edit" data-action="edit" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">✏️ Bearbeiten</button><button class="act-del" data-action="del-ask" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">🗑 Löschen</button></div>';}
@@ -925,37 +991,37 @@ function renderHistory(){
 }
 
 function renderDash(){
-  var pbs=getPB();
-  var wk=state.dashWeeks;
-  var opts=[{v:0,l:"Alle"},{v:4,l:"4 Wo"},{v:8,l:"8 Wo"},{v:12,l:"12 Wo"},{v:24,l:"24 Wo"}];
-  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>📊 Dashboard</h2></div>';
+  let pbs=getPB();
+  let wk=state.dashWeeks;
+  let opts=[{v:0,l:"Alle"},{v:4,l:"4 Wo"},{v:8,l:"8 Wo"},{v:12,l:"12 Wo"},{v:24,l:"24 Wo"}];
+  let h='<div class="d-hdr"><button class="back" data-action="go" data-view="home" aria-label="Zurück">←</button><h2>📊 Dashboard</h2></div>';
   h+='<div class="d-filter"><span class="d-filter-l">Zeitraum:</span><div class="d-filter-opts">';
-  opts.forEach(function(o){h+='<button class="d-filter-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
+  opts.forEach((o)=>{h+='<button class="d-filter-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
   h+='</div></div>';
-  var dayKeys=getPlanDayKeys(PLAN);
-  for(var di=0;di<dayKeys.length;di++){
-    var day=dayKeys[di],info=PLAN[day];
+  let dayKeys=getPlanDayKeys(PLAN);
+  for(let di=0;di<dayKeys.length;di++){
+    let day=dayKeys[di],info=PLAN[day];
     h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Trainingsvolumen pro Kalenderwoche (kg × Wdh)</p><div class="c-wrap">'+drawChart(day,wk)+'</div></div>';
   }
   // Also show charts for days that have data but are no longer in the plan
-  for(var oldDay in allData){
+  for(let oldDay in allData){
     if(!PLAN[oldDay]&&allData[oldDay].length>0){
       h+='<div class="c-sec"><h3 style="color:#64748B">'+esc(oldDay)+' <span style="font-size:11px;color:#475569">(archiviert)</span></h3><p class="csub">Historische Daten</p><div class="c-wrap"><p class="no-data">Tag nicht mehr im aktiven Plan</p></div></div>';
     }
   }
-  var pbArr=[];for(var ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
-  pbArr.sort(function(a,b){return b[1]-a[1];});
+  let pbArr=[];for(let ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
+  pbArr.sort((a,b)=>{return b[1]-a[1];});
   if(pbArr.length>0){
     h+='<div class="pb-sec"><h3>🏆 Persönliche Bestleistungen</h3>';
-    pbArr.forEach(function(p){var pu=findExUnit(p[0]);var pul=pu==="sek"?"sek.":"kg";h+='<div class="pb-row"><div class="pb-left"><span class="ex">'+esc(p[0])+'</span><span class="pb-date">'+fmtDate(p[2])+'</span></div><span class="kg">'+p[1]+' '+pul+'</span></div>';});
+    pbArr.forEach((p)=>{let pu=findExUnit(p[0]);let pul=pu==="sek"?"sek.":"kg";h+='<div class="pb-row"><div class="pb-left"><span class="ex">'+esc(p[0])+'</span><span class="pb-date">'+fmtDate(p[2])+'</span></div><span class="kg">'+p[1]+' '+pul+'</span></div>';});
     h+='</div>';
   }
   return h;
 }
 
 function renderBackup(){
-  var lb=getLB(),bts=totalSess(),dayCount=getPlanDayKeys(PLAN).length;
-  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>💾 Backup & Restore</h2></div>';
+  let lb=getLB(),bts=totalSess(),dayCount=getPlanDayKeys(PLAN).length;
+  let h='<div class="d-hdr"><button class="back" data-action="go" data-view="home" aria-label="Zurück">←</button><h2>💾 Backup & Restore</h2></div>';
   h+='<div class="b-sec">';
 
   // === DATA EXPORT ===
@@ -972,7 +1038,7 @@ function renderBackup(){
   h+='<label class="b-ibtn">↑ Daten-Datei auswählen<input type="file" accept=".json" data-action="import-data-file" style="display:none"></label></div>';
 
   if(state.impStatus==="confirm-data"&&state.impData){
-    var ic=0;for(var k in state.impData)ic+=state.impData[k].length;
+    let ic=0;for(let k in state.impData)ic+=state.impData[k].length;
     h+='<div class="b-cnf"><h3>Import-Modus</h3><p>Datei enthält '+ic+' Sessions.</p>';
     h+='<button class="b-mrg" data-action="imp-merge">🔀 Zusammenführen<span class="b-bs">Bestehende behalten, neue hinzufügen</span></button>';
     h+='<button class="b-rpl" data-action="imp-replace">🔄 Ersetzen<span class="b-bs">Alle Sessions überschreiben</span></button>';
@@ -984,8 +1050,8 @@ function renderBackup(){
   h+='<label class="b-ibtn" style="border-color:#10B981;color:#6EE7B7">↑ Plan-Datei auswählen<input type="file" accept=".json" data-action="import-plan-file" style="display:none"></label></div>';
 
   if(state.impStatus==="confirm-plan"&&state.impPlan){
-    var pc=Object.keys(state.impPlan).length;
-    var exCount=0;for(var pk in state.impPlan)exCount+=state.impPlan[pk].exercises.length;
+    let pc=Object.keys(state.impPlan).length;
+    let exCount=0;for(let pk in state.impPlan)exCount+=state.impPlan[pk].exercises.length;
     h+='<div class="b-cnf"><h3>Plan importieren</h3><p>Datei enthält '+pc+' Tage mit '+exCount+' Übungen.</p>';
     h+='<button class="b-rpl" data-action="imp-plan-confirm">🔄 Plan übernehmen<span class="b-bs">Aktuellen Plan ersetzen</span></button>';
     h+='<button class="dc-no" data-action="imp-cancel">Abbrechen</button></div>';
@@ -1004,22 +1070,22 @@ function renderBackup(){
 
 // =========== SETTINGS VIEW ===========
 function renderSettings(){
-  var dayKeys=getPlanDayKeys(PLAN);
-  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>⚙️ Trainingsplan</h2></div>';
+  let dayKeys=getPlanDayKeys(PLAN);
+  let h='<div class="d-hdr"><button class="back" data-action="go" data-view="home" aria-label="Zurück">←</button><h2>⚙️ Trainingsplan</h2></div>';
   h+='<div class="set-sec">';
 
   // Day cards
-  for(var i=0;i<dayKeys.length;i++){
-    var day=dayKeys[i],info=PLAN[day],ns=getDaySets(PLAN,day);
+  for(let i=0;i<dayKeys.length;i++){
+    let day=dayKeys[i],info=PLAN[day],ns=getDaySets(PLAN,day);
     h+='<div class="set-card">';
     h+='<div class="sc-dot" style="background:'+info.color+'"></div>';
     h+='<div class="sc-info"><div class="sc-name">'+esc(day)+'</div><div class="sc-musc">'+esc(info.muscles)+'</div>';
     h+='<div class="sc-meta">'+info.exercises.length+' Übungen · '+ns+' Sätze</div></div>';
     h+='<div class="sc-acts">';
-    if(i>0)h+='<button class="sc-btn sc-btn-up" data-action="day-up" data-day="'+esc(day)+'" title="Hoch">↑</button>';
-    if(i<dayKeys.length-1)h+='<button class="sc-btn sc-btn-dn" data-action="day-down" data-day="'+esc(day)+'" title="Runter">↓</button>';
-    h+='<button class="sc-btn sc-btn-edit" data-action="edit-day" data-day="'+esc(day)+'" title="Bearbeiten">✏️</button>';
-    if(dayKeys.length>1)h+='<button class="sc-btn sc-btn-del" data-action="del-day" data-day="'+esc(day)+'" title="Löschen">✕</button>';
+    if(i>0)h+='<button class="sc-btn sc-btn-up" data-action="day-up" data-day="'+esc(day)+'" title="Hoch" aria-label="'+esc(day)+' nach oben">↑</button>';
+    if(i<dayKeys.length-1)h+='<button class="sc-btn sc-btn-dn" data-action="day-down" data-day="'+esc(day)+'" title="Runter" aria-label="'+esc(day)+' nach unten">↓</button>';
+    h+='<button class="sc-btn sc-btn-edit" data-action="edit-day" data-day="'+esc(day)+'" title="Bearbeiten" aria-label="'+esc(day)+' bearbeiten">✏️</button>';
+    if(dayKeys.length>1)h+='<button class="sc-btn sc-btn-del" data-action="del-day" data-day="'+esc(day)+'" title="Löschen" aria-label="'+esc(day)+' löschen">✕</button>';
     h+='</div></div>';
   }
 
@@ -1036,34 +1102,34 @@ function renderSettings(){
 // =========== ADMIN VIEW ===========
 async function loadAdminUsers(){
   state.adminLoading=true;render();
-  var{data,error}=await sb.rpc('admin_get_users');
+  let{data,error}=await sb.rpc('admin_get_users');
   if(error){alert('Fehler: '+error.message);state.adminLoading=false;render();return;}
   state.adminUsers=data;state.adminLoading=false;render();
 }
 
 async function adminSetPlan(userId,planData){
-  var{error}=await sb.rpc('admin_set_plan',{target_user_id:userId,new_plan:planData});
+  let{error}=await sb.rpc('admin_set_plan',{target_user_id:userId,new_plan:planData});
   if(error){alert('Fehler: '+error.message);return false;}
   return true;
 }
 async function adminGetUserSessions(userId){
-  var{data,error}=await sb.rpc('admin_get_user_sessions',{target_user_id:userId});
+  let{data,error}=await sb.rpc('admin_get_user_sessions',{target_user_id:userId});
   if(error){alert('Fehler: '+error.message);return null;}
   return data;
 }
 async function adminGetUserPlan(userId){
-  var{data,error}=await sb.rpc('admin_get_user_plan',{target_user_id:userId});
+  let{data,error}=await sb.rpc('admin_get_user_plan',{target_user_id:userId});
   if(error){alert('Fehler: '+error.message);return null;}
   return data;
 }
 async function adminImportUserSessions(userId,sessionsData){
-  var{error}=await sb.rpc('admin_import_user_sessions',{target_user_id:userId,sessions_data:sessionsData});
+  let{error}=await sb.rpc('admin_import_user_sessions',{target_user_id:userId,sessions_data:sessionsData});
   if(error){alert('Fehler: '+error.message);return false;}
   return true;
 }
 
 function renderAdmin(){
-  var h='<div class="d-hdr"><button class="back" data-action="go" data-view="home">←</button><h2>🔑 Admin-Panel</h2></div>';
+  let h='<div class="d-hdr"><button class="back" data-action="go" data-view="home" aria-label="Zurück">←</button><h2>🔑 Admin-Panel</h2></div>';
 
   if(state.adminLoading){
     h+='<div class="load-wrap" style="min-height:200px"><div class="spinner"></div></div>';
@@ -1077,11 +1143,11 @@ function renderAdmin(){
 
   // User list
   h+='<div class="adm-sec"><h3 class="sec-t">Registrierte Nutzer ('+state.adminUsers.length+')</h3>';
-  for(var i=0;i<state.adminUsers.length;i++){
-    var u=state.adminUsers[i];
-    var d=new Date(u.created_at);
-    var dateStr=d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();
-    var isSel=state.adminSelectedUser&&state.adminSelectedUser===u.id;
+  for(let i=0;i<state.adminUsers.length;i++){
+    let u=state.adminUsers[i];
+    let d=new Date(u.created_at);
+    let dateStr=d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();
+    let isSel=state.adminSelectedUser&&state.adminSelectedUser===u.id;
     h+='<div class="adm-user'+(isSel?' adm-sel':'')+'" data-action="admin-select" data-uid="'+u.id+'">';
     h+='<div class="adm-email">'+esc(u.email)+'</div>';
     h+='<div class="adm-meta">Registriert: '+dateStr+' · Sessions: '+u.session_count+'</div>';
@@ -1091,8 +1157,8 @@ function renderAdmin(){
 
   // Plan upload for selected user
   if(state.adminSelectedUser){
-    var selUser=null;
-    for(var j=0;j<state.adminUsers.length;j++){if(state.adminUsers[j].id===state.adminSelectedUser)selUser=state.adminUsers[j];}
+    let selUser=null;
+    for(let j=0;j<state.adminUsers.length;j++){if(state.adminUsers[j].id===state.adminSelectedUser)selUser=state.adminUsers[j];}
     h+='<div class="adm-sec"><h3 class="sec-t">'+esc(selUser?selUser.email:'')+'</h3>';
     h+='<div class="adm-plan-opts">';
     h+='<button class="sec-btn" data-action="admin-export-plan">⬆️ Plan exportieren</button>';
@@ -1105,10 +1171,10 @@ function renderAdmin(){
     if(state.adminPlanJSON){
       h+='<div class="adm-preview"><div class="adm-preview-label">Plan-Vorschau:</div>';
       try{
-        var pp=JSON.parse(state.adminPlanJSON);
-        var keys=Object.keys(pp);
-        for(var k=0;k<keys.length;k++){
-          var dk=keys[k],di=pp[dk];
+        let pp=JSON.parse(state.adminPlanJSON);
+        let keys=Object.keys(pp);
+        for(let k=0;k<keys.length;k++){
+          let dk=keys[k],di=pp[dk];
           h+='<div class="adm-plan-day"><strong>'+esc(dk)+'</strong> — '+esc(di.muscles||'')+'<br><span class="adm-exlist">'+((di.exercises||[]).map(esc).join(', '))+'</span></div>';
         }
       }catch(e){h+='<div style="color:#F87171">Ungültiges JSON</div>';}
@@ -1124,29 +1190,29 @@ function renderAdmin(){
 
 // =========== EDIT DAY VIEW ===========
 function renderEditDay(){
-  var d=state.editDayData;
+  let d=state.editDayData;
   if(!d){state.view="settings";return renderSettings();}
-  var h='<div class="d-hdr" style="border-bottom:3px solid '+d.color+'">';
-  h+='<button class="back" data-action="cancel-edit-day">←</button>';
+  let h='<div class="d-hdr" style="border-bottom:3px solid '+d.color+'">';
+  h+='<button class="back" data-action="cancel-edit-day" aria-label="Zurück">←</button>';
   h+='<h2>'+(state.editDay?'Tag bearbeiten':'Neuer Tag')+'</h2></div>';
   h+='<div class="ed-sec">';
 
   // Name
-  h+='<div class="ed-field"><label>Name</label>';
+  h+='<div class="ed-field"><label for="ed-name">Name</label>';
   h+='<input type="text" id="ed-name" value="'+esc(d.name)+'" placeholder="z.B. Push, Pull, Oberkörper…"></div>';
 
   // Muscles
-  h+='<div class="ed-field"><label>Muskelgruppen</label>';
+  h+='<div class="ed-field"><label for="ed-muscles">Muskelgruppen</label>';
   h+='<input type="text" id="ed-muscles" value="'+esc(d.muscles)+'" placeholder="z.B. Brust / Schultern / Trizeps"></div>';
 
   // Sets
-  h+='<div class="ed-field"><label>Sätze pro Übung</label>';
+  h+='<div class="ed-field"><label for="ed-sets">Sätze pro Übung</label>';
   h+='<input type="number" id="ed-sets" value="'+d.sets+'" min="1" max="10" inputmode="numeric"></div>';
 
   // Color
   h+='<div class="ed-field"><label>Farbe</label><div class="ed-colors">';
-  for(var ci=0;ci<PALETTE.length;ci++){
-    var c=PALETTE[ci];
+  for(let ci=0;ci<PALETTE.length;ci++){
+    let c=PALETTE[ci];
     h+='<div class="ed-color'+(d.color===c?' active':'')+'" style="background:'+c+'" data-action="set-color" data-color="'+c+'"></div>';
   }
   h+='</div></div>';
@@ -1154,30 +1220,31 @@ function renderEditDay(){
   // Exercises
   h+='<div class="ed-field"><label>Übungen ('+d.exercises.length+')</label>';
   h+='<div class="ed-exlist">';
-  for(var ei=0;ei<d.exercises.length;ei++){
-    var ex=d.exercises[ei];
-    var exUnit=(d.units&&d.units[ex])||"kg";
+  for(let ei=0;ei<d.exercises.length;ei++){
+    let ex=d.exercises[ei];
+    let exUnit=(d.units&&d.units[ex])||"kg";
     h+='<div class="ed-exitem">';
     h+='<span class="ex-name">'+esc(ex)+'</span>';
     h+='<button class="ex-btn ex-btn-unit '+(exUnit==="sek"?"is-sek":"is-kg")+'" data-action="toggle-unit" data-idx="'+ei+'">'+(exUnit==="sek"?"sek.":"kg")+'</button>';
-    if(ei>0)h+='<button class="ex-btn ex-btn-up" data-action="ex-up" data-idx="'+ei+'">↑</button>';
-    if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'">↓</button>';
-    h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'">✕</button>';
+    if(ei>0)h+='<button class="ex-btn ex-btn-up" data-action="ex-up" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach oben">↑</button>';
+    if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
+    h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'" aria-label="'+esc(ex)+' entfernen">✕</button>';
     h+='</div>';
   }
   h+='</div>';
 
-  // Add from catalog (grouped by muscle group)
-  var usedSet={};d.exercises.forEach(function(e){usedSet[e]=true;});
-  var hasAvailable=false;
-  EXERCISE_GROUPS.forEach(function(g){g.exercises.forEach(function(e){if(!usedSet[e])hasAvailable=true;});});
+  // Add from catalog (grouped by muscle group, including custom exercises)
+  let usedSet={};d.exercises.forEach((e)=>{usedSet[e]=true;});
+  let fullGroups=getFullExerciseGroups();
+  let hasAvailable=false;
+  fullGroups.forEach((g)=>{g.exercises.forEach((e)=>{if(!usedSet[e])hasAvailable=true;});});
   if(hasAvailable){
     h+='<div class="ed-addex"><select id="ed-catalog"><option value="">— Übung aus Katalog wählen —</option>';
-    EXERCISE_GROUPS.forEach(function(g){
-      var avail=g.exercises.filter(function(e){return !usedSet[e];});
+    fullGroups.forEach((g)=>{
+      let avail=g.exercises.filter((e)=>{return !usedSet[e];});
       if(avail.length>0){
         h+='<optgroup label="'+esc(g.group)+'">';
-        avail.forEach(function(e){h+='<option value="'+esc(e)+'">'+esc(e)+'</option>';});
+        avail.forEach((e)=>{h+='<option value="'+esc(e)+'">'+esc(e)+'</option>';});
         h+='</optgroup>';
       }
     });
@@ -1200,21 +1267,21 @@ function renderEditDay(){
 
 // =========== EVENT HANDLING ===========
 function bindEvents(){
-  var app=document.getElementById("app");
+  let app=document.getElementById("app");
   // Auth form submit
-  var authForm=document.getElementById("auth-form");
+  let authForm=document.getElementById("auth-form");
   if(authForm){
-    authForm.onsubmit=function(e){e.preventDefault();handleAuthSubmit();};
+    authForm.onsubmit=(e)=>{e.preventDefault();handleAuthSubmit();};
   }
   // Admin file inputs
-  var adminFile=document.getElementById("admin-plan-file");
+  let adminFile=document.getElementById("admin-plan-file");
   if(adminFile){
-    adminFile.onchange=function(e){
-      var f=e.target.files[0];if(!f)return;
-      var reader=new FileReader();
-      reader.onload=function(ev){
+    adminFile.onchange=(e)=>{
+      let f=e.target.files[0];if(!f)return;
+      let reader=new FileReader();
+      reader.onload=(ev)=>{
         try{
-          var raw=JSON.parse(ev.target.result);
+          let raw=JSON.parse(ev.target.result);
           if(raw.app==="paulog"&&raw.plan){raw=raw.plan;}
           state.adminPlanJSON=JSON.stringify(raw);
         }catch(ex){state.adminPlanJSON=ev.target.result;}
@@ -1223,20 +1290,20 @@ function bindEvents(){
       reader.readAsText(f);
     };
   }
-  var sessFile=document.getElementById("admin-sessions-file");
+  let sessFile=document.getElementById("admin-sessions-file");
   if(sessFile){
-    sessFile.onchange=function(e){
-      var f=e.target.files[0];if(!f)return;
-      var reader=new FileReader();
-      reader.onload=function(ev){
+    sessFile.onchange=(e)=>{
+      let f=e.target.files[0];if(!f)return;
+      let reader=new FileReader();
+      reader.onload=(ev)=>{
         try{
-          var raw=JSON.parse(ev.target.result);
+          let raw=JSON.parse(ev.target.result);
           // Unwrap paulog export format: {app,type,data:{...}}
           if(raw.app==="paulog"&&raw.data){raw=raw.data;}
-          var sessCount=0;
-          for(var k in raw){if(raw[k])sessCount+=raw[k].length;}
+          let sessCount=0;
+          for(let k in raw){if(raw[k])sessCount+=raw[k].length;}
           if(!confirm('Fortschritt importieren: '+sessCount+' Sessions in '+Object.keys(raw).length+' Tagen?\n\nBestehende Sessions mit gleichem Datum werden überschrieben.')){return;}
-          adminImportUserSessions(state.adminSelectedUser,raw).then(function(ok){
+          adminImportUserSessions(state.adminSelectedUser,raw).then((ok)=>{
             if(ok){alert('Fortschritt erfolgreich importiert!');loadAdminUsers();}
           });
         }catch(ex){alert('Ungültige JSON-Datei');}
@@ -1244,10 +1311,10 @@ function bindEvents(){
       reader.readAsText(f);
     };
   }
-  app.onclick=function(e){
-    var t=e.target.closest("[data-action]");
+  app.onclick=(e)=>{
+    let t=e.target.closest("[data-action]");
     if(!t)return;
-    var a=t.getAttribute("data-action");
+    let a=t.getAttribute("data-action");
 
     if(a==="auth-switch"){
       state.authView=state.authView==="login"?"register":"login";
@@ -1260,27 +1327,53 @@ function bindEvents(){
     if(a==="go"){
       // Save draft if leaving track view with unsaved data
       if(state.view==="track"&&state.day&&!state.editing){
-        var hasData=false;
-        for(var sk in state.session){(state.session[sk]||[]).forEach(function(s){if(s.kg||s.reps)hasData=true;});}
+        let hasData=false;
+        for(let sk in state.session){(state.session[sk]||[]).forEach((s)=>{if(s.kg||s.reps)hasData=true;});}
         if(hasData)saveDraft();
       }
       state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;state.historyLimit=20;render();
     }
     else if(a==="start"){initSession(t.getAttribute("data-day"),null,null);state.view="track";render();}
-    else if(a==="toggle-ex"){var ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;if(state.expanded&&state.day)saveLastEx(state.day,state.expanded);render();}
+    else if(a==="toggle-ex"){let ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;if(state.expanded&&state.day)saveLastEx(state.day,state.expanded);render();}
     else if(a==="open-wp"){openWheelPicker(t.getAttribute("data-ex"),parseInt(t.getAttribute("data-si")),t.getAttribute("data-field"));}
     else if(a==="save"){saveSession();render();}
     else if(a==="edit"){
-      var day=t.getAttribute("data-day"),date=t.getAttribute("data-date");
-      var sess=(allData[day]||[]).find(function(s){return s.date===date;});
+      let day=t.getAttribute("data-day"),date=t.getAttribute("data-date");
+      let sess=(allData[day]||[]).find((s)=>{return s.date===date;});
       if(sess){state.editing={day:day,date:date};initSession(day,date,sess.exercises);state.view="track";render();}
     }
     else if(a==="del-ask"){state.delConfirm={day:t.getAttribute("data-day"),date:t.getAttribute("data-date")};render();}
     else if(a==="del-confirm"){
-      var dy=t.getAttribute("data-day"),dt=t.getAttribute("data-date");
-      allData[dy]=(allData[dy]||[]).filter(function(s){return s.date!==dt;});invalidatePrevCache();invalidateChartCache();
+      let dy=t.getAttribute("data-day"),dt=t.getAttribute("data-date");
+      // Soft-delete: remove from view but keep backup for undo
+      let deletedSession=null;
+      let arr=allData[dy]||[];
+      for(let si=0;si<arr.length;si++){if(arr[si].date===dt){deletedSession=JSON.parse(JSON.stringify(arr[si]));break;}}
+      allData[dy]=arr.filter((s)=>{return s.date!==dt;});invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
       if(allData[dy].length===0)delete allData[dy];
-      deleteSessionFromDB(dy,dt).catch(function(){showToast("Löschen fehlgeschlagen",true);});state.delConfirm=null;render();
+      state.delConfirm=null;render();
+      // Show undo toast
+      ((delDay,delDate,delSess)=>{
+        let undone=false;
+        let undoTimer=setTimeout(()=>{
+          if(!undone)deleteSessionFromDB(delDay,delDate).catch(()=>{showToast("Löschen fehlgeschlagen",true);});
+        },5000);
+        let el=document.createElement("div");
+        el.className="toast toast-undo";
+        el.setAttribute("role","status");
+        el.innerHTML='<span>Session gelöscht</span><button class="undo-btn">Rückgängig</button>';
+        el.querySelector(".undo-btn").onclick=()=>{
+          undone=true;clearTimeout(undoTimer);el.remove();
+          if(!allData[delDay])allData[delDay]=[];
+          allData[delDay].push(delSess);
+          allData[delDay].sort((a,b)=>{return a.date>b.date?1:-1;});
+          invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
+          idbPut('sessions',allData);
+          render();showToast("Session wiederhergestellt");
+        };
+        document.body.appendChild(el);
+        setTimeout(()=>{if(el.parentNode)el.remove();},5500);
+      })(dy,dt,deletedSession);
     }
     else if(a==="del-cancel"){state.delConfirm=null;render();}
     else if(a==="export-data"){exportData();state.showRem=false;render();}
@@ -1292,31 +1385,31 @@ function bindEvents(){
     else if(a==="clear-cache"){
       if(!confirm("App-Cache leeren und Seite neu laden?"))return;
       Promise.all([
-        caches.keys().then(function(keys){return Promise.all(keys.map(function(k){return caches.delete(k);}));}),
-        navigator.serviceWorker?navigator.serviceWorker.getRegistrations().then(function(regs){return Promise.all(regs.map(function(r){return r.unregister();}));}):Promise.resolve()
-      ]).then(function(){window.location.reload(true);}).catch(function(){window.location.reload(true);});
+        caches.keys().then((keys)=>{return Promise.all(keys.map((k)=>{return caches.delete(k);}));}),
+        navigator.serviceWorker?navigator.serviceWorker.getRegistrations().then((regs)=>{return Promise.all(regs.map((r)=>{return r.unregister();}));}):Promise.resolve()
+      ]).then(()=>{window.location.reload(true);}).catch(()=>{window.location.reload(true);});
     }
     else if(a==="imp-merge"){doImport("merge");}
     else if(a==="imp-replace"){doImport("replace");}
     else if(a==="imp-plan-confirm"){
       if(state.impPlan){PLAN=state.impPlan;savePlan(PLAN);}
       state.impPlan=null;state.impStatus="success";render();
-      setTimeout(function(){state.impStatus=null;render();},3000);
+      setTimeout(()=>{state.impStatus=null;render();},3000);
     }
     else if(a==="imp-cancel"){state.impStatus=null;state.impData=null;state.impPlan=null;render();}
 
     // ===== ADMIN ACTIONS =====
     else if(a==="admin-load"){loadAdminUsers();}
     else if(a==="admin-select"){
-      var uid=t.getAttribute("data-uid");
+      let uid=t.getAttribute("data-uid");
       state.adminSelectedUser=state.adminSelectedUser===uid?null:uid;
       state.adminPlanJSON="";render();
     }
     else if(a==="admin-send-plan"){
       if(!state.adminSelectedUser||!state.adminPlanJSON)return;
       try{
-        var planObj=JSON.parse(state.adminPlanJSON);
-        adminSetPlan(state.adminSelectedUser,planObj).then(function(ok){
+        let planObj=JSON.parse(state.adminPlanJSON);
+        adminSetPlan(state.adminSelectedUser,planObj).then((ok)=>{
           if(ok){alert('Plan erfolgreich zugewiesen!');state.adminPlanJSON="";render();}
         });
       }catch(e){alert('Ungültiges JSON');}
@@ -1324,28 +1417,28 @@ function bindEvents(){
     else if(a==="admin-cancel-plan"){state.adminPlanJSON="";render();}
     else if(a==="admin-export-plan"){
       if(!state.adminSelectedUser)return;
-      var su=null;for(var ai=0;ai<state.adminUsers.length;ai++){if(state.adminUsers[ai].id===state.adminSelectedUser)su=state.adminUsers[ai];}
-      adminGetUserPlan(state.adminSelectedUser).then(function(p){
+      let su=null;for(let ai=0;ai<state.adminUsers.length;ai++){if(state.adminUsers[ai].id===state.adminSelectedUser)su=state.adminUsers[ai];}
+      adminGetUserPlan(state.adminSelectedUser).then((p)=>{
         if(!p){alert('Kein Plan vorhanden');return;}
-        var name=su?su.email.split('@')[0]:'user';
+        let name=su?su.email.split('@')[0]:'user';
         downloadJSON('paulog-plan-'+name+'-'+today()+'.json',{app:"paulog",type:"plan",version:2,exported:new Date().toISOString(),plan:p});
       });
     }
     else if(a==="admin-export-sessions"){
       if(!state.adminSelectedUser)return;
-      var su2=null;for(var ai2=0;ai2<state.adminUsers.length;ai2++){if(state.adminUsers[ai2].id===state.adminSelectedUser)su2=state.adminUsers[ai2];}
-      adminGetUserSessions(state.adminSelectedUser).then(function(s){
+      let su2=null;for(let ai2=0;ai2<state.adminUsers.length;ai2++){if(state.adminUsers[ai2].id===state.adminSelectedUser)su2=state.adminUsers[ai2];}
+      adminGetUserSessions(state.adminSelectedUser).then((s)=>{
         if(!s||Object.keys(s).length===0){alert('Keine Sessions vorhanden');return;}
-        var name2=su2?su2.email.split('@')[0]:'user';
+        let name2=su2?su2.email.split('@')[0]:'user';
         downloadJSON('paulog-daten-'+name2+'-'+today()+'.json',{app:"paulog",type:"data",version:2,exported:new Date().toISOString(),data:s});
       });
     }
 
     // ===== SETTINGS ACTIONS =====
     else if(a==="edit-day"){
-      var dn=t.getAttribute("data-day");
+      let dn=t.getAttribute("data-day");
       state.editDay=dn;
-      var inf=PLAN[dn];
+      let inf=PLAN[dn];
       state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice(),units:JSON.parse(JSON.stringify(inf.units||{}))};
       state.customExInput="";
       state.view="editday";render();
@@ -1357,10 +1450,10 @@ function bindEvents(){
       state.view="editday";render();
     }
     else if(a==="del-day"){
-      var ddn=t.getAttribute("data-day");
+      let ddn=t.getAttribute("data-day");
       if(confirm('Trainingstag "'+ddn+'" wirklich löschen?\n\nBestehende Session-Daten bleiben erhalten.')){
-        var newPlan={};
-        for(var k in PLAN){if(k!==ddn)newPlan[k]=PLAN[k];}
+        let newPlan={};
+        for(let k in PLAN){if(k!==ddn)newPlan[k]=PLAN[k];}
         PLAN=newPlan;savePlan(PLAN);render();
       }
     }
@@ -1377,32 +1470,32 @@ function bindEvents(){
       if(state.editDayData){state.editDayData.color=t.getAttribute("data-color");render();}
     }
     else if(a==="ex-up"){
-      var idx=parseInt(t.getAttribute("data-idx"));
+      let idx=parseInt(t.getAttribute("data-idx"));
       if(state.editDayData&&idx>0){
-        var arr=state.editDayData.exercises;
-        var tmp=arr[idx];arr[idx]=arr[idx-1];arr[idx-1]=tmp;render();
+        let arr=state.editDayData.exercises;
+        let tmp=arr[idx];arr[idx]=arr[idx-1];arr[idx-1]=tmp;render();
       }
     }
     else if(a==="ex-down"){
-      var idx2=parseInt(t.getAttribute("data-idx"));
+      let idx2=parseInt(t.getAttribute("data-idx"));
       if(state.editDayData&&idx2<state.editDayData.exercises.length-1){
-        var arr2=state.editDayData.exercises;
-        var tmp2=arr2[idx2];arr2[idx2]=arr2[idx2+1];arr2[idx2+1]=tmp2;render();
+        let arr2=state.editDayData.exercises;
+        let tmp2=arr2[idx2];arr2[idx2]=arr2[idx2+1];arr2[idx2+1]=tmp2;render();
       }
     }
     else if(a==="ex-del"){
-      var idx3=parseInt(t.getAttribute("data-idx"));
+      let idx3=parseInt(t.getAttribute("data-idx"));
       if(state.editDayData){
-        var delEx=state.editDayData.exercises[idx3];
+        let delEx=state.editDayData.exercises[idx3];
         state.editDayData.exercises.splice(idx3,1);
         if(state.editDayData.units)delete state.editDayData.units[delEx];
         render();
       }
     }
     else if(a==="toggle-unit"){
-      var tidx=parseInt(t.getAttribute("data-idx"));
+      let tidx=parseInt(t.getAttribute("data-idx"));
       if(state.editDayData){
-        var tex=state.editDayData.exercises[tidx];
+        let tex=state.editDayData.exercises[tidx];
         if(!state.editDayData.units)state.editDayData.units={};
         state.editDayData.units[tex]=(state.editDayData.units[tex]==="sek")?"kg":"sek";
         if(state.editDayData.units[tex]==="kg")delete state.editDayData.units[tex];
@@ -1410,9 +1503,9 @@ function bindEvents(){
       }
     }
     else if(a==="add-catalog-ex"){
-      var sel=document.getElementById("ed-catalog");
+      let sel=document.getElementById("ed-catalog");
       if(sel&&sel.value&&state.editDayData){
-        var newEx=sel.value;
+        let newEx=sel.value;
         state.editDayData.exercises.push(newEx);
         if(DEFAULT_SEK[newEx]){
           if(!state.editDayData.units)state.editDayData.units={};
@@ -1422,7 +1515,7 @@ function bindEvents(){
       }
     }
     else if(a==="add-custom-ex"){
-      var ci=document.getElementById("ed-custom-ex");
+      let ci=document.getElementById("ed-custom-ex");
       if(ci&&ci.value.trim()&&state.editDayData){
         state.editDayData.exercises.push(ci.value.trim());
         state.customExInput="";render();
@@ -1435,22 +1528,22 @@ function bindEvents(){
   };
 
   // Input changes (delegated)
-  app.oninput=function(e){
-    var t=e.target;
+  app.oninput=(e)=>{
+    let t=e.target;
     if(t.getAttribute("data-action")==="set-val"){
-      var ex=t.getAttribute("data-ex"),si=parseInt(t.getAttribute("data-si")),field=t.getAttribute("data-field");
+      let ex=t.getAttribute("data-ex"),si=parseInt(t.getAttribute("data-si")),field=t.getAttribute("data-field");
       if(state.session[ex]&&state.session[ex][si])state.session[ex][si][field]=t.value;
       if(state.day)saveLastEx(state.day,ex);
       saveDraft();
     }
     else if(t.getAttribute("data-action")==="set-date"){
       state.date=t.value;
-      var arr=allData[state.day]||[];
-      var existing=arr.find(function(s){return s.date===state.date;});
+      let arr=allData[state.day]||[];
+      let existing=arr.find((s)=>{return s.date===state.date;});
       if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
       else{
-        var se={};var numSets=getDaySets(PLAN,state.day);
-        if(PLAN[state.day]){PLAN[state.day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});}
+        let se={};let numSets=getDaySets(PLAN,state.day);
+        if(PLAN[state.day]){PLAN[state.day].exercises.forEach((e)=>{se[e]=[];for(let i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});}
         state.session=se;
       }
       render();
@@ -1460,45 +1553,45 @@ function bindEvents(){
   };
 
   // File input - Data import
-  var fiData=app.querySelector("[data-action='import-data-file']");
-  if(fiData)fiData.onchange=function(e){
-    var f=e.target.files&&e.target.files[0];if(!f)return;
-    var r=new FileReader();
-    r.onload=function(ev){
+  let fiData=app.querySelector("[data-action='import-data-file']");
+  if(fiData)fiData.onchange=(e)=>{
+    let f=e.target.files&&e.target.files[0];if(!f)return;
+    let r=new FileReader();
+    r.onload=(ev)=>{
       try{
-        var p=JSON.parse(ev.target.result);
-        var d=p.data||p;
+        let p=JSON.parse(ev.target.result);
+        let d=p.data||p;
         if(typeof d!=="object"||Array.isArray(d))throw 0;
-        if(p.type==="plan"){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);return;}
+        if(p.type==="plan"){state.impStatus="error";render();setTimeout(()=>{state.impStatus=null;render();},3000);return;}
         // Validate structure: each key must be an array of {date, exercises}
-        for(var dk in d){
+        for(let dk in d){
           if(!Array.isArray(d[dk]))throw 0;
-          for(var di=0;di<d[dk].length;di++){
-            var entry=d[dk][di];
+          for(let di=0;di<d[dk].length;di++){
+            let entry=d[dk][di];
             if(!entry||typeof entry.date!=="string"||!entry.date.match(/^\d{4}-\d{2}-\d{2}$/))throw 0;
             if(entry.exercises&&typeof entry.exercises!=="object")throw 0;
           }
         }
         state.impData=d;state.impStatus="confirm-data";render();
       }
-      catch(err){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);}
+      catch(err){state.impStatus="error";render();setTimeout(()=>{state.impStatus=null;render();},3000);}
     };
     r.readAsText(f);
   };
 
   // File input - Plan import
-  var fiPlan=app.querySelector("[data-action='import-plan-file']");
-  if(fiPlan)fiPlan.onchange=function(e){
-    var f=e.target.files&&e.target.files[0];if(!f)return;
-    var r=new FileReader();
-    r.onload=function(ev){
+  let fiPlan=app.querySelector("[data-action='import-plan-file']");
+  if(fiPlan)fiPlan.onchange=(e)=>{
+    let f=e.target.files&&e.target.files[0];if(!f)return;
+    let r=new FileReader();
+    r.onload=(ev)=>{
       try{
-        var p=JSON.parse(ev.target.result);
-        var plan=p.plan||null;
+        let p=JSON.parse(ev.target.result);
+        let plan=p.plan||null;
         if(!plan||typeof plan!=="object"||Object.keys(plan).length===0)throw 0;
         state.impPlan=plan;state.impStatus="confirm-plan";render();
       }
-      catch(err){state.impStatus="error";render();setTimeout(function(){state.impStatus=null;render();},3000);}
+      catch(err){state.impStatus="error";render();setTimeout(()=>{state.impStatus=null;render();},3000);}
     };
     r.readAsText(f);
   };
@@ -1506,25 +1599,25 @@ function bindEvents(){
 
 
 function movePlanDay(day,dir){
-  var keys=getPlanDayKeys(PLAN);
-  var idx=keys.indexOf(day);
+  let keys=getPlanDayKeys(PLAN);
+  let idx=keys.indexOf(day);
   if(idx<0)return;
-  var ni=idx+dir;
+  let ni=idx+dir;
   if(ni<0||ni>=keys.length)return;
-  var tmp=keys[idx];keys[idx]=keys[ni];keys[ni]=tmp;
-  var newPlan={};
-  for(var i=0;i<keys.length;i++)newPlan[keys[i]]=PLAN[keys[i]];
+  let tmp=keys[idx];keys[idx]=keys[ni];keys[ni]=tmp;
+  let newPlan={};
+  for(let i=0;i<keys.length;i++)newPlan[keys[i]]=PLAN[keys[i]];
   PLAN=newPlan;savePlan(PLAN);render();
 }
 
-var savingDay=false;
+let savingDay=false;
 function saveDayEdits(){
   if(savingDay)return;
-  var d=state.editDayData;
+  let d=state.editDayData;
   // Read current values from inputs
-  var nameInput=document.getElementById("ed-name");
-  var muscInput=document.getElementById("ed-muscles");
-  var setsInput=document.getElementById("ed-sets");
+  let nameInput=document.getElementById("ed-name");
+  let muscInput=document.getElementById("ed-muscles");
+  let setsInput=document.getElementById("ed-sets");
   if(nameInput)d.name=nameInput.value.trim();
   if(muscInput)d.muscles=muscInput.value.trim();
   if(setsInput)d.sets=Math.max(1,Math.min(10,parseInt(setsInput.value)||4));
@@ -1532,16 +1625,16 @@ function saveDayEdits(){
   if(!d.name){alert("Bitte einen Namen eingeben.");return;}
   if(d.exercises.length===0){alert("Mindestens eine Übung hinzufügen.");return;}
 
-  var oldName=state.editDay;
+  let oldName=state.editDay;
   // If renaming, check for conflicts
   if(d.name!==oldName&&PLAN[d.name]){alert('Ein Tag mit dem Namen "'+d.name+'" existiert bereits.');return;}
   savingDay=true;
 
   // Build new plan preserving order
-  var newPlan={};
+  let newPlan={};
   if(oldName){
     // Editing existing day
-    for(var k in PLAN){
+    for(let k in PLAN){
       if(k===oldName){
         newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exercises:d.exercises.slice()};
       }else{
@@ -1550,7 +1643,7 @@ function saveDayEdits(){
     }
   }else{
     // Adding new day
-    for(var k2 in PLAN)newPlan[k2]=PLAN[k2];
+    for(let k2 in PLAN)newPlan[k2]=PLAN[k2];
     newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exercises:d.exercises.slice()};
   }
 
@@ -1562,22 +1655,22 @@ function saveDayEdits(){
 
 function initSession(day,date,exData){
   state.day=day;state.date=date||today();
-  var numSets=getDaySets(PLAN,day);
+  let numSets=getDaySets(PLAN,day);
   if(exData){state.session=JSON.parse(JSON.stringify(exData));}
   else{
     // Check for unsaved draft first
-    var draft=loadDraft(day);
+    let draft=loadDraft(day);
     if(draft&&!date){
       state.date=draft.date;
       state.session=draft.session;
     } else {
-      var arr=allData[day]||[];
-      var existing=arr.find(function(s){return s.date===state.date;});
+      let arr=allData[day]||[];
+      let existing=arr.find((s)=>{return s.date===state.date;});
       if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
       else{
-        var se={};
+        let se={};
         if(PLAN[day]){
-          PLAN[day].exercises.forEach(function(e){se[e]=[];for(var i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
+          PLAN[day].exercises.forEach((e)=>{se[e]=[];for(let i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
         }
         state.session=se;
       }
@@ -1585,17 +1678,17 @@ function initSession(day,date,exData){
   }
   // Ensure all exercises from current plan have entries
   if(PLAN[day]){
-    PLAN[day].exercises.forEach(function(ex){
+    PLAN[day].exercises.forEach((ex)=>{
       if(!state.session[ex]){
         state.session[ex]=[];
-        for(var i=0;i<numSets;i++)state.session[ex].push({kg:"",reps:""});
+        for(let i=0;i<numSets;i++)state.session[ex].push({kg:"",reps:""});
       }
       // Adjust set count if plan changed
       while(state.session[ex].length<numSets)state.session[ex].push({kg:"",reps:""});
     });
   }
   // Expand last edited exercise, fallback to first
-  var lastEx=getLastEx(day);
+  let lastEx=getLastEx(day);
   if(lastEx&&PLAN[day]&&PLAN[day].exercises.indexOf(lastEx)>=0){
     state.expanded=lastEx;
   } else {
@@ -1604,95 +1697,95 @@ function initSession(day,date,exData){
 }
 
 function sanitizeSession(session){
-  var clean={};
-  for(var ex in session){
+  let clean={};
+  for(let ex in session){
     clean[ex]=[];
-    for(var i=0;i<session[ex].length;i++){
-      var kg=parseFloat(session[ex][i].kg)||0;
-      var reps=parseFloat(session[ex][i].reps)||0;
+    for(let i=0;i<session[ex].length;i++){
+      let kg=parseFloat(session[ex][i].kg)||0;
+      let reps=parseFloat(session[ex][i].reps)||0;
       clean[ex].push({kg:kg<0?"":String(kg),reps:reps<0?"":String(Math.round(reps))});
     }
   }
   return clean;
 }
 
-var savingSession=false;
+let savingSession=false;
 function saveSession(){
   if(savingSession)return;
   savingSession=true;
-  invalidatePrevCache();invalidateChartCache();
+  invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
   state.session=sanitizeSession(state.session);
   if(!allData[state.day])allData[state.day]=[];
-  var idx=-1;
-  for(var i=0;i<allData[state.day].length;i++){if(allData[state.day][i].date===state.date){idx=i;break;}}
-  var entry={date:state.date,exercises:state.session};
+  let idx=-1;
+  for(let i=0;i<allData[state.day].length;i++){if(allData[state.day][i].date===state.date){idx=i;break;}}
+  let entry={date:state.date,exercises:state.session};
   if(idx>=0)allData[state.day][idx]=entry;else allData[state.day].push(entry);
-  saveSessionToDB(state.day,state.date,state.session).then(function(){showToast("Session gespeichert");}).catch(function(){showToast("Session konnte nicht gespeichert werden",true);});
+  saveSessionToDB(state.day,state.date,state.session).then(()=>{showToast("Session gespeichert");}).catch(()=>{showToast("Session konnte nicht gespeichert werden",true);});
   clearDraft();state.editing=null;savingSession=false;state.view="history";
 }
 
 function doImport(mode){
-  invalidatePrevCache();invalidateChartCache();
+  invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
   if(mode==="replace"){allData=state.impData;}
   else{
-    for(var day in state.impData){
+    for(let day in state.impData){
       if(!allData[day])allData[day]=[];
-      state.impData[day].forEach(function(s){
-        var idx=-1;for(var i=0;i<allData[day].length;i++){if(allData[day][i].date===s.date){idx=i;break;}}
+      state.impData[day].forEach((s)=>{
+        let idx=-1;for(let i=0;i<allData[day].length;i++){if(allData[day][i].date===s.date){idx=i;break;}}
         if(idx>=0)allData[day][idx]=s;else allData[day].push(s);
       });
     }
   }
-  if(mode==="replace"){replaceAllSessionsInDB(allData).catch(function(){showToast("Import fehlgeschlagen",true);});}
-  else{upsertSessionsToDB(allData).catch(function(){showToast("Import fehlgeschlagen",true);});}
+  if(mode==="replace"){replaceAllSessionsInDB(allData).catch(()=>{showToast("Import fehlgeschlagen",true);});}
+  else{upsertSessionsToDB(allData).catch(()=>{showToast("Import fehlgeschlagen",true);});}
   state.impData=null;state.impPlan=null;state.impStatus="success";state.session={};state.date=today();state.editing=null;render();
-  setTimeout(function(){state.impStatus=null;render();},3000);
+  setTimeout(()=>{state.impStatus=null;render();},3000);
 }
 
 // =========== WHEEL PICKER ===========
-var wpActive=null; // {ex, si, field, el}
+let wpActive=null; // {ex, si, field, el}
 
 function buildWpValues(field,unit){
-  var vals=[];
+  let vals=[];
   if(field==="kg"){
-    if(unit==="sek"){for(var s=0;s<=300;s+=5)vals.push(s);}
-    else{for(var k=0;k<=200;k+=2.5)vals.push(k);}
+    if(unit==="sek"){for(let s=0;s<=300;s+=5)vals.push(s);}
+    else{for(let k=0;k<=200;k+=2.5)vals.push(k);}
   } else {
-    for(var r=0;r<=100;r++)vals.push(r);
+    for(let r=0;r<=100;r++)vals.push(r);
   }
   return vals;
 }
 
 function openWheelPicker(ex,si,field){
-  var unit=getExUnit(state.day,ex);
-  var vals=buildWpValues(field,unit);
-  var current=parseFloat((state.session[ex]&&state.session[ex][si]&&state.session[ex][si][field])||0)||0;
-  if(current===0){var prevS=getPrev(state.day,ex);if(prevS&&prevS[si]&&prevS[si][field])current=parseFloat(prevS[si][field])||0;}
+  let unit=getExUnit(state.day,ex);
+  let vals=buildWpValues(field,unit);
+  let current=parseFloat((state.session[ex]&&state.session[ex][si]&&state.session[ex][si][field])||0)||0;
+  if(current===0){let prevS=getPrev(state.day,ex);if(prevS&&prevS[si]&&prevS[si][field])current=parseFloat(prevS[si][field])||0;}
   // Find closest index
-  var bestIdx=0,bestDist=Infinity;
-  for(var i=0;i<vals.length;i++){var d=Math.abs(vals[i]-current);if(d<bestDist){bestDist=d;bestIdx=i;}}
+  let bestIdx=0,bestDist=Infinity;
+  for(let i=0;i<vals.length;i++){let d=Math.abs(vals[i]-current);if(d<bestDist){bestDist=d;bestIdx=i;}}
 
-  var unitLabel=field==="kg"?(unit==="sek"?"Sekunden":"kg"):"Wiederholungen";
-  var overlay=document.createElement("div");
+  let unitLabel=field==="kg"?(unit==="sek"?"Sekunden":"kg"):"Wiederholungen";
+  let overlay=document.createElement("div");
   overlay.className="wp-overlay";
   overlay.innerHTML='<div class="wp-box"><div class="wp-top"><span class="wp-title">'+esc(ex)+' – Satz '+(si+1)+' – '+unitLabel+'</span><button class="wp-done">Fertig</button></div><div class="wp-cols"><div class="wp-col"><div class="wp-sel"></div><div class="wp-col-inner"></div></div></div></div>';
 
   document.body.appendChild(overlay);
 
-  var col=overlay.querySelector(".wp-col");
-  var inner=overlay.querySelector(".wp-col-inner");
-  var ITEM_H=42, VISIBLE=5, CENTER=Math.floor(VISIBLE/2);
+  let col=overlay.querySelector(".wp-col");
+  let inner=overlay.querySelector(".wp-col-inner");
+  let ITEM_H=42, VISIBLE=5, CENTER=Math.floor(VISIBLE/2);
 
   // Render items
-  var html="";
-  for(var v=0;v<vals.length;v++){
-    var label=vals[v]%1===0?vals[v].toString():vals[v].toFixed(1);
+  let html="";
+  for(let v=0;v<vals.length;v++){
+    let label=vals[v]%1===0?vals[v].toString():vals[v].toFixed(1);
     html+='<div class="wp-item" data-idx="'+v+'">'+label+'</div>';
   }
   inner.innerHTML=html;
 
-  var selectedIdx=bestIdx;
-  var yOffset=0;
+  let selectedIdx=bestIdx;
+  let yOffset=0;
 
   function setPos(idx,animate){
     selectedIdx=Math.max(0,Math.min(vals.length-1,Math.round(idx)));
@@ -1701,8 +1794,8 @@ function openWheelPicker(ex,si,field){
     else inner.classList.remove("animating");
     inner.style.transform="translateY("+yOffset+"px)";
     // Update active class
-    var items=inner.children;
-    for(var i=0;i<items.length;i++){
+    let items=inner.children;
+    for(let i=0;i<items.length;i++){
       items[i].classList.toggle("active",i===selectedIdx);
     }
   }
@@ -1713,20 +1806,20 @@ function openWheelPicker(ex,si,field){
   setPos(bestIdx,false);
 
   // Touch handling
-  var startY=0,startOff=0,lastY=0,lastT=0,velocity=0,isDragging=false;
+  let startY=0,startOff=0,lastY=0,lastT=0,velocity=0,isDragging=false;
 
   function onStart(e){
-    var ev=e.touches?e.touches[0]:e;
+    let ev=e.touches?e.touches[0]:e;
     startY=ev.clientY;startOff=yOffset;lastY=startY;lastT=Date.now();velocity=0;isDragging=true;
     inner.classList.remove("animating");
     e.preventDefault();
   }
   function onMove(e){
     if(!isDragging)return;
-    var ev=e.touches?e.touches[0]:e;
-    var dy=ev.clientY-startY;
-    var now=Date.now();
-    var dt=now-lastT;
+    let ev=e.touches?e.touches[0]:e;
+    let dy=ev.clientY-startY;
+    let now=Date.now();
+    let dt=now-lastT;
     if(dt>0)velocity=(ev.clientY-lastY)/dt;
     lastY=ev.clientY;lastT=now;
     yOffset=startOff+dy;
@@ -1737,9 +1830,9 @@ function openWheelPicker(ex,si,field){
     if(!isDragging)return;
     isDragging=false;
     // Apply momentum
-    var momentum=velocity*120;
-    var targetY=yOffset+momentum;
-    var targetIdx=Math.round(-(targetY-CENTER*ITEM_H)/ITEM_H);
+    let momentum=velocity*120;
+    let targetY=yOffset+momentum;
+    let targetIdx=Math.round(-(targetY-CENTER*ITEM_H)/ITEM_H);
     setPos(targetIdx,true);
     e.preventDefault();
   }
@@ -1753,7 +1846,7 @@ function openWheelPicker(ex,si,field){
   function onDocUp(e){onEnd(e);removeDocListeners();}
   function addDocListeners(){document.addEventListener("mousemove",onDocMove);document.addEventListener("mouseup",onDocUp);}
   function removeDocListeners(){document.removeEventListener("mousemove",onDocMove);document.removeEventListener("mouseup",onDocUp);}
-  col.addEventListener("mousedown",function(){addDocListeners();});
+  col.addEventListener("mousedown",()=>addDocListeners());
 
   function closeOverlay(){
     removeDocListeners();
@@ -1761,14 +1854,14 @@ function openWheelPicker(ex,si,field){
   }
 
   // Click on item to select
-  inner.addEventListener("click",function(e){
-    var item=e.target.closest(".wp-item");
+  inner.addEventListener("click",(e)=>{
+    const item=e.target.closest(".wp-item");
     if(item){setPos(parseInt(item.getAttribute("data-idx")),true);}
   });
 
   // Done button
-  overlay.querySelector(".wp-done").onclick=function(){
-    var val=vals[selectedIdx];
+  overlay.querySelector(".wp-done").onclick=()=>{
+    let val=vals[selectedIdx];
     if(state.session[ex]&&state.session[ex][si]){
       state.session[ex][si][field]=val===0?"":String(val%1===0?val:val.toFixed(1));
     }
@@ -1779,19 +1872,19 @@ function openWheelPicker(ex,si,field){
   };
 
   // Tap backdrop to close without saving
-  overlay.addEventListener("click",function(e){
+  overlay.addEventListener("click",(e)=>{
     if(e.target===overlay){closeOverlay();}
   });
 }
 
 // =========== AUTH FUNCTIONS ===========
 async function handleAuthSubmit(){
-  var email=document.getElementById("auth-email").value.trim();
-  var pw=document.getElementById("auth-pw").value;
+  let email=document.getElementById("auth-email").value.trim();
+  let pw=document.getElementById("auth-pw").value;
   if(!email||!pw)return;
   state.authLoading=true;state.authError=null;state.authMsg=null;render();
   try{
-    var res;
+    let res;
     if(state.authView==="login"){
       res=await sb.auth.signInWithPassword({email:email,password:pw});
     }else{
@@ -1821,24 +1914,24 @@ async function loadAppData(){
   state.view="loading";render();
   try{
     // Load from local cache first (instant)
-    var local=await loadLocal();
-    var hasLocal=local.plan||local.sessions;
+    let local=await loadLocal();
+    let hasLocal=local.plan||local.sessions;
     if(hasLocal){
       if(local.plan&&typeof local.plan==="object"&&Object.keys(local.plan).length>0)PLAN=local.plan;
       else PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
       allData=local.sessions||{};
       cachedDraft=local.draft||null;
       userPrefs=local.prefs||{};
-      invalidatePrevCache();invalidateChartCache();
+      invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
     }
     // Try to sync from Supabase (may fail offline)
     if(isOnline&&sb&&currentUser){
       try{
-        var results=await Promise.all([loadPlanFromDB(),loadSessionsFromDB(),loadDraftFromDB(),loadPrefsFromDB()]);
-        var dbPlan=results[0];
+        let results=await Promise.all([loadPlanFromDB(),loadSessionsFromDB(),loadDraftFromDB(),loadPrefsFromDB()]);
+        let dbPlan=results[0];
         if(dbPlan&&typeof dbPlan==="object"&&Object.keys(dbPlan).length>0)PLAN=dbPlan;
         else if(!hasLocal)PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
-        allData=results[1]||{};invalidatePrevCache();invalidateChartCache();
+        allData=results[1]||{};invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
         cachedDraft=results[2];
         userPrefs=results[3]||{};
         await saveLocal();
@@ -1850,16 +1943,16 @@ async function loadAppData(){
       PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));allData={};
     }
     // Check for localStorage data to migrate
-    var migrated=false;
+    let migrated=false;
     try{migrated=localStorage.getItem("paulog-migrated")==="true";}catch(e){}
     if(!migrated){
-      var localData=null;
-      try{var r=localStorage.getItem("paulog-data");if(r)localData=JSON.parse(r);}catch(e){}
+      let localData=null;
+      try{let r=localStorage.getItem("paulog-data");if(r)localData=JSON.parse(r);}catch(e){}
       if(localData&&typeof localData==="object"&&Object.keys(localData).length>0){
-        var migrateKeys={"Push (Mo)":"Push","Pull (Mi)":"Pull","Legs (Fr)":"Legs"};
-        for(var old in migrateKeys){if(localData[old]){localData[migrateKeys[old]]=(localData[migrateKeys[old]]||[]).concat(localData[old]);delete localData[old];}}
+        let migrateKeys={"Push (Mo)":"Push","Pull (Mi)":"Pull","Legs (Fr)":"Legs"};
+        for(let old in migrateKeys){if(localData[old]){localData[migrateKeys[old]]=(localData[migrateKeys[old]]||[]).concat(localData[old]);delete localData[old];}}
         state.migrationData=localData;
-        try{var lp=localStorage.getItem("paulog-plan");if(lp){state.migrationPlan=JSON.parse(lp);}}catch(e){}
+        try{let lp=localStorage.getItem("paulog-plan");if(lp){state.migrationPlan=JSON.parse(lp);}}catch(e){}
         state.view="migrate";render();return;
       }
       try{localStorage.setItem("paulog-migrated","true");}catch(e){}
@@ -1875,14 +1968,14 @@ async function loadAppData(){
 async function performMigration(){
   state.view="loading";render();
   try{
-    var localData=state.migrationData;
+    let localData=state.migrationData;
     // Merge local sessions into DB data
-    for(var day in localData){
+    for(let day in localData){
       if(!allData[day])allData[day]=[];
-      for(var i=0;i<localData[day].length;i++){
-        var s=localData[day][i];
-        var exists=false;
-        for(var j=0;j<allData[day].length;j++){if(allData[day][j].date===s.date){allData[day][j]=s;exists=true;break;}}
+      for(let i=0;i<localData[day].length;i++){
+        let s=localData[day][i];
+        let exists=false;
+        for(let j=0;j<allData[day].length;j++){if(allData[day][j].date===s.date){allData[day][j]=s;exists=true;break;}}
         if(!exists)allData[day].push(s);
       }
     }
@@ -1894,8 +1987,8 @@ async function performMigration(){
     }
     // Migrate prefs
     try{
-      var lb=localStorage.getItem("paulog-bk");if(lb)userPrefs['backup-date']=lb;
-      var le=localStorage.getItem("paulog-last-ex");if(le)userPrefs['last-ex']=JSON.parse(le);
+      let lb=localStorage.getItem("paulog-bk");if(lb)userPrefs['backup-date']=lb;
+      let le=localStorage.getItem("paulog-last-ex");if(le)userPrefs['last-ex']=JSON.parse(le);
       if(lb||le)await savePrefsToDB();
     }catch(e){}
     // Clean up localStorage
@@ -1936,9 +2029,9 @@ render(); // shows loading screen immediately
 function startApp(){
   if(sb)return;
   sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-  (async function(){
+  (async ()=>{
     try{
-      var{data}=await sb.auth.getSession();
+      let{data}=await sb.auth.getSession();
       if(data&&data.session&&data.session.user){
         currentUser=data.session.user;
         await loadAppData();
@@ -1950,7 +2043,7 @@ function startApp(){
       console.error("Init error:",e);
       await startOffline();
     }
-    sb.auth.onAuthStateChange(function(event,session){
+    sb.auth.onAuthStateChange((event,session)=>{
       if(event==="SIGNED_OUT"){
         currentUser=null;allData={};PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
         userPrefs={};cachedDraft=null;
@@ -1963,14 +2056,14 @@ function startApp(){
 }
 
 async function startOffline(){
-  var local=await loadLocal();
+  let local=await loadLocal();
   if(local.plan||local.sessions){
     if(local.plan&&typeof local.plan==="object"&&Object.keys(local.plan).length>0)PLAN=local.plan;
     else PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
     allData=local.sessions||{};
     cachedDraft=local.draft||null;
     userPrefs=local.prefs||{};
-    invalidatePrevCache();invalidateChartCache();
+    invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
     state.view="home";render();
   }else{
     state.view="auth";render();
@@ -1981,12 +2074,12 @@ async function startOffline(){
 if(typeof supabase!=='undefined'){
   startApp();
 }else{
-  var sbEl=document.getElementById('sb-script');
+  let sbEl=document.getElementById('sb-script');
   if(sbEl){
     sbEl.addEventListener('load',startApp);
-    sbEl.addEventListener('error',function(){
+    sbEl.addEventListener('error',()=>{
       // SDK failed to load (offline, first visit had SDK cached) — try local data
-      (async function(){await startOffline();})();
+      (async ()=>{await startOffline();})();
     });
   }
 }
@@ -1995,12 +2088,42 @@ if(typeof supabase!=='undefined'){
 </script>
 <script>
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    var foreign=regs.filter(function(r){return r.active&&r.active.scriptURL.indexOf('paulog-sw.js')===-1;});
-    Promise.all(foreign.map(function(r){return r.unregister();})).then(function(){
-      if(window.caches){caches.keys().then(function(keys){keys.forEach(function(k){if(k.indexOf('paulog')===- 1)caches.delete(k);});});}
-      navigator.serviceWorker.register('paulog-sw.js');
+  navigator.serviceWorker.getRegistrations().then((regs)=>{
+    let foreign=regs.filter((r)=>{return r.active&&r.active.scriptURL.indexOf('paulog-sw.js')===-1;});
+    Promise.all(foreign.map((r)=>{return r.unregister();})).then(()=>{
+      if(window.caches){caches.keys().then((keys)=>{keys.forEach((k)=>{if(k.indexOf('paulog')===- 1)caches.delete(k);});});}
+      navigator.serviceWorker.register('paulog-sw.js').then((reg)=>{
+        // Check for updates periodically
+        setInterval(()=>{reg.update();},60*60*1000);
+        // Detect waiting worker (new version available)
+        function showUpdateBanner(){
+          if(document.querySelector('.update-bar'))return;
+          let bar=document.createElement('div');
+          bar.className='update-bar';
+          bar.setAttribute('role','alert');
+          bar.innerHTML='Neue Version verfügbar! <strong>Jetzt aktualisieren</strong>';
+          bar.onclick=()=>{
+            if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+            window.location.reload();
+          };
+          document.body.insertBefore(bar,document.body.firstChild);
+        }
+        if(reg.waiting)showUpdateBanner();
+        reg.addEventListener('updatefound',()=>{
+          let newWorker=reg.installing;
+          if(newWorker){
+            newWorker.addEventListener('statechange',()=>{
+              if(newWorker.state==='installed'&&navigator.serviceWorker.controller)showUpdateBanner();
+            });
+          }
+        });
+      });
     });
+  });
+  // Reload when new SW takes over
+  let refreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(!refreshing){refreshing=true;window.location.reload();}
   });
 }
 </script>
