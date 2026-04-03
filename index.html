@@ -74,6 +74,8 @@ button{font-family:inherit;cursor:pointer}
 .s-num{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:700;font-size:14px}
 .s-inp{width:100%;padding:10px 8px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;font-size:16px;text-align:center;font-weight:600;outline:none;font-family:inherit}
 .s-inp:focus{border-color:#3B82F6}
+.s-inp.filled{color:#10B981}
+.day-btn.day-active{background:rgba(16,185,129,0.12);border-right:4px solid #10B981}
 /* Save button */
 .save-btn{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 48px);max-width:440px;padding:16px;background:#3B82F6;border:none;border-radius:12px;color:#FFF;font-size:16px;font-weight:700;z-index:20;box-shadow:0 4px 24px rgba(59,130,246,0.4)}
 /* Wheel Picker */
@@ -761,52 +763,64 @@ function getKW(dateStr){
 // Chart
 let chartCache={};
 function invalidateChartCache(){chartCache={};}
-function drawChart(day,maxWeeks){
-  let dd=allData[day]||[];
-  let cHash=dd.length;for(let ci=0;ci<dd.length;ci++){cHash=(cHash*31+(dd[ci].date||'').length)&0x7fffffff;let ex=dd[ci].exercises;if(ex)for(let ek in ex)for(let ei=0;ei<ex[ek].length;ei++){cHash=(cHash*31+(Number(ex[ek][ei].kg)||0)*100+(Number(ex[ek][ei].reps)||0))&0x7fffffff;}}
-  let cKey=day+"|"+maxWeeks+"|"+cHash;
-  if(chartCache[cKey])return chartCache[cKey];
-  let info=PLAN[day];
-  if(!info)return'<p class="no-data">Tag nicht im aktuellen Plan</p>';
-  let sessions=(allData[day]||[]).slice().sort((a,b)=>{return a.date>b.date?1:-1;});
+function drawExChart(exName,maxWeeks){
+  // Collect all sessions containing this exercise across all days
+  let sessions=[];
+  for(let day in allData)(allData[day]||[]).forEach((s)=>{
+    if(s.exercises&&s.exercises[exName]){
+      let v=vol(s.exercises[exName]);
+      let maxKg=0;s.exercises[exName].forEach((st)=>{let k=Number(st.kg)||0;if(k>maxKg)maxKg=k;});
+      if(v>0||maxKg>0)sessions.push({date:s.date,vol:v,maxKg:maxKg});
+    }
+  });
+  sessions.sort((a,b)=>a.date>b.date?1:-1);
   if(sessions.length===0)return'<p class="no-data">Noch keine Daten</p>';
+  let cHash=sessions.length;sessions.forEach((s)=>{cHash=(cHash*31+s.vol+s.maxKg)&0x7fffffff;});
+  let cKey="ex|"+exName+"|"+maxWeeks+"|"+cHash;
+  if(chartCache[cKey])return chartCache[cKey];
   if(maxWeeks>0){
     let cutoff=new Date();cutoff.setDate(cutoff.getDate()-maxWeeks*7);
     let cutStr=cutoff.toISOString().split("T")[0];
-    sessions=sessions.filter((s)=>{return s.date>=cutStr;});
+    sessions=sessions.filter((s)=>s.date>=cutStr);
     if(sessions.length===0)return'<p class="no-data">Keine Daten im gewählten Zeitraum</p>';
   }
+  // Group by calendar week
   let kwMap={};
   sessions.forEach((s)=>{
     let kw="KW"+getKW(s.date);
-    if(!kwMap[kw])kwMap[kw]={};
-    info.exercises.forEach((ex)=>{
-      let v=s.exercises&&s.exercises[ex]?vol(s.exercises[ex]):0;
-      if(v>0){if(!kwMap[kw][ex]||v>kwMap[kw][ex])kwMap[kw][ex]=v;}
-    });
+    if(!kwMap[kw]){kwMap[kw]={vol:0,maxKg:0};}
+    if(s.vol>kwMap[kw].vol)kwMap[kw].vol=s.vol;
+    if(s.maxKg>kwMap[kw].maxKg)kwMap[kw].maxKg=s.maxKg;
   });
   let kwKeys=Object.keys(kwMap);
-  let data=kwKeys.map((kw)=>{let pt={name:kw};info.exercises.forEach((ex)=>{pt[ex]=kwMap[kw][ex]||0;});return pt;});
-  let W=340,H=200,pl=45,pt2=20,pr=10,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
-  let allV=[];data.forEach((p)=>{info.exercises.forEach((ex)=>{if(p[ex])allV.push(p[ex]);});});
-  let maxV=Math.max.apply(null,allV)||1;
+  let data=kwKeys.map((kw)=>({name:kw,vol:kwMap[kw].vol,maxKg:kwMap[kw].maxKg}));
+  let unit=findExUnit(exName);let unitL=unit==="sek"?"sek.":"kg";
+  let W=340,H=180,pl=45,pt2=20,pr=10,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
+  let maxV=Math.max.apply(null,data.map((d)=>d.vol))||1;
+  let maxK=Math.max.apply(null,data.map((d)=>d.maxKg))||1;
   function x(i){return pl+(data.length===1?cw/2:(i/(data.length-1))*cw);}
-  function y(v){return pt2+ch-(v/maxV)*ch;}
+  function yV(v){return pt2+ch-(v/maxV)*ch;}
+  function yK(v){return pt2+ch-(v/maxK)*ch;}
 
   let svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="max-width:'+W+'px">';
-  for(let g=0;g<=4;g++){let gv2=g/4*maxV,gy=y(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+Math.round(gv2)+'</text>';}
+  for(let g=0;g<=4;g++){let gv2=g/4*maxV,gy=yV(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+Math.round(gv2)+'</text>';}
   data.forEach((p,i)=>{svg+='<text x="'+x(i)+'" y="'+(H-5)+'" fill="#64748B" font-size="9" text-anchor="middle">'+p.name+'</text>';});
-  info.exercises.forEach((ex,ei)=>{
-    let pts=[];data.forEach((p,i)=>{if(p[ex])pts.push({x:x(i),y:y(p[ex])});});
-    if(pts.length<1)return;
-    let d=pts.map((p,i)=>{return(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
-    svg+='<path d="'+d+'" fill="none" stroke="'+CC[ei%CC.length]+'" stroke-width="2" stroke-linejoin="round"/>';
-    pts.forEach((p)=>{svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="'+CC[ei%CC.length]+'"/>';});
-  });
+  // Volume line
+  let ptsV=[];data.forEach((p,i)=>{if(p.vol)ptsV.push({x:x(i),y:yV(p.vol)});});
+  if(ptsV.length>0){
+    let d=ptsV.map((p,i)=>(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
+    svg+='<path d="'+d+'" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linejoin="round"/>';
+    ptsV.forEach((p)=>{svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="#3B82F6"/>';});
+  }
+  // Max weight line
+  let ptsK=[];data.forEach((p,i)=>{if(p.maxKg)ptsK.push({x:x(i),y:yK(p.maxKg)});});
+  if(ptsK.length>0){
+    let d=ptsK.map((p,i)=>(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
+    svg+='<path d="'+d+'" fill="none" stroke="#10B981" stroke-width="2" stroke-linejoin="round" stroke-dasharray="4,3"/>';
+    ptsK.forEach((p)=>{svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="#10B981"/>';});
+  }
   svg+='</svg>';
-  svg+='<div class="c-legend">';
-  info.exercises.forEach((ex,i)=>{svg+='<span><span class="dot" style="background:'+CC[i%CC.length]+'"></span>'+esc(ex)+'</span>';});
-  svg+='</div>';
+  svg+='<div class="c-legend"><span><span class="dot" style="background:#3B82F6"></span>Volumen ('+unitL+' × Wdh)</span><span><span class="dot" style="background:#10B981"></span>Max '+unitL+'</span></div>';
   chartCache[cKey]=svg;
   return svg;
 }
@@ -910,11 +924,13 @@ function renderHome(){
   h+='<div class="stats"><div class="stat"><span class="stat-n">'+ts+'</span><span class="stat-l">Sessions</span></div><div class="stat-div"></div><div class="stat"><span class="stat-n">'+pbCount+'</span><span class="stat-l">Übungen</span></div></div>';
   h+='<div class="sec"><h2 class="sec-t">Training starten</h2>';
   let dayKeys=getPlanDayKeys(PLAN);
+  let td=today();
   for(let di=0;di<dayKeys.length;di++){
     let day=dayKeys[di],info=PLAN[day],isSug=sug===day;
-    h+='<button class="day-btn'+(isSug?' sug':'')+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
+    let hasToday=(allData[day]||[]).some((s)=>s.date===td);
+    h+='<button class="day-btn'+(isSug?' sug':'')+(hasToday?' day-active':'')+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
     h+='<div><div class="name">'+esc(day)+'</div><div class="musc">'+esc(info.muscles)+'</div></div>';
-    h+='<div class="arr" style="color:'+info.color+'">→</div></button>';
+    h+='<div class="arr" style="color:'+info.color+'">'+(hasToday?'✓':'→')+'</div></button>';
   }
   h+='</div>';
   h+='<div class="bbtn"><button class="sec-btn" data-action="go" data-view="history">📋 Sessions verwalten</button>';
@@ -952,8 +968,8 @@ function renderTrack(){
       sets.forEach((set,i)=>{
         let phK=prev&&prev[i]?prev[i].kg||'—':'—';let phR=prev&&prev[i]?prev[i].reps||'—':'—';
         h+='<div class="s-row"><span class="s-num" style="background:'+info.color+'">'+(i+1)+'</span>';
-        h+='<div class="s-cell"><input type="number" inputmode="decimal" class="s-inp" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg" aria-label="Gewicht wählen">⊙</button></div>';
-        h+='<div class="s-cell"><input type="number" inputmode="numeric" class="s-inp" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps" aria-label="Wiederholungen wählen">⊙</button></div></div>';
+        h+='<div class="s-cell"><input type="number" inputmode="decimal" class="s-inp'+(set.kg?' filled':'')+'" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg" aria-label="Gewicht wählen">⊙</button></div>';
+        h+='<div class="s-cell"><input type="number" inputmode="numeric" class="s-inp'+(set.reps?' filled':'')+'" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps" aria-label="Wiederholungen wählen">⊙</button></div></div>';
       });
       h+='</div></div>';
     }
@@ -1002,16 +1018,19 @@ function renderDash(){
   h+='<div class="d-filter"><span class="d-filter-l">Zeitraum:</span><div class="d-filter-opts">';
   opts.forEach((o)=>{h+='<button class="d-filter-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
   h+='</div></div>';
+  // Collect all unique exercises across plan and data
+  let exSet={},exOrder=[];
   let dayKeys=getPlanDayKeys(PLAN);
   for(let di=0;di<dayKeys.length;di++){
-    let day=dayKeys[di],info=PLAN[day];
-    h+='<div class="c-sec"><h3 style="color:'+info.color+'">'+esc(day)+'</h3><p class="csub">Trainingsvolumen pro Kalenderwoche (kg × Wdh)</p><div class="c-wrap">'+drawChart(day,wk)+'</div></div>';
+    let info=PLAN[dayKeys[di]];
+    info.exercises.forEach((ex)=>{if(!exSet[ex]){exSet[ex]=info.color;exOrder.push(ex);}});
   }
-  // Also show charts for days that have data but are no longer in the plan
-  for(let oldDay in allData){
-    if(!PLAN[oldDay]&&allData[oldDay].length>0){
-      h+='<div class="c-sec"><h3 style="color:#64748B">'+esc(oldDay)+' <span style="font-size:11px;color:#475569">(archiviert)</span></h3><p class="csub">Historische Daten</p><div class="c-wrap"><p class="no-data">Tag nicht mehr im aktiven Plan</p></div></div>';
-    }
+  for(let day in allData)(allData[day]||[]).forEach((s)=>{
+    for(let ex in s.exercises||{}){if(!exSet[ex]){exSet[ex]='#64748B';exOrder.push(ex);}}
+  });
+  for(let ei=0;ei<exOrder.length;ei++){
+    let ex=exOrder[ei],unit=findExUnit(ex),unitL=unit==="sek"?"sek.":"kg";
+    h+='<div class="c-sec"><h3 style="color:'+exSet[ex]+'">'+esc(ex)+'</h3><p class="csub">Volumen & Max '+unitL+' pro KW</p><div class="c-wrap">'+drawExChart(ex,wk)+'</div></div>';
   }
   let pbArr=[];for(let ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
   pbArr.sort((a,b)=>{return b[1]-a[1];});
@@ -1151,10 +1170,11 @@ function renderAdmin(){
     let u=state.adminUsers[i];
     let d=new Date(u.created_at);
     let dateStr=d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();
+    let lastAct=u.last_activity?fmtDate(u.last_activity):'—';
     let isSel=state.adminSelectedUser&&state.adminSelectedUser===u.id;
     h+='<div class="adm-user'+(isSel?' adm-sel':'')+'" data-action="admin-select" data-uid="'+u.id+'">';
     h+='<div class="adm-email">'+esc(u.email)+'</div>';
-    h+='<div class="adm-meta">Registriert: '+dateStr+' · Sessions: '+u.session_count+'</div>';
+    h+='<div class="adm-meta">Registriert: '+dateStr+' · Sessions: '+u.session_count+' · Letzte Aktivität: '+lastAct+'</div>';
     h+='</div>';
   }
   h+='</div>';
@@ -1537,6 +1557,7 @@ function bindEvents(){
     if(t.getAttribute("data-action")==="set-val"){
       let ex=t.getAttribute("data-ex"),si=parseInt(t.getAttribute("data-si")),field=t.getAttribute("data-field");
       if(state.session[ex]&&state.session[ex][si])state.session[ex][si][field]=t.value;
+      t.classList.toggle('filled',!!t.value);
       if(state.day)saveLastEx(state.day,ex);
       saveDraft();
     }
