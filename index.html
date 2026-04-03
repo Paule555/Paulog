@@ -39,6 +39,8 @@ button{font-family:inherit;cursor:pointer}
 .day-btn .musc{font-size:12px;color:#94A3B8;margin-top:2px}
 .day-btn .arr{font-size:22px;font-weight:700}
 .day-btn.sug{background:rgba(16,185,129,0.07)}
+.day-btn.day-draft{border-right:4px solid #F59E0B;background:rgba(245,158,11,0.08)}
+.day-btn.day-draft .draft-tag{font-size:10px;color:#F59E0B;font-weight:600;margin-top:2px}
 /* Bottom buttons */
 .bbtn{padding:8px 20px;display:flex;flex-direction:column;gap:8px}
 .sec-btn{width:100%;padding:14px;background:transparent;border:1px solid #334155;border-radius:10px;color:#94A3B8;font-size:15px;font-weight:600}
@@ -140,6 +142,11 @@ button{font-family:inherit;cursor:pointer}
 .d-filter-opts{display:flex;gap:6px;flex-wrap:wrap}
 .d-filter-btn{padding:6px 12px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#94A3B8;font-size:12px;font-weight:600}
 .d-filter-btn.active{background:#10B981;border-color:#10B981;color:#FFF}
+.d-ex-filter{padding:4px 20px 12px;display:flex;flex-wrap:wrap;gap:6px}
+.d-ex-btn{padding:5px 10px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#64748B;font-size:11px;font-weight:600}
+.d-ex-btn.active{background:#3B82F6;border-color:#3B82F6;color:#FFF}
+.d-ex-btn.plan-btn{border-color:#10B981;color:#10B981}
+.d-ex-btn.plan-btn.active{background:#10B981;color:#FFF}
 .pb-sec{padding:16px 20px}
 .pb-sec h3{font-size:16px;font-weight:700;margin-bottom:12px;color:#F8FAFC}
 .pb-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1E293B;border-radius:8px;margin-bottom:6px}
@@ -515,7 +522,9 @@ const state = {
   authView:"login", authError:null, authMsg:null, authLoading:false,
   migrationData:null, migrationPlan:null,
   // Admin state
-  adminUsers:null, adminLoading:false, adminSelectedUser:null, adminPlanJSON:""
+  adminUsers:null, adminLoading:false, adminSelectedUser:null, adminPlanJSON:"",
+  // Dashboard exercise filter
+  dashExFilter:null
 };
 let allData = {};
 let userPrefs={};
@@ -928,8 +937,12 @@ function renderHome(){
   for(let di=0;di<dayKeys.length;di++){
     let day=dayKeys[di],info=PLAN[day],isSug=sug===day;
     let hasToday=(allData[day]||[]).some((s)=>s.date===td);
-    h+='<button class="day-btn'+(isSug?' sug':'')+(hasToday?' day-active':'')+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
-    h+='<div><div class="name">'+esc(day)+'</div><div class="musc">'+esc(info.muscles)+'</div></div>';
+    let hasDraft=cachedDraft&&cachedDraft.day===day;
+    let cls='day-btn'+(isSug?' sug':'')+(hasToday?' day-active':'')+(hasDraft&&!hasToday?' day-draft':'');
+    h+='<button class="'+cls+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
+    h+='<div><div class="name">'+esc(day)+'</div><div class="musc">'+esc(info.muscles)+'</div>';
+    if(hasDraft&&!hasToday)h+='<div class="draft-tag">✎ Entwurf</div>';
+    h+='</div>';
     h+='<div class="arr" style="color:'+info.color+'">'+(hasToday?'✓':'→')+'</div></button>';
   }
   h+='</div>';
@@ -1019,17 +1032,30 @@ function renderDash(){
   opts.forEach((o)=>{h+='<button class="d-filter-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
   h+='</div></div>';
   // Collect all unique exercises across plan and data
-  let exSet={},exOrder=[];
+  let exSet={},exOrder=[],planExSet={};
   let dayKeys=getPlanDayKeys(PLAN);
   for(let di=0;di<dayKeys.length;di++){
     let info=PLAN[dayKeys[di]];
-    info.exercises.forEach((ex)=>{if(!exSet[ex]){exSet[ex]=info.color;exOrder.push(ex);}});
+    info.exercises.forEach((ex)=>{if(!exSet[ex]){exSet[ex]=info.color;exOrder.push(ex);}planExSet[ex]=true;});
   }
   for(let day in allData)(allData[day]||[]).forEach((s)=>{
     for(let ex in s.exercises||{}){if(!exSet[ex]){exSet[ex]='#64748B';exOrder.push(ex);}}
   });
+  // Exercise filter UI
+  let filter=state.dashExFilter;
+  let isPlanFilter=filter&&Object.keys(filter).length===Object.keys(planExSet).length&&Object.keys(planExSet).every((e)=>filter[e]);
+  h+='<div class="d-ex-filter">';
+  h+='<button class="d-ex-btn'+(filter===null?' active':'')+'" data-action="dash-ex-all">Alle</button>';
+  h+='<button class="d-ex-btn plan-btn'+(isPlanFilter?' active':'')+'" data-action="dash-ex-plan">Akt. Plan</button>';
   for(let ei=0;ei<exOrder.length;ei++){
-    let ex=exOrder[ei],unit=findExUnit(ex),unitL=unit==="sek"?"sek.":"kg";
+    let ex=exOrder[ei],isOn=filter===null||!!(filter&&filter[ex]);
+    h+='<button class="d-ex-btn'+(filter!==null&&isOn?' active':'')+'" data-action="dash-ex-toggle" data-ex="'+esc(ex)+'">'+esc(ex)+'</button>';
+  }
+  h+='</div>';
+  // Render filtered charts
+  let visibleEx=exOrder.filter((ex)=>filter===null||!!(filter&&filter[ex]));
+  for(let ei=0;ei<visibleEx.length;ei++){
+    let ex=visibleEx[ei],unit=findExUnit(ex),unitL=unit==="sek"?"sek.":"kg";
     h+='<div class="c-sec"><h3 style="color:'+exSet[ex]+'">'+esc(ex)+'</h3><p class="csub">Volumen & Max '+unitL+' pro KW</p><div class="c-wrap">'+drawExChart(ex,wk)+'</div></div>';
   }
   let pbArr=[];for(let ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
@@ -1403,6 +1429,22 @@ function bindEvents(){
     else if(a==="export-data"){exportData();state.showRem=false;render();}
     else if(a==="export-plan"){exportPlan();render();}
     else if(a==="set-weeks"){state.dashWeeks=parseInt(t.getAttribute("data-weeks"))||0;render();}
+    else if(a==="dash-ex-all"){state.dashExFilter=null;render();}
+    else if(a==="dash-ex-plan"){
+      let pf={};let dk=getPlanDayKeys(PLAN);for(let di=0;di<dk.length;di++)PLAN[dk[di]].exercises.forEach((ex)=>{pf[ex]=true;});
+      state.dashExFilter=pf;render();
+    }
+    else if(a==="dash-ex-toggle"){
+      let ex=t.getAttribute("data-ex");
+      if(!state.dashExFilter){
+        // Switch from "Alle" to individual: enable only this one
+        state.dashExFilter={};state.dashExFilter[ex]=true;
+      } else if(state.dashExFilter[ex]){
+        delete state.dashExFilter[ex];
+        if(Object.keys(state.dashExFilter).length===0)state.dashExFilter=null;
+      } else {state.dashExFilter[ex]=true;}
+      render();
+    }
     else if(a==="load-more"){state.historyLimit+=20;render();}
     else if(a==="backup-now"){exportData();state.showRem=false;render();}
     else if(a==="dismiss-rem"){state.showRem=false;render();}
