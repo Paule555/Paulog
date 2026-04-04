@@ -837,7 +837,7 @@ function drawExChart(exName,maxWeeks){
   let kwKeys=Object.keys(kwMap);
   let data=kwKeys.map((kw)=>({name:kw,vol:kwMap[kw].vol,maxKg:kwMap[kw].maxKg}));
   let unit=findExUnit(exName);let unitL=unit==="sek"?"sek.":"kg";
-  let W=340,H=180,pl=45,pt2=20,pr=10,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
+  let W=340,H=180,pl=45,pt2=20,pr=40,pb=30,cw=W-pl-pr,ch=H-pt2-pb;
   let maxV=Math.max.apply(null,data.map((d)=>d.vol))||1;
   let maxK=Math.max.apply(null,data.map((d)=>d.maxKg))||1;
   function x(i){return pl+(data.length===1?cw/2:(i/(data.length-1))*cw);}
@@ -854,12 +854,13 @@ function drawExChart(exName,maxWeeks){
     svg+='<path d="'+d+'" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linejoin="round"/>';
     ptsV.forEach((p)=>{svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="#3B82F6"/>';});
   }
-  // Max weight line
+  // Max weight line + right axis
   let ptsK=[];data.forEach((p,i)=>{if(p.maxKg)ptsK.push({x:x(i),y:yK(p.maxKg)});});
   if(ptsK.length>0){
     let d=ptsK.map((p,i)=>(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
     svg+='<path d="'+d+'" fill="none" stroke="#10B981" stroke-width="2" stroke-linejoin="round" stroke-dasharray="4,3"/>';
     ptsK.forEach((p)=>{svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="#10B981"/>';});
+    for(let g=0;g<=4;g++){let gk=g/4*maxK,gy=yK(gk);svg+='<text x="'+(W-pr+5)+'" y="'+(gy+3)+'" fill="#10B981" font-size="9" text-anchor="start">'+Math.round(gk)+'</text>';}
   }
   svg+='</svg>';
   svg+='<div class="c-legend"><span><span class="dot" style="background:#3B82F6"></span>Volumen ('+unitL+' × Wdh)</span><span><span class="dot" style="background:#10B981"></span>Max '+unitL+'</span></div>';
