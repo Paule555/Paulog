@@ -40,7 +40,8 @@ button{font-family:inherit;cursor:pointer}
 .day-btn .arr{font-size:22px;font-weight:700}
 .day-btn.sug{background:rgba(16,185,129,0.07)}
 .day-btn.day-draft{border-right:4px solid #F59E0B;background:rgba(245,158,11,0.08)}
-.day-btn.day-draft .draft-tag{font-size:10px;color:#F59E0B;font-weight:600;margin-top:2px}
+.day-btn.day-draft .draft-tag{font-size:10px;color:#F59E0B;font-weight:600;margin-top:2px;display:flex;align-items:center;gap:6px}
+.draft-del{background:#3B2A0A;border-radius:4px;padding:1px 5px;font-size:11px;color:#F59E0B;cursor:pointer}
 /* Bottom buttons */
 .bbtn{padding:8px 20px;display:flex;flex-direction:column;gap:8px}
 .sec-btn{width:100%;padding:14px;background:transparent;border:1px solid #334155;border-radius:10px;color:#94A3B8;font-size:15px;font-weight:600}
@@ -964,7 +965,7 @@ function renderHome(){
     let cls='day-btn'+(isSug?' sug':'')+(hasToday?' day-active':'')+(hasDraft&&!hasToday?' day-draft':'');
     h+='<button class="'+cls+'" style="border-left:4px solid '+info.color+'" data-action="start" data-day="'+esc(day)+'">';
     h+='<div><div class="name">'+esc(day)+'</div><div class="musc">'+esc(info.muscles)+'</div>';
-    if(hasDraft&&!hasToday)h+='<div class="draft-tag">✎ Entwurf</div>';
+    if(hasDraft&&!hasToday)h+='<div class="draft-tag">✎ Entwurf <span class="draft-del" data-action="del-draft" data-day="'+esc(day)+'">✕</span></div>';
     h+='</div>';
     h+='<div class="arr" style="color:'+info.color+'">'+(hasToday?'✓':'→')+'</div></button>';
   }
@@ -1412,6 +1413,10 @@ function bindEvents(){
     else if(a==="migrate-yes"){performMigration();return;}
     else if(a==="migrate-no"){skipMigration();return;}
 
+    if(a==="del-draft"){
+      e.stopPropagation();
+      clearDraft();render();return;
+    }
     if(a==="go"){
       // Save draft if leaving track view with unsaved data
       if(state.view==="track"&&state.day&&!state.editing){
