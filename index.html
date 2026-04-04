@@ -217,10 +217,12 @@ button{font-family:inherit;cursor:pointer}
 .ed-color{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer}
 .ed-color.active{border-color:#F8FAFC;box-shadow:0 0 0 2px #3B82F6}
 .ed-exlist{display:flex;flex-direction:column;gap:6px}
-.ed-exitem{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;background:#0F172A;border-radius:8px;padding:10px 12px}
-.ed-exitem .ex-name{flex:1;font-size:14px;color:#E2E8F0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ed-exitem .ex-sets{font-size:12px;color:#64748B;margin-right:4px}
-.ex-sets-inp{width:36px;height:30px;border-radius:6px;background:#0F172A;border:1px solid #334155;color:#F8FAFC;font-size:13px;font-weight:700;text-align:center;padding:0;flex-shrink:0;font-family:inherit}
+.ed-exitem{background:#0F172A;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.ed-exrow{display:flex;align-items:center;gap:8px}
+.ed-exrow .ex-name{flex:1;font-size:14px;color:#E2E8F0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-exrow2{display:flex;align-items:center;gap:6px}
+.ed-exrow2 .note-inp{flex:1}
+.ex-sets-inp{width:36px;height:30px;border-radius:6px;background:#1E293B;border:1px solid #334155;color:#F8FAFC;font-size:13px;font-weight:700;text-align:center;padding:0;flex-shrink:0;font-family:inherit}
 .ex-btn{width:30px;height:30px;border-radius:6px;border:none;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .ex-btn-up{background:#1E293B;color:#94A3B8}
 .ex-btn-dn{background:#1E293B;color:#94A3B8}
@@ -1301,15 +1303,18 @@ function renderEditDay(){
     let ex=d.exercises[ei];
     let exUnit=(d.units&&d.units[ex])||"kg";
     let exSets=(d.exSets&&d.exSets[ex])||d.sets||4;
+    let exNote=(d.notes&&d.notes[ex])||'';
     h+='<div class="ed-exitem">';
-    h+='<span class="ex-name">'+esc(ex)+'</span>';
-    h+='<input type="number" inputmode="numeric" class="ex-sets-inp" value="'+exSets+'" min="1" max="10" data-action="set-ex-sets" data-idx="'+ei+'" aria-label="Sätze für '+esc(ex)+'">';
+    h+='<div class="ed-exrow"><span class="ex-name">'+esc(ex)+'</span>';
+    h+='<input type="number" inputmode="numeric" class="ex-sets-inp" value="'+exSets+'" min="1" max="10" data-action="set-ex-sets" data-idx="'+ei+'" title="Sätze">';
     h+='<button class="ex-btn ex-btn-unit '+(exUnit==="sek"?"is-sek":"is-kg")+'" data-action="toggle-unit" data-idx="'+ei+'">'+(exUnit==="sek"?"sek.":"kg")+'</button>';
+    h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'" aria-label="'+esc(ex)+' entfernen">✕</button>';
+    h+='</div>';
+    h+='<div class="ed-exrow2">';
+    h+='<input type="text" class="note-inp" placeholder="Notiz" value="'+esc(exNote)+'" data-action="set-ex-note" data-idx="'+ei+'">';
     if(ei>0)h+='<button class="ex-btn ex-btn-up" data-action="ex-up" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach oben">↑</button>';
     if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
-    h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'" aria-label="'+esc(ex)+' entfernen">✕</button>';
-    let exNote=(d.notes&&d.notes[ex])||'';
-    h+='<input type="text" class="note-inp" style="flex-basis:100%;margin-top:2px" placeholder="Notiz" value="'+esc(exNote)+'" data-action="set-ex-note" data-idx="'+ei+'">';
+    h+='</div>';
     h+='</div>';
   }
   h+='</div>';
