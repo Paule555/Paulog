@@ -143,9 +143,14 @@ button{font-family:inherit;cursor:pointer}
 .d-stat{flex:1;background:#1E293B;border-radius:10px;padding:12px;text-align:center}
 .d-stat-n{font-size:22px;font-weight:700;color:#F8FAFC}
 .d-stat-l{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
-.d-tabs{display:flex;gap:0;padding:0 20px;border-bottom:1px solid #1E293B}
-.d-tab{flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:#64748B;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center}
-.d-tab.active{color:#F8FAFC;border-bottom-color:#3B82F6}
+.d-toolbar{display:flex;align-items:center;gap:8px;padding:10px 20px}
+.d-select{flex:1;padding:8px 12px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#E2E8F0;font-size:14px;font-weight:600;font-family:inherit;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' fill='none' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.d-pb-btn{padding:8px 14px;background:#3B2A0A;border:1px solid #F59E0B;border-radius:8px;color:#F59E0B;font-size:13px;font-weight:700;font-family:inherit;white-space:nowrap}
+.d-pb-sec{padding:12px 20px}
+.d-pb-card{background:#1E293B;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.d-pb-name{font-size:14px;font-weight:700;color:#E2E8F0}
+.d-pb-date{font-size:11px;color:#64748B;margin-top:2px}
+.d-pb-val{font-size:18px;font-weight:800;color:#F59E0B}
 .d-time{padding:10px 20px;display:flex;gap:6px}
 .d-time-btn{padding:5px 12px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#94A3B8;font-size:12px;font-weight:600}
 .d-time-btn.active{background:#10B981;border-color:#10B981;color:#FFF}
@@ -1105,32 +1110,42 @@ function renderDash(){
 
   // Summary stats
   let allSess=getAllSess();
-  let totalV=0,totalS=allSess.length,streak=0;
-  allSess.forEach((s)=>{totalV+=s.totalVol;});
-  if(allSess.length>0){
-    let d=new Date(today()+"T00:00:00");
-    for(let i=0;i<60;i++){
-      let ds=d.toISOString().split("T")[0];
-      let found=allSess.some((s)=>s.date===ds);
-      if(found)streak++;else if(i>0)break;
-      d.setDate(d.getDate()-1);
-    }
-  }
+  let totalS=allSess.length;
   h+='<div class="d-stats">';
   h+='<div class="d-stat"><div class="d-stat-n">'+totalS+'</div><div class="d-stat-l">Sessions</div></div>';
-  h+='<div class="d-stat"><div class="d-stat-n">'+streak+'</div><div class="d-stat-l">Tage-Streak</div></div>';
-  h+='<div class="d-stat"><div class="d-stat-n">'+(totalV>999999?(totalV/1000000).toFixed(1)+"M":totalV>999?Math.round(totalV/1000)+"k":totalV)+'</div><div class="d-stat-l">Gesamt Vol.</div></div>';
   h+='</div>';
 
-  // Day tabs
+  // PB view
+  if(tab==="pb"){
+    let pbArr=[];for(let ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
+    pbArr.sort((a,b)=>b[1]-a[1]);
+    h+='<div class="d-toolbar"><select class="d-select" data-action="dash-tab-select"><option value="all">Alle Übungen</option>';
+    let dayKeys=getPlanDayKeys(PLAN);
+    for(let i=0;i<dayKeys.length;i++){h+='<option value="'+esc(dayKeys[i])+'">'+esc(dayKeys[i])+'</option>';}
+    h+='<option value="pb" selected>🏆 Personal Bests</option></select></div>';
+    h+='<div class="d-pb-sec">';
+    if(pbArr.length===0){
+      h+='<div style="text-align:center;color:#64748B;padding:40px 20px">Noch keine Bestleistungen</div>';
+    }
+    pbArr.forEach((p)=>{
+      let pu=findExUnit(p[0]);let pul=pu==="sek"?"sek.":"kg";
+      h+='<div class="d-pb-card"><div><div class="d-pb-name">'+esc(p[0])+'</div><div class="d-pb-date">'+fmtDate(p[2])+'</div></div>';
+      h+='<div class="d-pb-val">'+p[1]+' '+pul+'</div></div>';
+    });
+    h+='</div>';
+    return h;
+  }
+
+  // Day dropdown + PB button
   let dayKeys=getPlanDayKeys(PLAN);
-  h+='<div class="d-tabs">';
-  h+='<button class="d-tab'+(tab==="all"?" active":"")+'" data-action="dash-tab" data-tab="all">Alle</button>';
+  h+='<div class="d-toolbar"><select class="d-select" data-action="dash-tab-select">';
+  h+='<option value="all"'+(tab==="all"?" selected":"")+'>Alle Übungen</option>';
   for(let i=0;i<dayKeys.length;i++){
     let dk=dayKeys[i];
-    h+='<button class="d-tab'+(tab===dk?" active":"")+'" data-action="dash-tab" data-tab="'+esc(dk)+'" style="color:'+(tab===dk?PLAN[dk].color:'')+'">'+esc(dk)+'</button>';
+    h+='<option value="'+esc(dk)+'"'+(tab===dk?" selected":"")+'>'+esc(dk)+'</option>';
   }
-  h+='</div>';
+  h+='<option value="pb">🏆 Personal Bests</option>';
+  h+='</select></div>';
 
   // Time filter
   h+='<div class="d-time">';
@@ -1497,6 +1512,9 @@ function bindEvents(){
       reader.readAsText(f);
     };
   }
+  // Dashboard day select
+  let dashSel=app.querySelector('[data-action="dash-tab-select"]');
+  if(dashSel){dashSel.onchange=(e)=>{state.dashTab=e.target.value;state.dashExpandedEx=null;render();};}
   app.onclick=(e)=>{
     let t=e.target.closest("[data-action]");
     if(!t)return;
@@ -1574,7 +1592,6 @@ function bindEvents(){
     else if(a==="export-data"){exportData();state.showRem=false;render();}
     else if(a==="export-plan"){exportPlan();render();}
     else if(a==="set-weeks"){state.dashWeeks=parseInt(t.getAttribute("data-weeks"))||0;render();}
-    else if(a==="dash-tab"){state.dashTab=t.getAttribute("data-tab")||"all";state.dashExpandedEx=null;render();}
     else if(a==="dash-toggle-ex"){
       let ex=t.closest("[data-ex]").getAttribute("data-ex");
       state.dashExpandedEx=state.dashExpandedEx===ex?null:ex;render();
