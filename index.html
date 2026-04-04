@@ -232,14 +232,14 @@ button{font-family:inherit;cursor:pointer}
 .ed-colors{display:flex;gap:8px;flex-wrap:wrap}
 .ed-color{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer}
 .ed-color.active{border-color:#F8FAFC;box-shadow:0 0 0 2px #3B82F6}
-.ed-exlist{display:flex;flex-direction:column;background:#0F172A;border-radius:10px;overflow:hidden}
-.ed-exitem{padding:10px 0 10px 0;display:flex;align-items:stretch;gap:0;transition:opacity 0.15s}
+.ed-exlist{display:flex;flex-direction:column;gap:10px}
+.ed-exitem{padding:12px 8px 12px 0;display:flex;align-items:stretch;gap:0;transition:opacity 0.15s;background:#1E293B;border-radius:10px}
 .ed-exitem-content{flex:1;display:flex;flex-direction:column;gap:6px;padding-right:12px}
 .ed-exrow{display:flex;align-items:center;gap:8px}
 .ed-exrow .ex-name{flex:1;font-size:14px;color:#E2E8F0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ed-exrow2{display:flex;align-items:center;gap:6px}
 .ed-exrow2 .note-inp{flex:1}
-.ed-exitem+.ed-exitem{border-top:1px solid #1E293B}
+.ed-exitem+.ed-exitem{}
 .ex-grip{width:28px;height:100%;display:flex;align-items:center;justify-content:center;color:#475569;font-size:16px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;flex-shrink:0;align-self:stretch}
 .ex-grip:active{color:#94A3B8}
 .ed-exitem.dragging{opacity:0.4}
