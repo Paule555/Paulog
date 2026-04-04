@@ -1309,7 +1309,7 @@ function renderEditDay(){
     if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
     h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'" aria-label="'+esc(ex)+' entfernen">✕</button>';
     let exNote=(d.notes&&d.notes[ex])||'';
-    h+='<input type="text" class="note-inp" style="flex-basis:100%;margin-top:2px" placeholder="Notiz (z.B. Sitz 5, Griff 3)" value="'+esc(exNote)+'" data-action="set-ex-note" data-idx="'+ei+'">';
+    h+='<input type="text" class="note-inp" style="flex-basis:100%;margin-top:2px" placeholder="Notiz" value="'+esc(exNote)+'" data-action="set-ex-note" data-idx="'+ei+'">';
     h+='</div>';
   }
   h+='</div>';
