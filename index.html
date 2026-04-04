@@ -139,6 +139,30 @@ button{font-family:inherit;cursor:pointer}
 /* Dashboard */
 .d-hdr{display:flex;align-items:center;gap:12px;padding:16px 20px;background:#1E293B;position:sticky;top:0;z-index:10}
 .d-hdr h2{font-size:18px;font-weight:700;color:#F8FAFC}
+.d-stats{display:flex;gap:10px;padding:12px 20px}
+.d-stat{flex:1;background:#1E293B;border-radius:10px;padding:12px;text-align:center}
+.d-stat-n{font-size:22px;font-weight:700;color:#F8FAFC}
+.d-stat-l{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.d-tabs{display:flex;gap:0;padding:0 20px;border-bottom:1px solid #1E293B}
+.d-tab{flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:#64748B;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;text-align:center}
+.d-tab.active{color:#F8FAFC;border-bottom-color:#3B82F6}
+.d-time{padding:10px 20px;display:flex;gap:6px}
+.d-time-btn{padding:5px 12px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#94A3B8;font-size:12px;font-weight:600}
+.d-time-btn.active{background:#10B981;border-color:#10B981;color:#FFF}
+.d-exlist{padding:8px 20px;display:flex;flex-direction:column;gap:8px}
+.d-excard{background:#1E293B;border-radius:10px;padding:14px;cursor:pointer}
+.d-excard-top{display:flex;align-items:center;justify-content:space-between}
+.d-excard-name{font-size:14px;font-weight:700;color:#E2E8F0}
+.d-excard-val{font-size:16px;font-weight:700;color:#F8FAFC}
+.d-excard-row2{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.d-excard-sub{font-size:11px;color:#64748B}
+.d-excard-trend{font-size:12px;font-weight:700}
+.d-excard-trend.up{color:#10B981}
+.d-excard-trend.dn{color:#EF4444}
+.d-excard-trend.eq{color:#64748B}
+.d-excard-pb{font-size:10px;font-weight:700;color:#F59E0B;background:#3B2A0A;padding:2px 6px;border-radius:4px;margin-left:8px}
+.d-spark{display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:10px}
+.d-spark-bar{flex:1;border-radius:2px 2px 0 0;min-width:4px;transition:height 0.2s}
 .c-sec{padding:16px 20px;border-bottom:1px solid #1E293B}
 .c-sec h3{font-size:16px;font-weight:700;margin:0 0 2px}
 .c-sec .csub{font-size:11px;color:#64748B;margin:0 0 12px}
@@ -147,23 +171,6 @@ button{font-family:inherit;cursor:pointer}
 .c-legend span{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:10px;color:#94A3B8}
 .c-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block}
 .no-data{font-size:13px;color:#475569;font-style:italic}
-.d-filter{padding:12px 20px;display:flex;align-items:center;gap:10px}
-.d-filter-l{font-size:12px;color:#64748B;white-space:nowrap}
-.d-filter-opts{display:flex;gap:6px;flex-wrap:wrap}
-.d-filter-btn{padding:6px 12px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#94A3B8;font-size:12px;font-weight:600}
-.d-filter-btn.active{background:#10B981;border-color:#10B981;color:#FFF}
-.d-ex-filter{padding:4px 20px 12px;display:flex;flex-wrap:wrap;gap:6px}
-.d-ex-btn{padding:5px 10px;background:#1E293B;border:1px solid #334155;border-radius:8px;color:#64748B;font-size:11px;font-weight:600}
-.d-ex-btn.active{background:#3B82F6;border-color:#3B82F6;color:#FFF}
-.d-ex-btn.plan-btn{border-color:#10B981;color:#10B981}
-.d-ex-btn.plan-btn.active{background:#10B981;color:#FFF}
-.pb-sec{padding:16px 20px}
-.pb-sec h3{font-size:16px;font-weight:700;margin-bottom:12px;color:#F8FAFC}
-.pb-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1E293B;border-radius:8px;margin-bottom:6px}
-.pb-left{display:flex;flex-direction:column;gap:2px}
-.pb-row .ex{font-size:13px;color:#CBD5E1}
-.pb-date{font-size:11px;color:#64748B}
-.pb-row .kg{font-size:14px;font-weight:700;color:#F59E0B}
 /* Backup */
 .b-sec{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
 .b-card{background:#1E293B;border-radius:12px;padding:20px}
@@ -540,8 +547,8 @@ const state = {
   migrationData:null, migrationPlan:null,
   // Admin state
   adminUsers:null, adminLoading:false, adminSelectedUser:null, adminPlanJSON:"",
-  // Dashboard exercise filter
-  dashExFilter:null
+  // Dashboard state
+  dashExFilter:null, dashTab:"all", dashExpandedEx:null
 };
 let allData = {};
 let userPrefs={};
@@ -1057,48 +1064,138 @@ function renderHistory(){
   return h;
 }
 
+function getExStats(exName,maxWeeks){
+  let sessions=[];
+  for(let day in allData)(allData[day]||[]).forEach((s)=>{
+    if(s.exercises&&s.exercises[exName]){
+      let v=vol(s.exercises[exName]);
+      let maxKg=0;s.exercises[exName].forEach((st)=>{if(st.warmup)return;let k=Number(st.kg)||0;if(k>maxKg)maxKg=k;});
+      if(v>0||maxKg>0)sessions.push({date:s.date,vol:v,maxKg:maxKg});
+    }
+  });
+  sessions.sort((a,b)=>b.date>a.date?1:b.date<a.date?-1:0);
+  if(maxWeeks>0){
+    let cutoff=new Date();cutoff.setDate(cutoff.getDate()-maxWeeks*7);
+    let cutStr=cutoff.toISOString().split("T")[0];
+    sessions=sessions.filter((s)=>s.date>=cutStr);
+  }
+  return sessions;
+}
+
+function renderSparkBars(sessions,color){
+  if(sessions.length===0)return'';
+  let recent=sessions.slice(0,12).reverse();
+  let maxV=0;recent.forEach((s)=>{if(s.vol>maxV)maxV=s.vol;});
+  if(maxV===0)return'';
+  let h='<div class="d-spark">';
+  recent.forEach((s)=>{
+    let pct=Math.max(8,Math.round((s.vol/maxV)*100));
+    h+='<div class="d-spark-bar" style="height:'+pct+'%;background:'+color+'"></div>';
+  });
+  h+='</div>';
+  return h;
+}
+
 function renderDash(){
   let pbs=getPB();
   let wk=state.dashWeeks;
-  let opts=[{v:0,l:"Alle"},{v:4,l:"4 Wo"},{v:8,l:"8 Wo"},{v:12,l:"12 Wo"},{v:24,l:"24 Wo"}];
+  let tab=state.dashTab;
+  let timeOpts=[{v:0,l:"Alle"},{v:4,l:"4W"},{v:8,l:"8W"},{v:12,l:"12W"}];
   let h='<div class="d-hdr"><button class="back" data-action="go" data-view="home" aria-label="Zurück">←</button><h2>📊 Dashboard</h2></div>';
-  h+='<div class="d-filter"><span class="d-filter-l">Zeitraum:</span><div class="d-filter-opts">';
-  opts.forEach((o)=>{h+='<button class="d-filter-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
-  h+='</div></div>';
-  // Collect all unique exercises across plan and data
-  let exSet={},exOrder=[],planExSet={};
-  let dayKeys=getPlanDayKeys(PLAN);
-  for(let di=0;di<dayKeys.length;di++){
-    let info=PLAN[dayKeys[di]];
-    info.exercises.forEach((ex)=>{if(!exSet[ex]){exSet[ex]=info.color;exOrder.push(ex);}planExSet[ex]=true;});
+
+  // Summary stats
+  let allSess=getAllSess();
+  let totalV=0,totalS=allSess.length,streak=0;
+  allSess.forEach((s)=>{totalV+=s.totalVol;});
+  if(allSess.length>0){
+    let d=new Date(today()+"T00:00:00");
+    for(let i=0;i<60;i++){
+      let ds=d.toISOString().split("T")[0];
+      let found=allSess.some((s)=>s.date===ds);
+      if(found)streak++;else if(i>0)break;
+      d.setDate(d.getDate()-1);
+    }
   }
-  for(let day in allData)(allData[day]||[]).forEach((s)=>{
-    for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;if(!exSet[ex]){exSet[ex]='#64748B';exOrder.push(ex);}}
-  });
-  // Exercise filter UI
-  let filter=state.dashExFilter;
-  let isPlanFilter=filter&&Object.keys(filter).length===Object.keys(planExSet).length&&Object.keys(planExSet).every((e)=>filter[e]);
-  h+='<div class="d-ex-filter">';
-  h+='<button class="d-ex-btn'+(filter===null?' active':'')+'" data-action="dash-ex-all">Alle</button>';
-  h+='<button class="d-ex-btn plan-btn'+(isPlanFilter?' active':'')+'" data-action="dash-ex-plan">Akt. Plan</button>';
-  for(let ei=0;ei<exOrder.length;ei++){
-    let ex=exOrder[ei],isOn=filter===null||!!(filter&&filter[ex]);
-    h+='<button class="d-ex-btn'+(filter!==null&&isOn?' active':'')+'" data-action="dash-ex-toggle" data-ex="'+esc(ex)+'">'+esc(ex)+'</button>';
+  h+='<div class="d-stats">';
+  h+='<div class="d-stat"><div class="d-stat-n">'+totalS+'</div><div class="d-stat-l">Sessions</div></div>';
+  h+='<div class="d-stat"><div class="d-stat-n">'+streak+'</div><div class="d-stat-l">Tage-Streak</div></div>';
+  h+='<div class="d-stat"><div class="d-stat-n">'+(totalV>999999?(totalV/1000000).toFixed(1)+"M":totalV>999?Math.round(totalV/1000)+"k":totalV)+'</div><div class="d-stat-l">Gesamt Vol.</div></div>';
+  h+='</div>';
+
+  // Day tabs
+  let dayKeys=getPlanDayKeys(PLAN);
+  h+='<div class="d-tabs">';
+  h+='<button class="d-tab'+(tab==="all"?" active":"")+'" data-action="dash-tab" data-tab="all">Alle</button>';
+  for(let i=0;i<dayKeys.length;i++){
+    let dk=dayKeys[i];
+    h+='<button class="d-tab'+(tab===dk?" active":"")+'" data-action="dash-tab" data-tab="'+esc(dk)+'" style="color:'+(tab===dk?PLAN[dk].color:'')+'">'+esc(dk)+'</button>';
   }
   h+='</div>';
-  // Render filtered charts
-  let visibleEx=exOrder.filter((ex)=>filter===null||!!(filter&&filter[ex]));
-  for(let ei=0;ei<visibleEx.length;ei++){
-    let ex=visibleEx[ei],unit=findExUnit(ex),unitL=unit==="sek"?"sek.":"kg";
-    h+='<div class="c-sec"><h3 style="color:'+exSet[ex]+'">'+esc(ex)+'</h3><p class="csub">Volumen & Max '+unitL+' pro KW</p><div class="c-wrap">'+drawExChart(ex,wk)+'</div></div>';
+
+  // Time filter
+  h+='<div class="d-time">';
+  timeOpts.forEach((o)=>{h+='<button class="d-time-btn'+(wk===o.v?' active':'')+'" data-action="set-weeks" data-weeks="'+o.v+'">'+o.l+'</button>';});
+  h+='</div>';
+
+  // Collect exercises for active tab
+  let exList=[],exColors={};
+  if(tab==="all"){
+    for(let di=0;di<dayKeys.length;di++){
+      let info=PLAN[dayKeys[di]];
+      info.exercises.forEach((ex)=>{if(!exColors[ex]){exColors[ex]=info.color;exList.push(ex);}});
+    }
+    for(let day in allData)(allData[day]||[]).forEach((s)=>{
+      for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;if(!exColors[ex]){exColors[ex]='#64748B';exList.push(ex);}}
+    });
+  } else {
+    let info=PLAN[tab];
+    if(info){
+      info.exercises.forEach((ex)=>{exColors[ex]=info.color;exList.push(ex);});
+    }
   }
-  let pbArr=[];for(let ex in pbs)if(pbs[ex].kg>0)pbArr.push([ex,pbs[ex].kg,pbs[ex].date]);
-  pbArr.sort((a,b)=>{return b[1]-a[1];});
-  if(pbArr.length>0){
-    h+='<div class="pb-sec"><h3>🏆 Persönliche Bestleistungen</h3>';
-    pbArr.forEach((p)=>{let pu=findExUnit(p[0]);let pul=pu==="sek"?"sek.":"kg";h+='<div class="pb-row"><div class="pb-left"><span class="ex">'+esc(p[0])+'</span><span class="pb-date">'+fmtDate(p[2])+'</span></div><span class="kg">'+p[1]+' '+pul+'</span></div>';});
+
+  // Exercise cards
+  h+='<div class="d-exlist">';
+  if(exList.length===0){
+    h+='<div style="text-align:center;color:#64748B;padding:40px 20px">Keine Übungen vorhanden</div>';
+  }
+  for(let ei=0;ei<exList.length;ei++){
+    let ex=exList[ei];
+    let color=exColors[ex]||'#3B82F6';
+    let sessions=getExStats(ex,wk);
+    let unit=findExUnit(ex);let unitL=unit==="sek"?"sek.":"kg";
+    let lastMax=sessions.length>0?sessions[0].maxKg:0;
+    let prevMax=sessions.length>1?sessions[1].maxKg:0;
+    let pb=pbs[ex];
+    let isPB=pb&&lastMax>=pb.kg&&sessions.length>0;
+    let isExpanded=state.dashExpandedEx===ex;
+
+    // Trend
+    let trendCls='eq',trendTxt='–';
+    if(sessions.length>=2&&lastMax>0&&prevMax>0){
+      let diff=lastMax-prevMax;
+      if(diff>0){trendCls='up';trendTxt='+'+diff+' '+unitL;}
+      else if(diff<0){trendCls='dn';trendTxt=diff+' '+unitL;}
+    }
+
+    h+='<div class="d-excard" data-action="dash-toggle-ex" data-ex="'+esc(ex)+'">';
+    h+='<div class="d-excard-top"><span class="d-excard-name">'+esc(ex)+'</span>';
+    h+='<span class="d-excard-val">'+(lastMax>0?lastMax+' '+unitL:'–')+'</span></div>';
+    h+='<div class="d-excard-row2"><span class="d-excard-sub">'+sessions.length+' Sessions</span>';
+    h+='<span><span class="d-excard-trend '+trendCls+'">'+trendTxt+'</span>';
+    if(isPB)h+='<span class="d-excard-pb">PB</span>';
+    h+='</span></div>';
+    h+=renderSparkBars(sessions,color);
+
+    // Expanded: full chart
+    if(isExpanded){
+      h+='<div style="margin-top:12px;border-top:1px solid #334155;padding-top:12px">';
+      h+='<div class="c-wrap">'+drawExChart(ex,wk)+'</div>';
+      h+='</div>';
+    }
     h+='</div>';
   }
+  h+='</div>';
   return h;
 }
 
@@ -1477,21 +1574,10 @@ function bindEvents(){
     else if(a==="export-data"){exportData();state.showRem=false;render();}
     else if(a==="export-plan"){exportPlan();render();}
     else if(a==="set-weeks"){state.dashWeeks=parseInt(t.getAttribute("data-weeks"))||0;render();}
-    else if(a==="dash-ex-all"){state.dashExFilter=null;render();}
-    else if(a==="dash-ex-plan"){
-      let pf={};let dk=getPlanDayKeys(PLAN);for(let di=0;di<dk.length;di++)PLAN[dk[di]].exercises.forEach((ex)=>{pf[ex]=true;});
-      state.dashExFilter=pf;render();
-    }
-    else if(a==="dash-ex-toggle"){
-      let ex=t.getAttribute("data-ex");
-      if(!state.dashExFilter){
-        // Switch from "Alle" to individual: enable only this one
-        state.dashExFilter={};state.dashExFilter[ex]=true;
-      } else if(state.dashExFilter[ex]){
-        delete state.dashExFilter[ex];
-        if(Object.keys(state.dashExFilter).length===0)state.dashExFilter=null;
-      } else {state.dashExFilter[ex]=true;}
-      render();
+    else if(a==="dash-tab"){state.dashTab=t.getAttribute("data-tab")||"all";state.dashExpandedEx=null;render();}
+    else if(a==="dash-toggle-ex"){
+      let ex=t.closest("[data-ex]").getAttribute("data-ex");
+      state.dashExpandedEx=state.dashExpandedEx===ex?null:ex;render();
     }
     else if(a==="load-more"){state.historyLimit+=20;render();}
     else if(a==="backup-now"){exportData();state.showRem=false;render();}
