@@ -211,8 +211,10 @@ button{font-family:inherit;cursor:pointer}
 .sc-btn{width:36px;height:36px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;font-size:16px}
 .sc-btn-edit{background:#1E3A5F;color:#60A5FA}
 .sc-btn-del{background:#3B1C1C;color:#F87171}
-.sc-btn-up{background:#0F172A;color:#94A3B8}
-.sc-btn-dn{background:#0F172A;color:#94A3B8}
+.sc-grip{width:28px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:16px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;flex-shrink:0;align-self:stretch}
+.sc-grip:active{color:#94A3B8}
+.set-card.dragging{opacity:0.4}
+.set-card.drag-over{border-top:2px solid #3B82F6}
 .set-add-btn{width:100%;padding:14px;background:transparent;border:2px dashed #334155;border-radius:12px;color:#64748B;font-size:14px;font-weight:600}
 .set-global{background:#1E293B;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .set-global h3{font-size:14px;font-weight:700;color:#F8FAFC}
@@ -1272,19 +1274,20 @@ function renderSettings(){
   h+='<div class="set-sec">';
 
   // Day cards
+  h+='<div class="set-daylist">';
   for(let i=0;i<dayKeys.length;i++){
     let day=dayKeys[i],info=PLAN[day],ns=getDaySets(PLAN,day);
-    h+='<div class="set-card">';
+    h+='<div class="set-card" data-day-idx="'+i+'">';
+    h+='<div class="sc-grip" data-day-drag="'+i+'">⠿</div>';
     h+='<div class="sc-dot" style="background:'+info.color+'"></div>';
     h+='<div class="sc-info"><div class="sc-name">'+esc(day)+'</div><div class="sc-musc">'+esc(info.muscles)+'</div>';
     h+='<div class="sc-meta">'+info.exercises.length+' Übungen · '+ns+' Sätze</div></div>';
     h+='<div class="sc-acts">';
-    if(i>0)h+='<button class="sc-btn sc-btn-up" data-action="day-up" data-day="'+esc(day)+'" title="Hoch" aria-label="'+esc(day)+' nach oben">↑</button>';
-    if(i<dayKeys.length-1)h+='<button class="sc-btn sc-btn-dn" data-action="day-down" data-day="'+esc(day)+'" title="Runter" aria-label="'+esc(day)+' nach unten">↓</button>';
     h+='<button class="sc-btn sc-btn-edit" data-action="edit-day" data-day="'+esc(day)+'" title="Bearbeiten" aria-label="'+esc(day)+' bearbeiten">✏️</button>';
     if(dayKeys.length>1)h+='<button class="sc-btn sc-btn-del" data-action="del-day" data-day="'+esc(day)+'" title="Löschen" aria-label="'+esc(day)+' löschen">✕</button>';
     h+='</div></div>';
   }
+  h+='</div>';
 
   // Add day button
   h+='<button class="set-add-btn" data-action="add-day">+ Trainingstag hinzufügen</button>';
@@ -1676,8 +1679,6 @@ function bindEvents(){
         PLAN=newPlan;savePlan(PLAN);render();
       }
     }
-    else if(a==="day-up"){movePlanDay(t.getAttribute("data-day"),-1);}
-    else if(a==="day-down"){movePlanDay(t.getAttribute("data-day"),1);}
     else if(a==="reset-plan"){
       if(confirm('Plan auf Standard zurücksetzen?\n\nBestehende Session-Daten bleiben erhalten.')){
         PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));savePlan(PLAN);render();
@@ -1818,35 +1819,43 @@ function bindEvents(){
     r.readAsText(f);
   };
 
-  // Drag & drop for exercise reordering in plan editor
+  // Drag & drop shared logic
   let dragState=null;
-  let grips=app.querySelectorAll('.ex-grip');
-  grips.forEach((grip)=>{
-    function onDragStart(e){
-      if(!state.editDayData)return;
-      let ev=e.touches?e.touches[0]:e;
-      let fromIdx=parseInt(grip.getAttribute('data-drag-handle'));
-      let list=grip.closest('.ed-exlist');
-      let items=list.querySelectorAll('.ed-exitem');
-      let fromEl=items[fromIdx];
-      dragState={fromIdx:fromIdx,curIdx:fromIdx,startY:ev.clientY,list:list,items:items};
-      fromEl.classList.add('dragging');
-      e.preventDefault();
-    }
-    grip.addEventListener('touchstart',onDragStart,{passive:false});
-    grip.addEventListener('mousedown',onDragStart);
+  function initDrag(grips,attrName,itemSel,onDrop){
+    grips.forEach((grip)=>{
+      function onStart(e){
+        let ev=e.touches?e.touches[0]:e;
+        let fromIdx=parseInt(grip.getAttribute(attrName));
+        let list=grip.closest(itemSel.list);
+        let items=list.querySelectorAll(itemSel.item);
+        dragState={fromIdx:fromIdx,curIdx:fromIdx,items:items,onDrop:onDrop};
+        items[fromIdx].classList.add('dragging');
+        e.preventDefault();
+      }
+      grip.addEventListener('touchstart',onStart,{passive:false});
+      grip.addEventListener('mousedown',onStart);
+    });
+  }
+  // Exercise drag in plan editor
+  initDrag(app.querySelectorAll('.ex-grip'),'data-drag-handle',{list:'.ed-exlist',item:'.ed-exitem'},function(from,to){
+    if(state.editDayData){let arr=state.editDayData.exercises;let m=arr.splice(from,1)[0];arr.splice(to,0,m);render();}
+  });
+  // Day drag in settings
+  initDrag(app.querySelectorAll('.sc-grip'),'data-day-drag',{list:'.set-daylist',item:'.set-card'},function(from,to){
+    let keys=getPlanDayKeys(PLAN);if(from===to||from<0||to<0||to>=keys.length)return;
+    let moved=keys.splice(from,1)[0];keys.splice(to,0,moved);
+    let newPlan={};for(let i=0;i<keys.length;i++)newPlan[keys[i]]=PLAN[keys[i]];
+    PLAN=newPlan;savePlan(PLAN);render();
   });
   function onDragMove(e){
     if(!dragState)return;
     let ev=e.touches?e.touches[0]:e;
     let items=dragState.items;
-    // Find which item we're over
     let overIdx=-1;
     for(let i=0;i<items.length;i++){
       let r=items[i].getBoundingClientRect();
       if(ev.clientY>=r.top&&ev.clientY<=r.bottom){overIdx=i;break;}
     }
-    // Clear old indicators
     items.forEach((it)=>{it.classList.remove('drag-over');});
     if(overIdx>=0&&overIdx!==dragState.fromIdx){
       items[overIdx].classList.add('drag-over');
@@ -1856,14 +1865,9 @@ function bindEvents(){
   }
   function onDragEnd(e){
     if(!dragState)return;
-    let{fromIdx,curIdx,items}=dragState;
+    let{fromIdx,curIdx,items,onDrop}=dragState;
     items.forEach((it)=>{it.classList.remove('dragging','drag-over');});
-    if(fromIdx!==curIdx&&state.editDayData){
-      let arr=state.editDayData.exercises;
-      let moved=arr.splice(fromIdx,1)[0];
-      arr.splice(curIdx,0,moved);
-      render();
-    }
+    if(fromIdx!==curIdx)onDrop(fromIdx,curIdx);
     dragState=null;
   }
   document.addEventListener('touchmove',onDragMove,{passive:false});
