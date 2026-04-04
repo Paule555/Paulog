@@ -844,8 +844,9 @@ function drawExChart(exName,maxWeeks){
   function yV(v){return pt2+ch-(v/maxV)*ch;}
   function yK(v){return pt2+ch-(v/maxK)*ch;}
 
+  function fmtAxis(v){return v%1===0?String(v):v.toFixed(1).replace('.0','');}
   let svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="max-width:'+W+'px">';
-  for(let g=0;g<=4;g++){let gv2=g/4*maxV,gy=yV(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+Math.round(gv2)+'</text>';}
+  for(let g=0;g<=4;g++){let gv2=g/4*maxV,gy=yV(gv2);svg+='<line x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'" stroke="#334155" stroke-width="0.5"/>';svg+='<text x="'+(pl-5)+'" y="'+(gy+3)+'" fill="#64748B" font-size="9" text-anchor="end">'+fmtAxis(gv2)+'</text>';}
   data.forEach((p,i)=>{svg+='<text x="'+x(i)+'" y="'+(H-5)+'" fill="#64748B" font-size="9" text-anchor="middle">'+p.name+'</text>';});
   // Volume line
   let ptsV=[];data.forEach((p,i)=>{if(p.vol)ptsV.push({x:x(i),y:yV(p.vol)});});
@@ -860,7 +861,7 @@ function drawExChart(exName,maxWeeks){
     let d=ptsK.map((p,i)=>(i===0?"M":"L")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
     svg+='<path d="'+d+'" fill="none" stroke="#10B981" stroke-width="2" stroke-linejoin="round" stroke-dasharray="4,3"/>';
     ptsK.forEach((p)=>{svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="3" fill="#10B981"/>';});
-    for(let g=0;g<=4;g++){let gk=g/4*maxK,gy=yK(gk);svg+='<text x="'+(W-pr+5)+'" y="'+(gy+3)+'" fill="#10B981" font-size="9" text-anchor="start">'+Math.round(gk)+'</text>';}
+    for(let g=0;g<=4;g++){let gk=g/4*maxK,gy=yK(gk);svg+='<text x="'+(W-pr+5)+'" y="'+(gy+3)+'" fill="#10B981" font-size="9" text-anchor="start">'+fmtAxis(gk)+'</text>';}
   }
   svg+='</svg>';
   svg+='<div class="c-legend"><span><span class="dot" style="background:#3B82F6"></span>Volumen ('+unitL+' × Wdh)</span><span><span class="dot" style="background:#10B981"></span>Max '+unitL+'</span></div>';
