@@ -67,13 +67,25 @@ button{font-family:inherit;cursor:pointer}
 .prev-s span{font-size:12px;color:#94A3B8;background:#1E293B;padding:2px 8px;border-radius:4px}
 /* Sets grid */
 .s-grid{display:flex;flex-direction:column;gap:6px}
-.s-hdr{display:grid;grid-template-columns:36px 1fr 1fr;gap:8px;margin-bottom:2px}
+.s-hdr{display:grid;grid-template-columns:36px 1fr 1fr 28px;gap:8px;margin-bottom:2px}
 .s-hdr span{font-size:10px;color:#475569;text-align:center}
-.s-row{display:grid;grid-template-columns:36px 1fr 1fr;gap:8px;align-items:center}
+.s-row{display:grid;grid-template-columns:36px 1fr 1fr 28px;gap:8px;align-items:center}
+.s-del{width:28px;height:28px;border-radius:6px;background:#3B1C1C;border:none;color:#F87171;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0}
+.s-add{width:100%;padding:8px;background:transparent;border:1px dashed #334155;border-radius:8px;color:#64748B;font-size:13px;font-weight:600;margin-top:6px}
+.e-note{font-size:11px;color:#64748B;font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.note-inp{width:100%;padding:8px 10px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#94A3B8;font-size:12px;font-family:inherit;outline:none;margin-top:8px}
+.note-inp:focus{border-color:#3B82F6;color:#F8FAFC}
+.ex-mv{width:24px;height:20px;border-radius:4px;background:#0F172A;border:1px solid #334155;color:#64748B;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.ex-mv:active{background:#334155;color:#F8FAFC}
+.t-timer-btn{background:#0F172A;border:1px solid #334155;border-radius:8px;color:#94A3B8;padding:6px 10px;font-size:12px;font-weight:600;font-family:inherit;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.t-timer-btn.running{border-color:#10B981;color:#10B981}
+.t-timer-btn .dot{width:6px;height:6px;border-radius:50%;background:#10B981;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 .s-cell{display:flex;gap:4px;align-items:center}
 .wp-trigger{width:32px;height:32px;border-radius:8px;background:#0F172A;border:1px solid #334155;color:#64748B;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .wp-trigger:active{background:#334155;color:#F8FAFC}
-.s-num{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:700;font-size:14px}
+.s-num{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:700;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.s-num-warmup{background:#475569!important;font-size:11px;letter-spacing:-0.5px}
 .s-inp{width:100%;padding:10px 8px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#F8FAFC;font-size:16px;text-align:center;font-weight:600;outline:none;font-family:inherit}
 .s-inp:focus{border-color:#3B82F6}
 .s-inp.filled{color:#10B981}
@@ -211,6 +223,7 @@ button{font-family:inherit;cursor:pointer}
 .ed-exitem{display:flex;align-items:center;gap:8px;background:#0F172A;border-radius:8px;padding:10px 12px}
 .ed-exitem .ex-name{flex:1;font-size:14px;color:#E2E8F0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ed-exitem .ex-sets{font-size:12px;color:#64748B;margin-right:4px}
+.ex-sets-inp{width:36px;height:30px;border-radius:6px;background:#0F172A;border:1px solid #334155;color:#F8FAFC;font-size:13px;font-weight:700;text-align:center;padding:0;flex-shrink:0;font-family:inherit}
 .ex-btn{width:30px;height:30px;border-radius:6px;border:none;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .ex-btn-up{background:#1E293B;color:#94A3B8}
 .ex-btn-dn{background:#1E293B;color:#94A3B8}
@@ -473,7 +486,7 @@ function getFullExerciseGroups(){
   EXERCISE_CATALOG.forEach((e)=>{catalogSet[e]=true;});
   let custom=[];
   // From sessions
-  for(let day in allData){(allData[day]||[]).forEach((s)=>{for(let ex in s.exercises||{}){if(!catalogSet[ex]&&custom.indexOf(ex)===-1)custom.push(ex);}});}
+  for(let day in allData){(allData[day]||[]).forEach((s)=>{for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;if(!catalogSet[ex]&&custom.indexOf(ex)===-1)custom.push(ex);}});}
   // From plan
   for(let d in PLAN){(PLAN[d].exercises||[]).forEach((ex)=>{if(!catalogSet[ex]&&custom.indexOf(ex)===-1)custom.push(ex);});}
   custom.sort();
@@ -500,7 +513,7 @@ function savePlan(plan){
   savePlanToDB(plan).catch(()=>showToast("Plan konnte nicht gespeichert werden",true));
 }
 const getPlanDayKeys=(plan)=>Object.keys(plan);
-const getDaySets=(plan,day)=>(plan[day]&&plan[day].sets)||4;
+function getDaySets(plan,day,exercise){if(exercise&&plan[day]&&plan[day].exSets&&plan[day].exSets[exercise])return plan[day].exSets[exercise];return(plan[day]&&plan[day].sets)||4;}
 function getExUnit(day,exercise){
   if(PLAN[day]&&PLAN[day].units&&PLAN[day].units[exercise])return PLAN[day].units[exercise];
   return "kg";
@@ -514,7 +527,7 @@ let PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
 
 // State
 const state = {
-  view:"loading", day:null, date:today(), session:{}, expanded:null,
+  view:"loading", day:null, date:today(), session:{}, expanded:null, trackStart:null, exOrder:null,
   editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0, historyLimit:20,
   // Settings state
   editDay:null, editDayData:null, customExInput:"",
@@ -679,7 +692,11 @@ function debounceSavePrefs(){
 // Helpers
 function fmtDate(ds){const d=new Date(ds+"T00:00:00");return DN[d.getDay()]+", "+p2(d.getDate())+"."+p2(d.getMonth()+1)+"."+d.getFullYear();}
 const p2=(n)=>n<10?"0"+n:""+n;
-function vol(sets){let s=0;for(let i=0;i<sets.length;i++)s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);return s;}
+function fmtTimer(ms){let s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);s%=60;m%=60;return(h?h+":":"")+p2(m)+":"+p2(s);}
+let timerInterval=null;
+function startTimerTick(){stopTimerTick();timerInterval=setInterval(()=>{let el=document.getElementById("timer-display");if(el&&state.trackStart)el.textContent=fmtTimer(Date.now()-state.trackStart);},1000);}
+function stopTimerTick(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
+function vol(sets){let s=0;for(let i=0;i<sets.length;i++){if(sets[i].warmup)continue;s+=(Number(sets[i].kg)||0)*(Number(sets[i].reps)||0);}return s;}
 function sugDay(){
   let keys=getPlanDayKeys(PLAN);
   if(keys.length===0)return null;
@@ -705,7 +722,7 @@ function invalidatePBCache(){pbCache=null;}
 function getPB(){
   if(pbCache)return pbCache;
   let pbs={};
-  for(let k in allData){allData[k].forEach((s)=>{for(let ex in s.exercises||{}){let mx=0;s.exercises[ex].forEach((st)=>{let v=Number(st.kg)||0;if(v>mx)mx=v;});if(mx>0){if(!pbs[ex]||mx>pbs[ex].kg){pbs[ex]={kg:mx,date:s.date};}else if(mx===pbs[ex].kg&&s.date<pbs[ex].date){pbs[ex].date=s.date;}}}});}
+  for(let k in allData){allData[k].forEach((s)=>{for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;let mx=0;s.exercises[ex].forEach((st)=>{if(st.warmup)return;let v=Number(st.kg)||0;if(v>mx)mx=v;});if(mx>0){if(!pbs[ex]||mx>pbs[ex].kg){pbs[ex]={kg:mx,date:s.date};}else if(mx===pbs[ex].kg&&s.date<pbs[ex].date){pbs[ex].date=s.date;}}}});}
   pbCache=pbs;
   return pbs;
 }
@@ -740,7 +757,7 @@ function getAllSess(){
   let ss=[];
   for(let day in allData)(allData[day]||[]).forEach((se)=>{
     let tv=0,ec=0;
-    for(let ex in se.exercises||{}){tv+=vol(se.exercises[ex]);if(se.exercises[ex].some((s)=>{return s.kg||s.reps;}))ec++;}
+    for(let ex in se.exercises||{}){if(ex==='_duration'||ex.endsWith('_note'))continue;tv+=vol(se.exercises[ex]);if(se.exercises[ex].some((s)=>{return s.kg||s.reps;}))ec++;}
     ss.push({day:day,date:se.date,totalVol:tv,exerciseCount:ec,exercises:se.exercises});
   });
   return ss.sort((a,b)=>{return b.date>a.date?1:b.date<a.date?-1:0;});
@@ -904,6 +921,9 @@ function render(){
 
   bindEvents();
 
+  // Keep timer ticking if active
+  if(v==="track"&&state.trackStart)startTimerTick();else stopTimerTick();
+
   // Restore focus after re-render
   let viewChanged=lastView!==v;
   lastView=v;
@@ -962,32 +982,48 @@ function renderTrack(){
   let h='<div class="t-hdr" style="border-bottom:3px solid '+info.color+'">';
   h+='<button class="back" data-action="go" data-view="'+(isEd?'history':'home')+'" aria-label="Zurück">←</button>';
   h+='<div><h2>'+(isEd?'Session bearbeiten':esc(state.day))+'</h2><p class="sub">'+esc(info.muscles)+'</p></div>';
-  h+='<input type="date" class="din" value="'+state.date+'" data-action="set-date"></div>';
+  h+='<input type="date" class="din" value="'+state.date+'" data-action="set-date">';
+  if(state.trackStart){h+='<button class="t-timer-btn running" data-action="stop-timer"><span class="dot"></span><span id="timer-display">'+fmtTimer(Date.now()-state.trackStart)+'</span></button>';}
+  else{h+='<button class="t-timer-btn" data-action="start-timer">▶ Timer</button>';}
+  h+='</div>';
   h+='<div class="e-list">';
-  info.exercises.forEach((ex)=>{
+  let exList=state.exOrder||info.exercises;
+  for(let exi=0;exi<exList.length;exi++){
+    let ex=exList[exi];
     let isX=state.expanded===ex,prev=getPrev(state.day,ex);
     let sets=state.session[ex]||[];
     let unit=getExUnit(state.day,ex);
     let unitLabel=unit==="sek"?"sek.":"kg";
     let cv=vol(sets),pv=prev?vol(prev):0,hd=cv>0&&pv>0,delta=hd?Math.round(((cv-pv)/pv)*100):0;
-    h+='<div class="e-card"><button class="e-hdr" style="border-left:3px solid '+info.color+'" data-action="toggle-ex" data-ex="'+esc(ex)+'" aria-expanded="'+isX+'" aria-label="'+esc(ex)+(isX?' zuklappen':' aufklappen')+'">';
+    h+='<div class="e-card"><div class="e-hdr-wrap" style="border-left:3px solid '+info.color+';display:flex;align-items:center">';
+    h+='<button class="e-hdr" style="flex:1;border:none;border-left:none" data-action="toggle-ex" data-ex="'+esc(ex)+'" aria-expanded="'+isX+'" aria-label="'+esc(ex)+(isX?' zuklappen':' aufklappen')+'">';
+    let noteKey=ex+'_note',noteVal=state.session[noteKey]||'';
     h+='<div><span class="e-name">'+esc(ex)+'</span>';
+    if(noteVal&&!isX)h+='<div class="e-note">'+esc(noteVal)+'</div>';
     if(cv>0){h+='<div class="e-vol">'+cv.toLocaleString()+' '+unitLabel;if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
     h+='</div><span class="e-icon">'+(isX?'▲':'▼')+'</span></button>';
+    h+='<div style="display:flex;flex-direction:column;gap:2px;padding:0 6px">';
+    if(exi>0)h+='<button class="ex-mv" data-action="ex-move-up" data-ex="'+esc(ex)+'" aria-label="'+esc(ex)+' nach oben">↑</button>';
+    if(exi<exList.length-1)h+='<button class="ex-mv" data-action="ex-move-down" data-ex="'+esc(ex)+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
+    h+='</div></div>';
     if(isX){
       h+='<div class="e-body">';
       if(prev){h+='<div class="prev"><span class="prev-l">Letzte Session:</span><div class="prev-s">';prev.forEach((s)=>{if(s.kg||s.reps)h+='<span>'+esc(s.kg)+unitLabel+'×'+esc(s.reps)+'</span>';});h+='</div></div>';}
-      h+='<div class="s-grid"><div class="s-hdr"><span></span><span>'+unitLabel+'</span><span>Wdh</span></div>';
+      h+='<div class="s-grid"><div class="s-hdr"><span></span><span>'+unitLabel+'</span><span>Wdh</span><span></span></div>';
       sets.forEach((set,i)=>{
         let phK=prev&&prev[i]?prev[i].kg||'—':'—';let phR=prev&&prev[i]?prev[i].reps||'—':'—';
-        h+='<div class="s-row"><span class="s-num" style="background:'+info.color+'">'+(i+1)+'</span>';
+        let isWU=!!set.warmup;
+        h+='<div class="s-row"><span class="s-num'+(isWU?' s-num-warmup':'')+'" style="background:'+(isWU?'':''+info.color)+'" data-action="toggle-warmup" data-ex="'+esc(ex)+'" data-si="'+i+'" aria-label="Warm-up umschalten">'+(isWU?'W':(i+1))+'</span>';
         h+='<div class="s-cell"><input type="number" inputmode="decimal" class="s-inp'+(set.kg?' filled':'')+'" placeholder="'+phK+'" value="'+esc(set.kg)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="kg" aria-label="Gewicht wählen">⊙</button></div>';
-        h+='<div class="s-cell"><input type="number" inputmode="numeric" class="s-inp'+(set.reps?' filled':'')+'" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps" aria-label="Wiederholungen wählen">⊙</button></div></div>';
+        h+='<div class="s-cell"><input type="number" inputmode="numeric" class="s-inp'+(set.reps?' filled':'')+'" placeholder="'+phR+'" value="'+esc(set.reps)+'" data-action="set-val" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps"><button class="wp-trigger" data-action="open-wp" data-ex="'+esc(ex)+'" data-si="'+i+'" data-field="reps" aria-label="Wiederholungen wählen">⊙</button></div>';
+        h+=(sets.length>1?'<button class="s-del" data-action="del-set" data-ex="'+esc(ex)+'" data-si="'+i+'" aria-label="Satz entfernen">✕</button>':'<span></span>')+'</div>';
       });
+      h+='<button class="s-add" data-action="add-set" data-ex="'+esc(ex)+'">+ Satz</button>';
+      h+='<input type="text" class="note-inp" placeholder="Notiz (z.B. Sitz 5, Griff 3)" value="'+esc(noteVal)+'" data-action="set-note" data-ex="'+esc(ex)+'">';
       h+='</div></div>';
     }
     h+='</div>';
-  });
+  }
   h+='</div>';
   h+='<button class="save-btn" data-action="save">'+(isEd?'✓ Änderungen speichern':'✓ Session speichern')+'</button>';
   return h;
@@ -1008,9 +1044,10 @@ function renderHistory(){
       let isDel=state.delConfirm&&state.delConfirm.day===s.day&&state.delConfirm.date===s.date;
       h+='<div class="s-card"><div class="bar" style="background:'+color+'"></div><div class="cont">';
       h+='<div class="top"><div><div class="day">'+esc(s.day)+'</div><div class="date">'+fmtDate(s.date)+'</div></div>';
-      h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' kg</span><span class="exc">'+s.exerciseCount+' Übungen</span></div></div>';
+      let dur=s.exercises&&s.exercises['_duration'];
+      h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' kg</span><span class="exc">'+s.exerciseCount+' Übungen'+(dur?' · '+dur+' min':'')+'</span></div></div>';
       h+='<div class="exs">';
-      for(let ex in s.exercises||{}){let v=vol(s.exercises[ex]);if(v===0)continue;let mk=0;s.exercises[ex].forEach((st)=>{let kk=Number(st.kg)||0;if(kk>mk)mk=kk;});let eu=getExUnit(s.day,ex);let eul=eu==="sek"?"sek.":"kg";h+='<div class="exr"><span class="exn">'+esc(ex)+'</span><span class="exd">'+mk+eul+' · '+v.toLocaleString()+' '+eul+'</span></div>';}
+      for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;let v=vol(s.exercises[ex]);if(v===0)continue;let mk=0;s.exercises[ex].forEach((st)=>{let kk=Number(st.kg)||0;if(kk>mk)mk=kk;});let eu=getExUnit(s.day,ex);let eul=eu==="sek"?"sek.":"kg";let nt=s.exercises[ex+'_note'];h+='<div class="exr"><span class="exn">'+esc(ex)+(nt?' <span class="e-note" style="display:inline;margin-left:6px">'+esc(nt)+'</span>':'')+'</span><span class="exd">'+mk+eul+' · '+v.toLocaleString()+' '+eul+'</span></div>';}
       h+='</div>';
       if(isDel){h+='<div class="dc-bar"><span class="dc-txt">Wirklich löschen?</span><button class="dc-yes" data-action="del-confirm" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">Ja</button><button class="dc-no" data-action="del-cancel">Nein</button></div>';}
       else{h+='<div class="acts"><button class="act-edit" data-action="edit" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">✏️ Bearbeiten</button><button class="act-del" data-action="del-ask" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">🗑 Löschen</button></div>';}
@@ -1039,7 +1076,7 @@ function renderDash(){
     info.exercises.forEach((ex)=>{if(!exSet[ex]){exSet[ex]=info.color;exOrder.push(ex);}planExSet[ex]=true;});
   }
   for(let day in allData)(allData[day]||[]).forEach((s)=>{
-    for(let ex in s.exercises||{}){if(!exSet[ex]){exSet[ex]='#64748B';exOrder.push(ex);}}
+    for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;if(!exSet[ex]){exSet[ex]='#64748B';exOrder.push(ex);}}
   });
   // Exercise filter UI
   let filter=state.dashExFilter;
@@ -1273,8 +1310,10 @@ function renderEditDay(){
   for(let ei=0;ei<d.exercises.length;ei++){
     let ex=d.exercises[ei];
     let exUnit=(d.units&&d.units[ex])||"kg";
+    let exSets=(d.exSets&&d.exSets[ex])||d.sets||4;
     h+='<div class="ed-exitem">';
     h+='<span class="ex-name">'+esc(ex)+'</span>';
+    h+='<input type="number" inputmode="numeric" class="ex-sets-inp" value="'+exSets+'" min="1" max="10" data-action="set-ex-sets" data-idx="'+ei+'" aria-label="Sätze für '+esc(ex)+'">';
     h+='<button class="ex-btn ex-btn-unit '+(exUnit==="sek"?"is-sek":"is-kg")+'" data-action="toggle-unit" data-idx="'+ei+'">'+(exUnit==="sek"?"sek.":"kg")+'</button>';
     if(ei>0)h+='<button class="ex-btn ex-btn-up" data-action="ex-up" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach oben">↑</button>';
     if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
@@ -1386,6 +1425,14 @@ function bindEvents(){
     else if(a==="start"){initSession(t.getAttribute("data-day"),null,null);state.view="track";render();}
     else if(a==="toggle-ex"){let ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;if(state.expanded&&state.day)saveLastEx(state.day,state.expanded);render();}
     else if(a==="open-wp"){openWheelPicker(t.getAttribute("data-ex"),parseInt(t.getAttribute("data-si")),t.getAttribute("data-field"));}
+    else if(a==="ex-move-up"||a==="ex-move-down"){
+      let mex=t.getAttribute("data-ex");if(state.exOrder){let mi=state.exOrder.indexOf(mex);if(mi>=0){let mj=a==="ex-move-up"?mi-1:mi+1;if(mj>=0&&mj<state.exOrder.length){let tmp=state.exOrder[mi];state.exOrder[mi]=state.exOrder[mj];state.exOrder[mj]=tmp;render();}}}
+    }
+    else if(a==="start-timer"){state.trackStart=Date.now();startTimerTick();render();}
+    else if(a==="stop-timer"){state.trackStart=null;stopTimerTick();render();}
+    else if(a==="toggle-warmup"){let wex=t.getAttribute("data-ex"),wsi=parseInt(t.getAttribute("data-si"));if(state.session[wex]&&state.session[wex][wsi]){state.session[wex][wsi].warmup=!state.session[wex][wsi].warmup;saveDraft();render();}}
+    else if(a==="add-set"){let aex=t.getAttribute("data-ex");if(state.session[aex]){state.session[aex].push({kg:"",reps:""});saveDraft();render();}}
+    else if(a==="del-set"){let dex=t.getAttribute("data-ex"),dsi=parseInt(t.getAttribute("data-si"));if(state.session[dex]&&state.session[dex].length>1){state.session[dex].splice(dsi,1);saveDraft();render();}}
     else if(a==="save"){saveSession();render();}
     else if(a==="edit"){
       let day=t.getAttribute("data-day"),date=t.getAttribute("data-date");
@@ -1505,13 +1552,13 @@ function bindEvents(){
       let dn=t.getAttribute("data-day");
       state.editDay=dn;
       let inf=PLAN[dn];
-      state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice(),units:JSON.parse(JSON.stringify(inf.units||{}))};
+      state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice(),units:JSON.parse(JSON.stringify(inf.units||{})),exSets:JSON.parse(JSON.stringify(inf.exSets||{}))};
       state.customExInput="";
       state.view="editday";render();
     }
     else if(a==="add-day"){
       state.editDay=null;
-      state.editDayData={name:"",muscles:"",color:PALETTE[getPlanDayKeys(PLAN).length%PALETTE.length],sets:4,exercises:[],units:{}};
+      state.editDayData={name:"",muscles:"",color:PALETTE[getPlanDayKeys(PLAN).length%PALETTE.length],sets:4,exercises:[],units:{},exSets:{}};
       state.customExInput="";
       state.view="editday";render();
     }
@@ -1609,14 +1656,28 @@ function bindEvents(){
       let existing=arr.find((s)=>{return s.date===state.date;});
       if(existing&&existing.exercises){state.session=JSON.parse(JSON.stringify(existing.exercises));}
       else{
-        let se={};let numSets=getDaySets(PLAN,state.day);
-        if(PLAN[state.day]){PLAN[state.day].exercises.forEach((e)=>{se[e]=[];for(let i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});}
+        let se={};
+        if(PLAN[state.day]){PLAN[state.day].exercises.forEach((e)=>{let ns=getDaySets(PLAN,state.day,e);se[e]=[];for(let i=0;i<ns;i++)se[e].push({kg:"",reps:""});});}
         state.session=se;
       }
       render();
     }
+    // Exercise note
+    if(t.getAttribute("data-action")==="set-note"){
+      let nex=t.getAttribute("data-ex");
+      state.session[nex+'_note']=t.value;
+      saveDraft();
+    }
     // Track custom exercise input without re-render
     if(t.id==="ed-custom-ex"){state.customExInput=t.value;}
+    // Per-exercise sets in plan editor
+    if(t.getAttribute("data-action")==="set-ex-sets"&&state.editDayData){
+      let idx=parseInt(t.getAttribute("data-idx"));
+      let ex=state.editDayData.exercises[idx];
+      let val=Math.max(1,Math.min(10,parseInt(t.value)||4));
+      if(!state.editDayData.exSets)state.editDayData.exSets={};
+      state.editDayData.exSets[ex]=val;
+    }
   };
 
   // File input - Data import
@@ -1703,7 +1764,7 @@ function saveDayEdits(){
     // Editing existing day
     for(let k in PLAN){
       if(k===oldName){
-        newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exercises:d.exercises.slice()};
+        newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exSets:d.exSets||{},exercises:d.exercises.slice()};
       }else{
         newPlan[k]=PLAN[k];
       }
@@ -1711,7 +1772,7 @@ function saveDayEdits(){
   }else{
     // Adding new day
     for(let k2 in PLAN)newPlan[k2]=PLAN[k2];
-    newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exercises:d.exercises.slice()};
+    newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exSets:d.exSets||{},exercises:d.exercises.slice()};
   }
 
   PLAN=newPlan;savePlan(PLAN);
@@ -1722,7 +1783,6 @@ function saveDayEdits(){
 
 function initSession(day,date,exData){
   state.day=day;state.date=date||today();
-  let numSets=getDaySets(PLAN,day);
   if(exData){state.session=JSON.parse(JSON.stringify(exData));}
   else{
     // Check for unsaved draft first
@@ -1737,7 +1797,7 @@ function initSession(day,date,exData){
       else{
         let se={};
         if(PLAN[day]){
-          PLAN[day].exercises.forEach((e)=>{se[e]=[];for(let i=0;i<numSets;i++)se[e].push({kg:"",reps:""});});
+          PLAN[day].exercises.forEach((e)=>{let ns=getDaySets(PLAN,day,e);se[e]=[];for(let i=0;i<ns;i++)se[e].push({kg:"",reps:""});});
         }
         state.session=se;
       }
@@ -1746,31 +1806,36 @@ function initSession(day,date,exData){
   // Ensure all exercises from current plan have entries
   if(PLAN[day]){
     PLAN[day].exercises.forEach((ex)=>{
+      let ns=getDaySets(PLAN,day,ex);
       if(!state.session[ex]){
         state.session[ex]=[];
-        for(let i=0;i<numSets;i++)state.session[ex].push({kg:"",reps:""});
+        for(let i=0;i<ns;i++)state.session[ex].push({kg:"",reps:""});
       }
       // Adjust set count if plan changed
-      while(state.session[ex].length<numSets)state.session[ex].push({kg:"",reps:""});
+      while(state.session[ex].length<ns)state.session[ex].push({kg:"",reps:""});
     });
   }
+  // Set exercise order for this session
+  state.exOrder=PLAN[day]?PLAN[day].exercises.slice():[];
   // Expand last edited exercise, fallback to first
   let lastEx=getLastEx(day);
-  if(lastEx&&PLAN[day]&&PLAN[day].exercises.indexOf(lastEx)>=0){
+  if(lastEx&&state.exOrder.indexOf(lastEx)>=0){
     state.expanded=lastEx;
   } else {
-    state.expanded=PLAN[day]?PLAN[day].exercises[0]:null;
+    state.expanded=state.exOrder[0]||null;
   }
 }
 
 function sanitizeSession(session){
   let clean={};
   for(let ex in session){
+    if(ex==='_duration'){clean[ex]=Number(session[ex])||0;continue;}
+    if(ex.endsWith('_note')){if(session[ex])clean[ex]=String(session[ex]);continue;}
     clean[ex]=[];
     for(let i=0;i<session[ex].length;i++){
       let kg=parseFloat(session[ex][i].kg)||0;
       let reps=parseFloat(session[ex][i].reps)||0;
-      clean[ex].push({kg:kg<0?"":String(kg),reps:reps<0?"":String(Math.round(reps))});
+      let entry={kg:kg<0?"":String(kg),reps:reps<0?"":String(Math.round(reps))};if(session[ex][i].warmup)entry.warmup=true;clean[ex].push(entry);
     }
   }
   return clean;
@@ -1781,6 +1846,8 @@ function saveSession(){
   if(savingSession)return;
   savingSession=true;
   invalidatePrevCache();invalidateChartCache();invalidatePBCache();invalidateTotalSessCache();
+  // Save duration if timer was running
+  if(state.trackStart){state.session['_duration']=Math.round((Date.now()-state.trackStart)/60000);state.trackStart=null;stopTimerTick();}
   state.session=sanitizeSession(state.session);
   if(!allData[state.day])allData[state.day]=[];
   let idx=-1;
