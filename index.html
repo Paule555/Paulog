@@ -217,7 +217,7 @@ button{font-family:inherit;cursor:pointer}
 .ed-color{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer}
 .ed-color.active{border-color:#F8FAFC;box-shadow:0 0 0 2px #3B82F6}
 .ed-exlist{display:flex;flex-direction:column;gap:6px}
-.ed-exitem{display:flex;align-items:center;gap:8px;background:#0F172A;border-radius:8px;padding:10px 12px}
+.ed-exitem{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;background:#0F172A;border-radius:8px;padding:10px 12px}
 .ed-exitem .ex-name{flex:1;font-size:14px;color:#E2E8F0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ed-exitem .ex-sets{font-size:12px;color:#64748B;margin-right:4px}
 .ex-sets-inp{width:36px;height:30px;border-radius:6px;background:#0F172A;border:1px solid #334155;color:#F8FAFC;font-size:13px;font-weight:700;text-align:center;padding:0;flex-shrink:0;font-family:inherit}
@@ -1309,7 +1309,7 @@ function renderEditDay(){
     if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
     h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'" aria-label="'+esc(ex)+' entfernen">✕</button>';
     let exNote=(d.notes&&d.notes[ex])||'';
-    h+='<input type="text" class="note-inp" style="margin-top:4px;width:100%" placeholder="Notiz (z.B. Sitz 5, Griff 3)" value="'+esc(exNote)+'" data-action="set-ex-note" data-idx="'+ei+'">';
+    h+='<input type="text" class="note-inp" style="flex-basis:100%;margin-top:2px" placeholder="Notiz (z.B. Sitz 5, Griff 3)" value="'+esc(exNote)+'" data-action="set-ex-note" data-idx="'+ei+'">';
     h+='</div>';
   }
   h+='</div>';
