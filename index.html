@@ -217,6 +217,21 @@ button{font-family:inherit;cursor:pointer}
 .set-card.dragging{opacity:0.4}
 .set-card.drag-over{border-top:2px solid #3B82F6}
 .set-add-btn{width:100%;padding:14px;background:transparent;border:2px dashed #334155;border-radius:12px;color:#64748B;font-size:14px;font-weight:600}
+.tpl-btn{width:100%;padding:14px;background:#1E293B;border:1px solid #334155;border-radius:12px;color:#94A3B8;font-size:14px;font-weight:600}
+.tpl-list{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.tpl-card{background:#1E293B;border-radius:12px;padding:16px;cursor:pointer}
+.tpl-card-name{font-size:16px;font-weight:700;color:#F8FAFC}
+.tpl-card-desc{font-size:12px;color:#94A3B8;margin-top:4px}
+.tpl-card-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.tpl-tag{font-size:11px;padding:3px 8px;border-radius:6px;background:#0F172A;color:#64748B}
+.tpl-preview{padding:16px 20px}
+.tpl-prev-day{background:#1E293B;border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.tpl-prev-day-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tpl-prev-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tpl-prev-name{font-size:14px;font-weight:700;color:#F8FAFC}
+.tpl-prev-musc{font-size:11px;color:#64748B;margin-left:auto}
+.tpl-prev-ex{font-size:12px;color:#94A3B8;line-height:1.6}
+.tpl-apply{width:100%;padding:14px;background:#10B981;border:none;border-radius:10px;color:#FFF;font-size:15px;font-weight:700;margin-top:12px}
 .set-global{background:#1E293B;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .set-global h3{font-size:14px;font-weight:700;color:#F8FAFC}
 .sg-row{display:flex;align-items:center;justify-content:space-between}
@@ -556,7 +571,9 @@ const state = {
   // Admin state
   adminUsers:null, adminLoading:false, adminSelectedUser:null, adminPlanJSON:"",
   // Dashboard state
-  dashExFilter:null, dashTab:"all", dashExpandedEx:null
+  dashExFilter:null, dashTab:"all", dashExpandedEx:null,
+  // Templates
+  tplPreview:null
 };
 let allData = {};
 let userPrefs={};
@@ -937,6 +954,7 @@ function render(){
   else if(v==="dashboard") el.innerHTML=offlineBar+renderDash();
   else if(v==="backup") el.innerHTML=offlineBar+renderBackup();
   else if(v==="settings") el.innerHTML=offlineBar+renderSettings();
+  else if(v==="templates") el.innerHTML=offlineBar+renderTemplates();
   else if(v==="admin"&&isAdmin()) el.innerHTML=offlineBar+renderAdmin();
   else if(v==="editday") el.innerHTML=offlineBar+renderEditDay();
 
@@ -1219,6 +1237,48 @@ function renderDash(){
   return h;
 }
 
+// =========== PLAN TEMPLATES ===========
+const PLAN_TEMPLATES=[
+  {name:"Push / Pull / Legs",desc:"Klassischer 3er-Split + Abhängen",tags:["3-4 Tage","Fortgeschritten"],plan:{"Push":{"muscles":"Brust / Schultern / Trizeps","color":"#3B82F6","sets":4,"units":{},"exercises":["Bankdrücken LH","Schrägbankdrücken KH","Schulterdrücken KH","Seitheben Kabel","Trizeps über Kopf"]},"Pull":{"muscles":"Rücken / Bizeps / hintere Schulter","color":"#10B981","sets":4,"units":{},"exercises":["Latzug","T-Bar Row","Rudern","Reverse Fly","Bizepscurls"]},"Legs":{"muscles":"Beine / Core","color":"#F59E0B","sets":4,"units":{"Plank":"sek"},"exercises":["Rumänisches Kreuzheben","Beinstrecker","Beinbeuger","Ausfallschritte KH","Wadenheben","Plank"]},"Abhängen":{"muscles":"Griffkraft / Schulter","color":"#EF4444","sets":1,"units":{"Active Hang":"sek","One Arm Left":"sek","One Arm Right":"sek","Passive Hang":"sek"},"exercises":["Active Hang","One Arm Left","One Arm Right","Passive Hang"]}}},
+  {name:"5er Split",desc:"Brust, Beine, Rücken, Schultern, Arme",tags:["5 Tage","Fortgeschritten"],plan:{"Brusttraining":{"muscles":"Brust","color":"#3B82F6","sets":4,"units":{},"exercises":["Bankdrücken","Brustpresse","Schrägbankdrücken","Butterly","Kabelzug"]},"Beintraining":{"muscles":"Beine","color":"#F59E0B","sets":4,"units":{},"exercises":["Beinstrecker frei","Beinpresse","Waden","Beinbeuger","Beinstrecker"]},"Rückentraining":{"muscles":"Rücken","color":"#10B981","sets":4,"units":{},"exercises":["Latzug","Frontziehen sitzend","Rudern","Überzüge","Low Row"]},"Schultern/ Nacken":{"muscles":"Schultern / Nacken","color":"#8B5CF6","sets":4,"units":{},"exercises":["Nackenheben","Frontdrücken","Butterfly Reverse","Seitheben","Shruggs"]},"Armtraining":{"muscles":"Bizeps / Trizeps","color":"#EC4899","sets":4,"units":{},"exercises":["Bicepscurls","Trizeps Kabel","Bicepscurls Kabel","Kabel über Kopf","Dips Maschine"]}}},
+  {name:"Ganzkörper",desc:"2× Ganzkörper + 2× Calisthenics + Abhängen",tags:["4-5 Tage","Vielseitig"],plan:{"Ganzkörper A":{"sets":4,"color":"#3B82F6","notes":{"Reverse Fly":"Griff: 5"},"units":{},"exSets":{},"muscles":"Ganzkörper (Schwerpunkt Drücken + Arme)","exercises":["Bankdrücken LH","Latzug","Schulterdrücken KH","Kniebeugen","Rumänisches Kreuzheben","Bizepscurls","Reverse Fly"]},"Ganzkörper B":{"sets":4,"color":"#10B981","units":{},"muscles":"Ganzkörper (Schwerpunkt Ziehen + Arme)","exercises":["T-Bar Row","Schrägbankdrücken KH","Seitheben Kabel","Ausfallschritte KH","Beinbeuger","Trizepsdrücken Kabel","Latzug"]},"Calisthenics I":{"sets":3,"color":"#8B5CF6","units":{"L-Sit Ringe":"sek"},"muscles":"Ganzkörper (Schwerpunkt Drücken + Arme)","exercises":["Ring Dips","Klimmzüge","Pike Push-ups","Bulgarische Kniebeugen","Ring Curls","Band Trizepsdrücken","L-Sit Ringe","Face Pulls Band"]},"Calisthenics II":{"sets":3,"color":"#EC4899","units":{"Plank Ringe":"sek"},"muscles":"Ganzkörper (Schwerpunkt Ziehen + Arme)","exercises":["Ring Rows","Ring Liegestütze","Band Seitheben","Pistol Squats","Enge Klimmzüge","Ring Trizeps Extensions","Plank Ringe","Nordic Curls"]},"Abhängen":{"sets":1,"color":"#EF4444","units":{"Active Hang":"sek","One Arm Left":"sek","Passive Hang":"sek","One Arm Right":"sek"},"muscles":"Griffkraft / Schulter","exercises":["Active Hang","One Arm Left","One Arm Right","Passive Hang"]}}},
+  {name:"Unterkörper Fokus",desc:"Oberkörper / Unterkörper / Gluteus & Core",tags:["3 Tage","Anfänger"],plan:{"Unterkörper Fokus":{"muscles":"Gluteus / Beine / Oberkörper unterstützend","color":"#F59E0B","sets":4,"units":{"Plank":"sek"},"exercises":["Rumänisches Kreuzheben","Beinpresse","Hip Thrust","Latzug","Brustpresse","Plank"]},"Oberkörper Fokus":{"muscles":"Rücken / Brust / Schultern / Arme","color":"#3B82F6","sets":4,"units":{},"exercises":["Latzug","Rudern Kabel","Brustpresse","Seitheben","Beinbeuger Maschine"]},"Gluteus & Core Fokus":{"muscles":"Gluteus / Beine / Schultern / Core","color":"#10B981","sets":4,"units":{"Side Plank":"sek"},"exercises":["Hip Thrust schwer","Bulgarian Split Squats","Beinstrecker","Reverse Fly","Schulterdrücken KH","Side Plank"]}}}
+];
+
+function renderTemplates(){
+  let h='<div class="d-hdr"><button class="back" data-action="go" data-view="settings" aria-label="Zurück">←</button><h2>📋 Plan-Vorlagen</h2></div>';
+  if(state.tplPreview!==null&&state.tplPreview!==undefined){
+    let tpl=PLAN_TEMPLATES[state.tplPreview];
+    h+='<div class="tpl-preview">';
+    h+='<h3 style="font-size:18px;font-weight:700;color:#F8FAFC;margin-bottom:4px">'+esc(tpl.name)+'</h3>';
+    h+='<p style="font-size:13px;color:#94A3B8;margin-bottom:16px">'+esc(tpl.desc)+'</p>';
+    let dk=Object.keys(tpl.plan);
+    for(let i=0;i<dk.length;i++){
+      let day=dk[i],info=tpl.plan[day];
+      h+='<div class="tpl-prev-day"><div class="tpl-prev-day-hdr"><div class="tpl-prev-dot" style="background:'+info.color+'"></div>';
+      h+='<span class="tpl-prev-name">'+esc(day)+'</span><span class="tpl-prev-musc">'+esc(info.muscles)+'</span></div>';
+      h+='<div class="tpl-prev-ex">'+info.exercises.map(esc).join(' · ')+'</div></div>';
+    }
+    h+='<button class="tpl-apply" data-action="tpl-apply" data-tpl="'+state.tplPreview+'">Plan übernehmen</button>';
+    h+='</div>';
+    return h;
+  }
+  h+='<div class="tpl-list">';
+  for(let i=0;i<PLAN_TEMPLATES.length;i++){
+    let tpl=PLAN_TEMPLATES[i];
+    let dayCount=Object.keys(tpl.plan).length;
+    let exCount=0;for(let d in tpl.plan)exCount+=tpl.plan[d].exercises.length;
+    h+='<div class="tpl-card" data-action="tpl-preview" data-tpl="'+i+'">';
+    h+='<div class="tpl-card-name">'+esc(tpl.name)+'</div>';
+    h+='<div class="tpl-card-desc">'+esc(tpl.desc)+' · '+dayCount+' Tage · '+exCount+' Übungen</div>';
+    h+='<div class="tpl-card-tags">';
+    tpl.tags.forEach((t)=>{h+='<span class="tpl-tag">'+esc(t)+'</span>';});
+    h+='</div></div>';
+  }
+  h+='</div>';
+  return h;
+}
+
 function renderBackup(){
   let lb=getLB(),bts=totalSess(),dayCount=getPlanDayKeys(PLAN).length;
   let h='<div class="d-hdr"><button class="back" data-action="go" data-view="home" aria-label="Zurück">←</button><h2>💾 Backup & Restore</h2></div>';
@@ -1292,6 +1352,9 @@ function renderSettings(){
 
   // Add day button
   h+='<button class="set-add-btn" data-action="add-day">+ Trainingstag hinzufügen</button>';
+
+  // Plan templates
+  h+='<button class="tpl-btn" data-action="go" data-view="templates">📋 Plan-Vorlagen</button>';
 
   // Reset to default
   h+='<button class="set-reset" data-action="reset-plan">↺ Auf Standardplan zurücksetzen</button>';
@@ -1545,7 +1608,7 @@ function bindEvents(){
         for(let sk in state.session){if(sk[0]==='_'||sk.endsWith('_note'))continue;(state.session[sk]||[]).forEach((s)=>{if(s.kg||s.reps)hasData=true;});}
         if(hasData)saveDraft();
       }
-      state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;state.historyLimit=20;render();
+      state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;state.historyLimit=20;state.tplPreview=null;render();
     }
     else if(a==="start"){initSession(t.getAttribute("data-day"),null,null);state.view="track";render();}
     else if(a==="toggle-ex"){let ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;if(state.expanded&&state.day)saveLastEx(state.day,state.expanded);render();}
@@ -1683,6 +1746,15 @@ function bindEvents(){
     else if(a==="reset-plan"){
       if(confirm('Plan auf Standard zurücksetzen?\n\nBestehende Session-Daten bleiben erhalten.')){
         PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));savePlan(PLAN);render();
+      }
+    }
+    else if(a==="tpl-preview"){state.tplPreview=parseInt(t.getAttribute("data-tpl"));render();}
+    else if(a==="tpl-apply"){
+      let idx=parseInt(t.getAttribute("data-tpl"));
+      let tpl=PLAN_TEMPLATES[idx];
+      if(confirm('Plan "'+tpl.name+'" übernehmen?\n\nDein aktueller Plan wird ersetzt.\nBestehende Session-Daten bleiben erhalten.')){
+        PLAN=JSON.parse(JSON.stringify(tpl.plan));savePlan(PLAN);
+        state.tplPreview=null;state.view="settings";render();
       }
     }
 
