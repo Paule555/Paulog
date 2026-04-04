@@ -74,10 +74,7 @@ button{font-family:inherit;cursor:pointer}
 .s-add{width:100%;padding:8px;background:transparent;border:1px dashed #334155;border-radius:8px;color:#64748B;font-size:13px;font-weight:600;margin-top:6px}
 .e-note{font-size:11px;color:#64748B;font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
 .note-inp{width:100%;padding:8px 10px;background:#0F172A;border:1px solid #334155;border-radius:8px;color:#94A3B8;font-size:12px;font-family:inherit;outline:none;margin-top:8px}
-.note-inp:focus{border-color:#3B82F6;color:#F8FAFC}
-.ex-mv{width:24px;height:20px;border-radius:4px;background:#0F172A;border:1px solid #334155;color:#64748B;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
-.ex-mv:active{background:#334155;color:#F8FAFC}
-.t-timer-btn{background:#0F172A;border:1px solid #334155;border-radius:8px;color:#94A3B8;padding:6px 10px;font-size:12px;font-weight:600;font-family:inherit;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.note-inp:focus{border-color:#3B82F6;color:#F8FAFC}.t-timer-btn{background:#0F172A;border:1px solid #334155;border-radius:8px;color:#94A3B8;padding:6px 10px;font-size:12px;font-weight:600;font-family:inherit;white-space:nowrap;display:flex;align-items:center;gap:4px}
 .t-timer-btn.running{border-color:#10B981;color:#10B981}
 .t-timer-btn .dot{width:6px;height:6px;border-radius:50%;background:#10B981;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
@@ -527,7 +524,7 @@ let PLAN=JSON.parse(JSON.stringify(DEFAULT_PLAN));
 
 // State
 const state = {
-  view:"loading", day:null, date:today(), session:{}, expanded:null, trackStart:null, exOrder:null,
+  view:"loading", day:null, date:today(), session:{}, expanded:null, trackStart:null,
   editing:null, delConfirm:null, impStatus:null, impData:null, showRem:false, dashWeeks:0, historyLimit:20,
   // Settings state
   editDay:null, editDayData:null, customExInput:"",
@@ -987,25 +984,18 @@ function renderTrack(){
   else{h+='<button class="t-timer-btn" data-action="start-timer">▶ Timer</button>';}
   h+='</div>';
   h+='<div class="e-list">';
-  let exList=state.exOrder||info.exercises;
-  for(let exi=0;exi<exList.length;exi++){
-    let ex=exList[exi];
+  info.exercises.forEach((ex)=>{
     let isX=state.expanded===ex,prev=getPrev(state.day,ex);
     let sets=state.session[ex]||[];
     let unit=getExUnit(state.day,ex);
     let unitLabel=unit==="sek"?"sek.":"kg";
     let cv=vol(sets),pv=prev?vol(prev):0,hd=cv>0&&pv>0,delta=hd?Math.round(((cv-pv)/pv)*100):0;
-    h+='<div class="e-card"><div class="e-hdr-wrap" style="border-left:3px solid '+info.color+';display:flex;align-items:center">';
-    h+='<button class="e-hdr" style="flex:1;border:none;border-left:none" data-action="toggle-ex" data-ex="'+esc(ex)+'" aria-expanded="'+isX+'" aria-label="'+esc(ex)+(isX?' zuklappen':' aufklappen')+'">';
-    let noteKey=ex+'_note',noteVal=state.session[noteKey]||'';
+    h+='<div class="e-card"><button class="e-hdr" style="border-left:3px solid '+info.color+'" data-action="toggle-ex" data-ex="'+esc(ex)+'" aria-expanded="'+isX+'" aria-label="'+esc(ex)+(isX?' zuklappen':' aufklappen')+'">';
+    let noteVal=(info.notes&&info.notes[ex])||'';
     h+='<div><span class="e-name">'+esc(ex)+'</span>';
     if(noteVal&&!isX)h+='<div class="e-note">'+esc(noteVal)+'</div>';
     if(cv>0){h+='<div class="e-vol">'+cv.toLocaleString()+' '+unitLabel;if(hd)h+='<span class="'+(delta>=0?'delta-up':'delta-dn')+'">'+(delta>=0?'↑':'↓')+Math.abs(delta)+'%</span>';h+='</div>';}
     h+='</div><span class="e-icon">'+(isX?'▲':'▼')+'</span></button>';
-    h+='<div style="display:flex;flex-direction:column;gap:2px;padding:0 6px">';
-    if(exi>0)h+='<button class="ex-mv" data-action="ex-move-up" data-ex="'+esc(ex)+'" aria-label="'+esc(ex)+' nach oben">↑</button>';
-    if(exi<exList.length-1)h+='<button class="ex-mv" data-action="ex-move-down" data-ex="'+esc(ex)+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
-    h+='</div></div>';
     if(isX){
       h+='<div class="e-body">';
       if(prev){h+='<div class="prev"><span class="prev-l">Letzte Session:</span><div class="prev-s">';prev.forEach((s)=>{if(s.kg||s.reps)h+='<span>'+esc(s.kg)+unitLabel+'×'+esc(s.reps)+'</span>';});h+='</div></div>';}
@@ -1019,11 +1009,11 @@ function renderTrack(){
         h+=(sets.length>1?'<button class="s-del" data-action="del-set" data-ex="'+esc(ex)+'" data-si="'+i+'" aria-label="Satz entfernen">✕</button>':'<span></span>')+'</div>';
       });
       h+='<button class="s-add" data-action="add-set" data-ex="'+esc(ex)+'">+ Satz</button>';
-      h+='<input type="text" class="note-inp" placeholder="Notiz (z.B. Sitz 5, Griff 3)" value="'+esc(noteVal)+'" data-action="set-note" data-ex="'+esc(ex)+'">';
+      if(noteVal)h+='<div class="e-note" style="margin-top:8px;max-width:none">'+esc(noteVal)+'</div>';
       h+='</div></div>';
     }
     h+='</div>';
-  }
+  });
   h+='</div>';
   h+='<button class="save-btn" data-action="save">'+(isEd?'✓ Änderungen speichern':'✓ Session speichern')+'</button>';
   return h;
@@ -1047,7 +1037,7 @@ function renderHistory(){
       let dur=s.exercises&&s.exercises['_duration'];
       h+='<div class="sts"><span class="vol">'+s.totalVol.toLocaleString()+' kg</span><span class="exc">'+s.exerciseCount+' Übungen'+(dur?' · '+dur+' min':'')+'</span></div></div>';
       h+='<div class="exs">';
-      for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;let v=vol(s.exercises[ex]);if(v===0)continue;let mk=0;s.exercises[ex].forEach((st)=>{let kk=Number(st.kg)||0;if(kk>mk)mk=kk;});let eu=getExUnit(s.day,ex);let eul=eu==="sek"?"sek.":"kg";let nt=s.exercises[ex+'_note'];h+='<div class="exr"><span class="exn">'+esc(ex)+(nt?' <span class="e-note" style="display:inline;margin-left:6px">'+esc(nt)+'</span>':'')+'</span><span class="exd">'+mk+eul+' · '+v.toLocaleString()+' '+eul+'</span></div>';}
+      for(let ex in s.exercises||{}){if(ex[0]==='_'||ex.endsWith('_note'))continue;let v=vol(s.exercises[ex]);if(v===0)continue;let mk=0;s.exercises[ex].forEach((st)=>{let kk=Number(st.kg)||0;if(kk>mk)mk=kk;});let eu=getExUnit(s.day,ex);let eul=eu==="sek"?"sek.":"kg";let nt=inf&&inf.notes&&inf.notes[ex];h+='<div class="exr"><span class="exn">'+esc(ex)+(nt?' <span class="e-note" style="display:inline;margin-left:6px">'+esc(nt)+'</span>':'')+'</span><span class="exd">'+mk+eul+' · '+v.toLocaleString()+' '+eul+'</span></div>';}
       h+='</div>';
       if(isDel){h+='<div class="dc-bar"><span class="dc-txt">Wirklich löschen?</span><button class="dc-yes" data-action="del-confirm" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">Ja</button><button class="dc-no" data-action="del-cancel">Nein</button></div>';}
       else{h+='<div class="acts"><button class="act-edit" data-action="edit" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">✏️ Bearbeiten</button><button class="act-del" data-action="del-ask" data-day="'+esc(s.day)+'" data-date="'+esc(s.date)+'">🗑 Löschen</button></div>';}
@@ -1318,6 +1308,8 @@ function renderEditDay(){
     if(ei>0)h+='<button class="ex-btn ex-btn-up" data-action="ex-up" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach oben">↑</button>';
     if(ei<d.exercises.length-1)h+='<button class="ex-btn ex-btn-dn" data-action="ex-down" data-idx="'+ei+'" aria-label="'+esc(ex)+' nach unten">↓</button>';
     h+='<button class="ex-btn ex-btn-del" data-action="ex-del" data-idx="'+ei+'" aria-label="'+esc(ex)+' entfernen">✕</button>';
+    let exNote=(d.notes&&d.notes[ex])||'';
+    h+='<input type="text" class="note-inp" style="margin-top:4px;width:100%" placeholder="Notiz (z.B. Sitz 5, Griff 3)" value="'+esc(exNote)+'" data-action="set-ex-note" data-idx="'+ei+'">';
     h+='</div>';
   }
   h+='</div>';
@@ -1417,7 +1409,7 @@ function bindEvents(){
       // Save draft if leaving track view with unsaved data
       if(state.view==="track"&&state.day&&!state.editing){
         let hasData=false;
-        for(let sk in state.session){(state.session[sk]||[]).forEach((s)=>{if(s.kg||s.reps)hasData=true;});}
+        for(let sk in state.session){if(sk[0]==='_'||sk.endsWith('_note'))continue;(state.session[sk]||[]).forEach((s)=>{if(s.kg||s.reps)hasData=true;});}
         if(hasData)saveDraft();
       }
       state.view=t.getAttribute("data-view");state.editing=null;state.delConfirm=null;state.historyLimit=20;render();
@@ -1425,9 +1417,6 @@ function bindEvents(){
     else if(a==="start"){initSession(t.getAttribute("data-day"),null,null);state.view="track";render();}
     else if(a==="toggle-ex"){let ex=t.getAttribute("data-ex");state.expanded=state.expanded===ex?null:ex;if(state.expanded&&state.day)saveLastEx(state.day,state.expanded);render();}
     else if(a==="open-wp"){openWheelPicker(t.getAttribute("data-ex"),parseInt(t.getAttribute("data-si")),t.getAttribute("data-field"));}
-    else if(a==="ex-move-up"||a==="ex-move-down"){
-      let mex=t.getAttribute("data-ex");if(state.exOrder){let mi=state.exOrder.indexOf(mex);if(mi>=0){let mj=a==="ex-move-up"?mi-1:mi+1;if(mj>=0&&mj<state.exOrder.length){let tmp=state.exOrder[mi];state.exOrder[mi]=state.exOrder[mj];state.exOrder[mj]=tmp;render();}}}
-    }
     else if(a==="start-timer"){state.trackStart=Date.now();startTimerTick();render();}
     else if(a==="stop-timer"){state.trackStart=null;stopTimerTick();render();}
     else if(a==="toggle-warmup"){let wex=t.getAttribute("data-ex"),wsi=parseInt(t.getAttribute("data-si"));if(state.session[wex]&&state.session[wex][wsi]){state.session[wex][wsi].warmup=!state.session[wex][wsi].warmup;saveDraft();render();}}
@@ -1552,13 +1541,13 @@ function bindEvents(){
       let dn=t.getAttribute("data-day");
       state.editDay=dn;
       let inf=PLAN[dn];
-      state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice(),units:JSON.parse(JSON.stringify(inf.units||{})),exSets:JSON.parse(JSON.stringify(inf.exSets||{}))};
+      state.editDayData={name:dn,muscles:inf.muscles,color:inf.color,sets:inf.sets||4,exercises:inf.exercises.slice(),units:JSON.parse(JSON.stringify(inf.units||{})),exSets:JSON.parse(JSON.stringify(inf.exSets||{})),notes:JSON.parse(JSON.stringify(inf.notes||{}))};
       state.customExInput="";
       state.view="editday";render();
     }
     else if(a==="add-day"){
       state.editDay=null;
-      state.editDayData={name:"",muscles:"",color:PALETTE[getPlanDayKeys(PLAN).length%PALETTE.length],sets:4,exercises:[],units:{},exSets:{}};
+      state.editDayData={name:"",muscles:"",color:PALETTE[getPlanDayKeys(PLAN).length%PALETTE.length],sets:4,exercises:[],units:{},exSets:{},notes:{}};
       state.customExInput="";
       state.view="editday";render();
     }
@@ -1662,14 +1651,16 @@ function bindEvents(){
       }
       render();
     }
-    // Exercise note
-    if(t.getAttribute("data-action")==="set-note"){
-      let nex=t.getAttribute("data-ex");
-      state.session[nex+'_note']=t.value;
-      saveDraft();
-    }
     // Track custom exercise input without re-render
     if(t.id==="ed-custom-ex"){state.customExInput=t.value;}
+    // Per-exercise note in plan editor
+    if(t.getAttribute("data-action")==="set-ex-note"&&state.editDayData){
+      let idx=parseInt(t.getAttribute("data-idx"));
+      let ex=state.editDayData.exercises[idx];
+      if(!state.editDayData.notes)state.editDayData.notes={};
+      if(t.value.trim())state.editDayData.notes[ex]=t.value.trim();
+      else delete state.editDayData.notes[ex];
+    }
     // Per-exercise sets in plan editor
     if(t.getAttribute("data-action")==="set-ex-sets"&&state.editDayData){
       let idx=parseInt(t.getAttribute("data-idx"));
@@ -1764,7 +1755,7 @@ function saveDayEdits(){
     // Editing existing day
     for(let k in PLAN){
       if(k===oldName){
-        newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exSets:d.exSets||{},exercises:d.exercises.slice()};
+        newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exSets:d.exSets||{},notes:d.notes||{},exercises:d.exercises.slice()};
       }else{
         newPlan[k]=PLAN[k];
       }
@@ -1772,7 +1763,7 @@ function saveDayEdits(){
   }else{
     // Adding new day
     for(let k2 in PLAN)newPlan[k2]=PLAN[k2];
-    newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exSets:d.exSets||{},exercises:d.exercises.slice()};
+    newPlan[d.name]={muscles:d.muscles,color:d.color,sets:d.sets,units:d.units||{},exSets:d.exSets||{},notes:d.notes||{},exercises:d.exercises.slice()};
   }
 
   PLAN=newPlan;savePlan(PLAN);
@@ -1815,14 +1806,12 @@ function initSession(day,date,exData){
       while(state.session[ex].length<ns)state.session[ex].push({kg:"",reps:""});
     });
   }
-  // Set exercise order for this session
-  state.exOrder=PLAN[day]?PLAN[day].exercises.slice():[];
   // Expand last edited exercise, fallback to first
   let lastEx=getLastEx(day);
-  if(lastEx&&state.exOrder.indexOf(lastEx)>=0){
+  if(lastEx&&PLAN[day]&&PLAN[day].exercises.indexOf(lastEx)>=0){
     state.expanded=lastEx;
   } else {
-    state.expanded=state.exOrder[0]||null;
+    state.expanded=PLAN[day]?PLAN[day].exercises[0]:null;
   }
 }
 
@@ -1830,7 +1819,7 @@ function sanitizeSession(session){
   let clean={};
   for(let ex in session){
     if(ex==='_duration'){clean[ex]=Number(session[ex])||0;continue;}
-    if(ex.endsWith('_note')){if(session[ex])clean[ex]=String(session[ex]);continue;}
+    if(ex.endsWith('_note'))continue;
     clean[ex]=[];
     for(let i=0;i<session[ex].length;i++){
       let kg=parseFloat(session[ex][i].kg)||0;
